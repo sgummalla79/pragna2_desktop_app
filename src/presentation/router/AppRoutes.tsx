@@ -15,6 +15,8 @@ const ConfigurationView = lazy(() => import('@/presentation/views/settings/Confi
 const ConnectorsView = lazy(() => import('@/presentation/views/settings/ConnectorsView/ConnectorsView'));
 const KnowledgeView = lazy(() => import('@/presentation/views/settings/KnowledgeView/KnowledgeView'));
 const AgentsView = lazy(() => import('@/presentation/views/settings/AgentsView/AgentsView'));
+const FlowsView = lazy(() => import('@/presentation/views/settings/FlowsView/FlowsView'));
+const FlowDetailView = lazy(() => import('@/presentation/views/settings/FlowDetailView/FlowDetailView'));
 const PlaceholderView = lazy(() => import('@/presentation/views/settings/PlaceholderView'));
 
 // ── Chat ────────────────────────────────────────────────────────────────────
@@ -38,7 +40,8 @@ export function AppRoutes() {
           <Route path={ROUTES.SETTINGS_CONNECTORS} element={<ConnectorsView />} />
           <Route path={ROUTES.SETTINGS_KNOWLEDGE} element={<KnowledgeView />} />
           <Route path={ROUTES.SETTINGS_AGENTS} element={<AgentsView />} />
-          <Route path={ROUTES.SETTINGS_FLOWS} element={<PlaceholderView />} />
+          <Route path={ROUTES.SETTINGS_FLOWS} element={<FlowsView />} />
+          <Route path={ROUTES.SETTINGS_FLOW_DETAIL} element={<FlowDetailView />} />
           <Route path={ROUTES.SETTINGS_APPEARANCE} element={<PlaceholderView />} />
           <Route path={ROUTES.SETTINGS_PROFILE} element={<PlaceholderView />} />
         </Route>

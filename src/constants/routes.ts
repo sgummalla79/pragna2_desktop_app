@@ -17,6 +17,7 @@ export const ROUTES = {
   SETTINGS_KNOWLEDGE:     '/settings/knowledge',
   SETTINGS_AGENTS:        '/settings/agents',
   SETTINGS_FLOWS:         '/settings/flows',
+  SETTINGS_FLOW_DETAIL:   '/settings/flows/:flowId',
   SETTINGS_APPEARANCE:    '/settings/appearance',
   SETTINGS_PROFILE:       '/settings/profile',
 } as const;

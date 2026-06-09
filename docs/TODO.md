@@ -27,6 +27,8 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 | [TD-017](#td-017--evaluate-streamdown-transitive-weight) | Evaluate Streamdown transitive weight | Chat | P3 | open |
 | [TD-018](#td-018--historical-tool-call-badges-not-rehydrated) | Historical tool-call badges not rehydrated | Chat | P3 | open |
 | [TD-019](#td-019--chat-markdown-katex-math--sketchon-diagrams) | Chat markdown: KaTeX math + sketchon diagrams | Chat | P3 | open |
+| [TD-020](#td-020--agent-flows-phase-2-interactive-editor) | Agent Flows Phase 2: interactive editor | Flows | P2 | done |
+| [TD-021](#td-021--flow-editor-advanced-sub-features) | Flow editor: advanced sub-features | Flows | P3 | open |
 
 ---
 
@@ -361,3 +363,68 @@ diagram plugin (`<sketchon-diagram>`).
 **Done when:** math and sketchon diagrams render (decide alongside
 [TD-017](#td-017--evaluate-streamdown-transitive-weight), since they affect the
 renderer choice).
+
+---
+
+## TD-020 — Agent Flows Phase 2: interactive editor
+
+**Area:** Flows · **Priority:** P2 · **Status:** open
+
+**What:** Agent Flows Phase 1 ships flow list + CRUD, slash-exposure, YAML
+authoring (validate/save), and a **read-only** canvas. Phase 2 makes the canvas
+an interactive editor: drag/connect/delete nodes, a node palette, per-node and
+per-edge side panels (agent / decision / connector / knowledge / edge-condition +
+dispatch), **graph→YAML** serialization (the inverse of the read-only
+`layoutFlow`), a zustand editor store wiring canvas ⇄ YAML bidirectionally, and
+drag-**position persistence** (`PATCH /api/flows/{id}` with `metadata.positions`).
+Likely also a full-page editor route (the web app uses `/flows/:id/edit`).
+
+**Where (to add):** `src/presentation/views/settings/FlowDetailView/` (or a new
+`FlowEditorView/`) — `graphToYaml.ts`, `useFlowEditorStore.ts`, the side-panel
+components, editable node/edge variants; add `js-yaml` + restore an
+`updatePositions` method on `IFlowRepository`/`FlowService`/`FlowRepository`.
+
+**Approach:** Port the web app's `FlowEditorView` (canvas ~900 lines + ~500-line
+store + 6 panels). Reuse the Phase 1 `layoutFlow`, `canvasNodes`, `ConditionEdge`,
+`edgeConditions`, and the flow data layer.
+
+**Done when:** a user can build/edit a flow graph visually, the YAML round-trips
+canvas ⇄ text, and node positions persist across reloads.
+
+**Done (2026-06-09):** Interactive editor shipped — editable reactflow canvas
+(drag/connect/delete), node palette, per-node/edge side panels, `js-yaml`
+graph→YAML serialization via a zustand store, and Save (validate → save-by-id)
+with positions persisted in `metadata.positions`. Ported from the web app's
+`FlowEditorView` into `src/presentation/views/settings/FlowDetailView/`. Remaining
+advanced sub-feature UIs are split out to [TD-021](#td-021--flow-editor-advanced-sub-features).
+
+---
+
+## TD-021 — Flow editor: advanced sub-features
+
+**Area:** Flows · **Priority:** P3 · **Status:** open
+
+**What:** The interactive editor (TD-020) omits the editing **UI** for the most
+advanced sub-features, though their data round-trips losslessly through
+`buildEditorGraph`/`graphToYaml`/the store:
+- **Dynamic-dispatch fan-out** (#35: `dispatch_mode`/`items_slot`/`item_slot`) —
+  shown as a read-only "per-item" edge chip; no editor in `EdgePanel`.
+- **Context slots** (#26: inputs/outputs/reducers) — carried; minimal/!no UI.
+- An editable **YAML/source view** (Phase 1 had a CodeMirror panel; the editor
+  superseded it — re-add as a toggle if users want raw editing).
+- **Connector inline-register** — the connector picker selects from already-
+  connected MCP connectors (`useMcpConnectors`); registering a new one inline
+  (as the web app's editor does) is deferred.
+
+**Where:** `src/presentation/views/settings/FlowDetailView/{EdgePanel,NodePanel,ConnectorPanel,FlowEditor}.tsx`.
+
+**Done when:** these sub-features are editable in the UI (decide which are worth
+surfacing vs. leaving to YAML).
+
+---
+
+> **Cross-link:** [TD-013](#td-013--chat-slash-commands--flow-dispatch) (chat slash
+> dispatch) and [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals)
+> (chat HITL episodes) are now **unblocked** by the Agent Flows Phase 1 flow layer
+> (`useFlows`, `FlowService`, `flow.types`). They remain deferred to the chat ↔
+> flows integration pass.

@@ -81,6 +81,16 @@ export const ERRORS = {
   // ── Streaming (chat transport) ──────────────────────────────────────────────
   STREAM_001: { code: 'STREAM_001', message: 'Lost connection to the assistant. Please try again.', severity: 'error' },
 
+  // ── Agent Flows ─────────────────────────────────────────────────────────────
+  FLW_001: { code: 'FLW_001', message: 'Failed to load flows.', severity: 'error' },
+  FLW_002: { code: 'FLW_002', message: 'Failed to load this flow.', severity: 'error' },
+  FLW_003: { code: 'FLW_003', message: 'Failed to create the flow. Check the fields and try again.', severity: 'error' },
+  FLW_004: { code: 'FLW_004', message: 'Failed to delete the flow.', severity: 'error' },
+  FLW_005: { code: 'FLW_005', message: 'Failed to save the flow. Fix the validation errors and try again.', severity: 'error' },
+  FLW_006: { code: 'FLW_006', message: 'Failed to update slash exposure.', severity: 'error' },
+  FLW_007: { code: 'FLW_007', message: 'A flow with this name already exists.', severity: 'warn' },
+  FLW_008: { code: 'FLW_008', message: 'Slash name must be lowercase letters, digits, and hyphens (e.g. my-flow).', severity: 'warn' },
+
   // ── Network / HTTP ────────────────────────────────────────────────────────
   NET_401: { code: 'NET_401', message: 'Your session has expired. Please sign in again.', severity: 'warn' },
   NET_403: { code: 'NET_403', message: 'You do not have permission to perform this action.', severity: 'warn' },

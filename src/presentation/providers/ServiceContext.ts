@@ -9,6 +9,7 @@ import type { ToolService } from '@/application/services/ToolService';
 import type { KnowledgeService } from '@/application/services/KnowledgeService';
 import type { AgentService } from '@/application/services/AgentService';
 import type { ConversationService } from '@/application/services/ConversationService';
+import type { FlowService } from '@/application/services/FlowService';
 
 /**
  * Dependency-injection container for application services.
@@ -36,6 +37,8 @@ export interface Services {
   agentService: AgentService;
   /** The user's chat conversations + messages (/api/conversations). */
   conversationService: ConversationService;
+  /** The user's agent flows (/api/flows). */
+  flowService: FlowService;
 }
 
 export const ServiceContext = createContext<Services | null>(null);
