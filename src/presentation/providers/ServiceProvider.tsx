@@ -4,7 +4,13 @@ import { applyAuthInterceptor } from '@/infrastructure/http/authInterceptor';
 import { applyCorrelationInterceptor } from '@/infrastructure/http/correlationInterceptor';
 import { Auth0Repository } from '@/infrastructure/auth0/Auth0Repository';
 import { TauriLoopbackAuthFlow } from '@/infrastructure/auth0/tauriLoopbackAuthFlow';
+import { LlmProviderRepository } from '@/infrastructure/repositories/LlmProviderRepository';
+import { ProviderRepository } from '@/infrastructure/repositories/ProviderRepository';
+import { ModelRepository } from '@/infrastructure/repositories/ModelRepository';
 import { AuthService } from '@/application/services/AuthService';
+import { LlmProviderService } from '@/application/services/LlmProviderService';
+import { ProviderService } from '@/application/services/ProviderService';
+import { ModelService } from '@/application/services/ModelService';
 import { useAuthStore } from '@/presentation/store/authStore';
 import { ServiceContext } from './ServiceContext';
 
@@ -30,6 +36,9 @@ export function ServiceProvider({ children }: ServiceProviderProps) {
 
     return {
       authService: new AuthService(authRepo),
+      llmProviderService: new LlmProviderService(new LlmProviderRepository(axiosClient)),
+      providerService: new ProviderService(new ProviderRepository(axiosClient)),
+      modelService: new ModelService(new ModelRepository(axiosClient)),
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

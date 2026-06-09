@@ -1,0 +1,116 @@
+import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
+import {
+  AxiosError,
+  AxiosHeaders,
+  type AxiosAdapter,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
+} from 'axios';
+
+/**
+ * Axios adapter that performs requests via Tauri's native HTTP plugin instead
+ * of the webview `fetch`. Requests run in Rust, so the browser same-origin/CORS
+ * policy never applies — the desktop app can call the pragna backend (and any
+ * cross-origin API) identically in dev and a packaged build.
+ *
+ * Only the transport changes: axios still runs its interceptors and
+ * transformRequest/Response, so request bodies arrive here already serialised
+ * and `validateStatus` is honoured below (a 401 still becomes an AxiosError with
+ * `.response`, which the auth interceptor relies on).
+ */
+
+/** Build the absolute URL including baseURL and serialised query params. */
+function buildUrl(config: InternalAxiosRequestConfig): string {
+  const base = config.baseURL ?? '';
+  const path = config.url ?? '';
+  const joined =
+    base && path && !/^https?:\/\//i.test(path)
+      ? `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`
+      : path || base;
+
+  if (!config.params) return joined;
+  const usp = new URLSearchParams();
+  for (const [key, value] of Object.entries(config.params as Record<string, unknown>)) {
+    if (value === undefined || value === null) continue;
+    usp.append(key, String(value));
+  }
+  const qs = usp.toString();
+  if (!qs) return joined;
+  return joined.includes('?') ? `${joined}&${qs}` : `${joined}?${qs}`;
+}
+
+/** Flatten axios headers (AxiosHeaders or plain object) into a string record. */
+function toHeaderRecord(config: InternalAxiosRequestConfig): Record<string, string> {
+  const headers = AxiosHeaders.from(config.headers).toJSON();
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    if (value === undefined || value === null) continue;
+    out[key] = Array.isArray(value) ? value.join(', ') : String(value);
+  }
+  return out;
+}
+
+export const tauriHttpAdapter: AxiosAdapter = async (config) => {
+  const url = buildUrl(config);
+  const method = (config.method ?? 'get').toUpperCase();
+  const hasBody = config.data !== undefined && config.data !== null && method !== 'GET' && method !== 'HEAD';
+
+  let res: Response;
+  try {
+    res = await tauriFetch(url, {
+      method,
+      headers: toHeaderRecord(config),
+      // axios's transformRequest has already serialised objects to a JSON string.
+      body: hasBody ? (config.data as BodyInit) : undefined,
+      signal: config.signal as AbortSignal | undefined,
+    });
+  } catch (err) {
+    throw new AxiosError(
+      err instanceof Error ? err.message : 'Network request failed',
+      AxiosError.ERR_NETWORK,
+      config,
+      undefined,
+    );
+  }
+
+  const responseType = config.responseType ?? 'json';
+  let data: unknown;
+  if (responseType === 'text') {
+    data = await res.text();
+  } else {
+    const text = await res.text();
+    data = text ? safeJsonParse(text) : null;
+  }
+
+  const responseHeaders = new AxiosHeaders();
+  res.headers.forEach((value, key) => responseHeaders.set(key, value));
+
+  const response: AxiosResponse = {
+    data,
+    status: res.status,
+    statusText: res.statusText,
+    headers: responseHeaders,
+    config,
+    request: undefined,
+  };
+
+  const validate = config.validateStatus;
+  if (!validate || validate(res.status)) {
+    return response;
+  }
+  throw new AxiosError(
+    `Request failed with status code ${res.status}`,
+    res.status >= 500 ? AxiosError.ERR_BAD_RESPONSE : AxiosError.ERR_BAD_REQUEST,
+    config,
+    undefined,
+    response,
+  );
+};
+
+function safeJsonParse(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}

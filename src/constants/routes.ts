@@ -6,9 +6,19 @@ export const ROUTES = {
   REGISTER:       '/register',
 
   // ── Main ─────────────────────────────────────────────────────────────────
-  // Post-login landing. The full chat surface is not yet ported into the
-  // desktop app — this currently resolves to a minimal "signed in" placeholder.
+  // Post-login landing is currently Settings; chat becomes the landing later.
   CHAT:           '/chat',
+
+  // ── Settings ─────────────────────────────────────────────────────────────
+  SETTINGS:               '/settings',
+  SETTINGS_CONFIGURATION: '/settings/configuration',
+  SETTINGS_PROVIDERS:     '/settings/providers',
+  SETTINGS_CONNECTORS:    '/settings/connectors',
+  SETTINGS_KNOWLEDGE:     '/settings/knowledge',
+  SETTINGS_AGENTS:        '/settings/agents',
+  SETTINGS_FLOWS:         '/settings/flows',
+  SETTINGS_APPEARANCE:    '/settings/appearance',
+  SETTINGS_PROFILE:       '/settings/profile',
 } as const;
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];

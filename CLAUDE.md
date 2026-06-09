@@ -59,6 +59,10 @@ src-tauri/
   (with pros/cons) and get a decision rather than picking silently. Reasonable defaults may be
   stated and used only for genuinely trivial choices.
 
+### Branch Per UI Part
+- **Start each new UI feature/part on its own git branch** (e.g. `settings-providers`). Never build a
+  new UI area directly on `main`. Branch first, implement, then commit/push/merge when the user asks.
+
 ### Responsive Design — Required Before Every Commit
 - **Every UI page/screen MUST be built as a responsive web design.** Layouts must adapt
   gracefully across all viewport sizes — a narrow/resized desktop window, small displays, and

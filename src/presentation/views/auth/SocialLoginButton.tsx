@@ -26,7 +26,7 @@ export function SocialLoginButton({ connection, loading, disabled, onClick }: Pr
       aria-busy={loading}
       className={cn(
         'flex w-full items-center justify-center gap-2.5 rounded-lg px-4 py-2.5',
-        'text-[14px] font-semibold transition-colors duration-150',
+        'text-sm font-semibold transition-colors duration-150',
         'border border-border bg-input text-foreground',
         'hover:bg-accent hover:text-accent-foreground hover:border-primary/30',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',

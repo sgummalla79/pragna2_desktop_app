@@ -64,11 +64,11 @@ export function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-[380px] flex flex-col gap-[18px] rounded-2xl border border-border bg-popover text-popover-foreground p-9 shadow-2xl">
+    <div className="w-full max-w-[380px] flex flex-col gap-[18px] rounded-xl border border-border bg-popover text-popover-foreground p-9 shadow-2xl">
       {/* Brand — logo + app name */}
       <div className="flex flex-col items-center gap-2.5 pb-2">
         <PragnaLogo className="h-16 w-16" aria-hidden="true" />
-        <span className="text-[32px] font-bold leading-none tracking-tight text-foreground">
+        <span className="text-3xl font-bold leading-none tracking-tight text-foreground">
           {APP_NAME}
         </span>
       </div>
@@ -77,7 +77,7 @@ export function LoginForm() {
       {error && (
         <div
           role="alert"
-          className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2.5 text-[13px] text-destructive"
+          className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
         >
           <AlertCircle size={14} className="mt-[1px] flex-shrink-0" aria-hidden="true" />
           {error}
@@ -131,7 +131,7 @@ export function LoginForm() {
       </form>
 
       {/* Divider */}
-      <div className="flex items-center gap-2.5 text-[12px] text-muted-foreground">
+      <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
         <span className="flex-1 h-px bg-border" />
         or
         <span className="flex-1 h-px bg-border" />
@@ -140,7 +140,7 @@ export function LoginForm() {
       {/* Social connections */}
       <div className="flex flex-col gap-2">
         {connectionsLoading && (
-          <p className="text-center text-[13px] text-muted-foreground py-2">
+          <p className="text-center text-sm text-muted-foreground py-2">
             Loading sign-in options…
           </p>
         )}
@@ -157,7 +157,7 @@ export function LoginForm() {
       </div>
 
       {/* Register link */}
-      <p className="text-center text-[13px] text-muted-foreground mt-1">
+      <p className="text-center text-sm text-muted-foreground mt-1">
         No account?{' '}
         <Link
           to={ROUTES.REGISTER}

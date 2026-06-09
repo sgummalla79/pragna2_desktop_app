@@ -12,9 +12,13 @@
   "app": {
     "windows": [
       {
-        "title": "Pragna2",
-        "width": 800,
-        "height": 600
+        "title": "Pragna",
+        "width": 1100,
+        "height": 760,
+        "minWidth": 720,
+        "minHeight": 500,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
       }
     ],
     "security": {

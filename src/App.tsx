@@ -24,6 +24,10 @@ export default function App() {
       <BrowserRouter>
         <ServiceProvider>
           <BootstrapGate />
+          {/* Overlay title bar (see tauri.conf): the webview fills the whole
+              window, so this thin strip at the very top is the draggable
+              "title bar" region. macOS traffic lights float over its left. */}
+          <div data-tauri-drag-region className="fixed inset-x-0 top-0 h-7 z-30" />
           {/* Each route owns its own layout; this wrapper just guarantees a
               min viewport height so short pages don't collapse. */}
           <main className="min-h-screen">
