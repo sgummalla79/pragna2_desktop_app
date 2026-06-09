@@ -59,6 +59,15 @@ src-tauri/
   (with pros/cons) and get a decision rather than picking silently. Reasonable defaults may be
   stated and used only for genuinely trivial choices.
 
+### Responsive Design — Required Before Every Commit
+- **Every UI page/screen MUST be built as a responsive web design.** Layouts must adapt
+  gracefully across all viewport sizes — a narrow/resized desktop window, small displays, and
+  large/wide displays alike. Use fluid layouts and responsive units; no fixed widths that overflow
+  or clip; content must stay readable and usable down to narrow widths.
+- **This is a strict pre-commit gate.** Before committing any change that touches UI, verify the
+  affected pages render and remain usable from narrow → wide widths. Do not commit UI that breaks
+  or overflows at smaller sizes.
+
 ### Error Handling
 - Explicit error handling everywhere — no silent fallbacks, no swallowed errors, no untyped rejections.
 - Use typed error enums per layer; propagate with `?` and convert at layer boundaries.
