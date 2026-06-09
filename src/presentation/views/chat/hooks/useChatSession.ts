@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AgentSubscriber, Message } from '@ag-ui/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { PRAGNA_BASE_URL } from '@/constants/api';
+import { SLASH_COMMAND_RE } from '@/constants/slashCommands';
 import { TauriHttpAgent } from '@/infrastructure/agui/TauriHttpAgent';
 import { invalidateConversationListQueries } from '@/presentation/hooks/conversations/useConversations';
 import { useAuthStore } from '@/presentation/store/authStore';
@@ -76,6 +77,14 @@ export interface UseChatSessionOptions {
   threadId?: string;
   /** Seed messages to hydrate the agent with on mount (resume history). */
   initialMessages?: Message[];
+  /**
+   * Slash-exposed flow names (the bare `slash_api_name`, no leading `/`). When a
+   * sent message starts with `/{name}` and `{name}` is in this set, the turn is
+   * dispatched to `POST {PRAGNA_BASE_URL}/flows/{name}` instead of the default
+   * chat agent; the URL is restored on run finalize. Unknown `/foo` prefixes
+   * fall through to normal chat (the text is sent verbatim).
+   */
+  slashFlowNames?: Set<string>;
 }
 
 /**
@@ -87,13 +96,14 @@ export interface UseChatSessionOptions {
  * mirrors the agent's `messages` into local state on every event.
  *
  * `send` is a no-op while a run is in flight — the user must wait or `stop`.
- * Phase 1 supports default-agent chat only; slash dispatch, episode attach, and
- * attachments are deferred (see `docs/TODO.md`).
+ * Supports default-agent chat and per-turn `/slash` flow dispatch (see
+ * `slashFlowNames`); episode attach (HITL) and attachments are deferred (see
+ * `docs/TODO.md`).
  */
 export function useChatSession(
   options: UseChatSessionOptions = {},
 ): ChatSessionApi {
-  const { threadId, initialMessages } = options;
+  const { threadId, initialMessages, slashFlowNames } = options;
   const accessToken = useAuthStore((s) => s.accessToken);
   const qc = useQueryClient();
 
@@ -123,9 +133,15 @@ export function useChatSession(
     () => new Set(),
   );
 
-  // Captured base URL so `sendWithOverrides` can restore it after a run that
-  // appended per-turn query params (the override is per-turn, never sticky).
+  // Captured base URL so `sendWithOverrides` / slash dispatch can restore it
+  // after a run that mutated the URL per-turn (the override is never sticky).
   const overrideUrlRef = useRef<string | null>(null);
+
+  // Latest slash-flow name set, read inside the stable `send` callback so a
+  // changing Set identity never forces `send` to be recreated (which would
+  // re-fire the landing handoff effect).
+  const slashFlowNamesRef = useRef<Set<string> | undefined>(undefined);
+  slashFlowNamesRef.current = slashFlowNames;
 
   const agent = useMemo<TauriHttpAgent | null>(() => {
     if (!accessToken) return null;
@@ -356,6 +372,17 @@ export function useChatSession(
       const trimmed = text.trim();
       if (!agent || !trimmed) return;
       if (status === 'running') return;
+
+      // Per-turn slash dispatch: a `/{name} …` prefix whose name is an exposed
+      // flow routes this turn to the flow endpoint. Slash wins over any per-turn
+      // model/thinking override URL `sendWithOverrides` set just before calling
+      // here — a flow runs against its own configured model, so the query params
+      // don't apply. The base URL is restored in `onRunFinalized`.
+      const slashName = SLASH_COMMAND_RE.exec(trimmed)?.[1];
+      if (slashName && slashFlowNamesRef.current?.has(slashName)) {
+        if (overrideUrlRef.current === null) overrideUrlRef.current = agent.url;
+        agent.url = `${PRAGNA_BASE_URL}/flows/${encodeURIComponent(slashName)}`;
+      }
 
       agent.messages.push({ id: randomId(), role: 'user', content: trimmed });
       syncMessages();

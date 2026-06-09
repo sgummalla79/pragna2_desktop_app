@@ -5,6 +5,7 @@ import PragnaLogo from '@/assets/logo.svg?react';
 import { ROUTES } from '@/constants/routes';
 import { useServices } from '@/presentation/providers/ServiceContext';
 import { useDefaultAgent } from '@/presentation/hooks/agents/useAgents';
+import { usePragnaSlashFlows } from '@/presentation/hooks/flows/usePragnaSlashFlows';
 import { logger } from '@/infrastructure/logging/logger';
 import { ChatInput } from './components/ChatInput';
 import { ModelPicker } from './components/ModelPicker';
@@ -31,6 +32,9 @@ export default function ChatLandingView() {
   const { conversationService } = useServices();
   const { chatModels, isLoading: modelsLoading } = useChatModels();
   const { data: defaultAgent, isLoading: agentLoading } = useDefaultAgent();
+  // Primes the `['pragna','flows']` cache so the session view's first-turn slash
+  // dispatch sees the names synchronously on mount; also drives the popover here.
+  const { data: slashFlows } = usePragnaSlashFlows();
 
   const [draft, setDraft] = useState('');
   const [userModelId, setUserModelId] = useState<string | null>(null);
@@ -105,6 +109,7 @@ export default function ChatLandingView() {
             onSubmit={handleSend}
             disabled={!ready || creating}
             autoFocus
+            slashFlows={slashFlows}
             placeholder={ready ? 'Ask anything…' : 'Connect a model to start chatting…'}
             banner={
               gating ? (

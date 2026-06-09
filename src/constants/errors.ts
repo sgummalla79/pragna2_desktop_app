@@ -77,6 +77,7 @@ export const ERRORS = {
   CHT_005: { code: 'CHT_005', message: 'Failed to update the conversation.', severity: 'error' },
   CHT_006: { code: 'CHT_006', message: 'Failed to delete the conversation.', severity: 'error' },
   CHT_007: { code: 'CHT_007', message: 'Connect a provider and enable a chat model to start chatting.', severity: 'warn' },
+  CHT_008: { code: 'CHT_008', message: 'Failed to load slash commands.', severity: 'warn' },
 
   // ── Streaming (chat transport) ──────────────────────────────────────────────
   STREAM_001: { code: 'STREAM_001', message: 'Lost connection to the assistant. Please try again.', severity: 'error' },

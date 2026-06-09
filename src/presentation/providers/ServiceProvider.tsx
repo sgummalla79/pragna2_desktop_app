@@ -14,6 +14,7 @@ import { KnowledgeRepository } from '@/infrastructure/repositories/KnowledgeRepo
 import { AgentRepository } from '@/infrastructure/repositories/AgentRepository';
 import { ConversationRepository } from '@/infrastructure/repositories/ConversationRepository';
 import { FlowRepository } from '@/infrastructure/repositories/FlowRepository';
+import { PragnaFlowRepository } from '@/infrastructure/repositories/PragnaFlowRepository';
 import { AuthService } from '@/application/services/AuthService';
 import { LlmProviderService } from '@/application/services/LlmProviderService';
 import { ProviderService } from '@/application/services/ProviderService';
@@ -25,6 +26,7 @@ import { KnowledgeService } from '@/application/services/KnowledgeService';
 import { AgentService } from '@/application/services/AgentService';
 import { ConversationService } from '@/application/services/ConversationService';
 import { FlowService } from '@/application/services/FlowService';
+import { PragnaFlowService } from '@/application/services/PragnaFlowService';
 import { useAuthStore } from '@/presentation/store/authStore';
 import { ServiceContext } from './ServiceContext';
 
@@ -62,6 +64,7 @@ export function ServiceProvider({ children }: ServiceProviderProps) {
         new ConversationRepository(axiosClient),
       ),
       flowService: new FlowService(new FlowRepository(axiosClient)),
+      pragnaFlowService: new PragnaFlowService(new PragnaFlowRepository(axiosClient)),
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -7,6 +7,7 @@ import {
   useSetConversationModel,
   useSetThinkingEnabled,
 } from '@/presentation/hooks/conversations/useConversationMutations';
+import { usePragnaSlashFlows } from '@/presentation/hooks/flows/usePragnaSlashFlows';
 import { logger } from '@/infrastructure/logging/logger';
 import type {
   Conversation,
@@ -96,6 +97,14 @@ function ChatConversation({
     [persisted],
   );
 
+  // Slash-exposed flows for the composer popover + per-turn dispatch. Discovery
+  // failures degrade gracefully (no popover); they're logged in the hook layer.
+  const { data: slashFlows } = usePragnaSlashFlows();
+  const slashFlowNames = useMemo(
+    () => new Set((slashFlows ?? []).map((f) => f.slashApiName)),
+    [slashFlows],
+  );
+
   const {
     messages,
     status,
@@ -106,7 +115,7 @@ function ChatConversation({
     stop,
     streamingMessageIds,
     streamingModelByMessageId,
-  } = useChatSession({ threadId: conversationId, initialMessages });
+  } = useChatSession({ threadId: conversationId, initialMessages, slashFlowNames });
 
   const [draft, setDraft] = useState('');
 
@@ -195,6 +204,7 @@ function ChatConversation({
             onStop={stop}
             running={status === 'running'}
             placeholder="Reply…"
+            slashFlows={slashFlows}
             controls={
               <>
                 <ModelPicker

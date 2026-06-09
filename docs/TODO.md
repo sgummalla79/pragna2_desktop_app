@@ -20,7 +20,7 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 | [TD-005](#td-005--client-side-file-validation-for-knowledge-upload) | Client-side file validation for Knowledge upload | Knowledge | P3 | open |
 | [TD-006](#td-006--chat-action-preferences-have-no-consumer-yet) | Chat-action preferences have no consumer yet | Configuration | P3 | open |
 | [TD-012](#td-012--chat-attachments--pdf-viewer) | Chat attachments + PDF viewer | Chat | P2 | open |
-| [TD-013](#td-013--chat-slash-commands--flow-dispatch) | Chat slash commands + flow dispatch | Chat | P3 | open |
+| [TD-013](#td-013--chat-slash-commands--flow-dispatch) | Chat slash commands + flow dispatch | Chat | P3 | done |
 | [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals) | Chat HITL episodes (ask_user forms + flow proposals) | Chat | P2 | open |
 | [TD-015](#td-015--chat-message-actions-edit--branch--regenerate--continue) | Chat message actions (edit / branch / regenerate / continue) | Chat | P3 | open |
 | [TD-016](#td-016--chat-conversation-usage--cost-panel) | Chat conversation usage + cost panel | Chat | P3 | open |
@@ -239,19 +239,24 @@ receives it.
 
 ## TD-013 — Chat slash commands + flow dispatch
 
-**Area:** Chat · **Priority:** P3 · **Status:** open
+**Area:** Chat · **Priority:** P3 · **Status:** done (2026-06-09)
 
-**What:** A `/{flow-name}` prefix should route a turn to the deterministic
+**What:** A `/{flow-name}` prefix routes a turn to the deterministic
 `POST {PRAGNA_BASE_URL}/flows/{name}` endpoint instead of `/chat`, with a
-slash-command popover sourced from `GET {PRAGNA_BASE_URL}/flows`. Phase 1 always
-posts to `/chat`.
+slash-command popover sourced from `GET {PRAGNA_BASE_URL}/flows`.
 
-**Where (to add):** `useChatSession` (slash detection + per-turn URL override —
-the `overrideUrlRef` restore seam already exists), a `usePragnaSlashFlows` hook,
-and a `SlashCommandPopover` in `ChatInput`.
+**Shipped:** `usePragnaSlashFlows` (+ `PragnaFlowService`/`PragnaFlowRepository`/
+`mapPragnaSlashFlow`/`PragnaSlashFlow`, DI registered), `SlashCommandPopover` +
+slash detection/keyboard nav/accept inside `ChatInput`, and per-turn URL
+dispatch in `useChatSession` (`slashFlowNames` option; reuses the existing
+`overrideUrlRef` restore seam; slash wins over model/thinking overrides).
+Constants in `constants/slashCommands.ts`; discovery failure → `CHT_008` (silent
+popover). Specs: `docs/specs/{features,technical}/slash-commands.md`.
 
-**Done when:** typing `/<flow>` dispatches that flow and the popover lists the
-user's slash-exposed flows. Pairs with the Agent Flows feature.
+**Not included (still TD-014):** HITL ask_user forms + flow proposals + resume.
+
+**Verify live:** `pnpm tauri dev` → expose a flow as a slash in Settings →
+Flows, then in chat type `/<name> …` and confirm the popover + flow dispatch.
 
 ---
 
@@ -423,8 +428,8 @@ surfacing vs. leaving to YAML).
 
 ---
 
-> **Cross-link:** [TD-013](#td-013--chat-slash-commands--flow-dispatch) (chat slash
-> dispatch) and [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals)
-> (chat HITL episodes) are now **unblocked** by the Agent Flows Phase 1 flow layer
-> (`useFlows`, `FlowService`, `flow.types`). They remain deferred to the chat ↔
-> flows integration pass.
+> **Cross-link:** the chat ↔ flows integration was unblocked by the Agent Flows
+> flow layer (`useFlows`, `FlowService`, `flow.types`).
+> [TD-013](#td-013--chat-slash-commands--flow-dispatch) (chat slash dispatch) is
+> now **done**; [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals)
+> (chat HITL episodes) remains the deferred half.

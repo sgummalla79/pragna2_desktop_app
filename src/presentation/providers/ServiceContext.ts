@@ -10,6 +10,7 @@ import type { KnowledgeService } from '@/application/services/KnowledgeService';
 import type { AgentService } from '@/application/services/AgentService';
 import type { ConversationService } from '@/application/services/ConversationService';
 import type { FlowService } from '@/application/services/FlowService';
+import type { PragnaFlowService } from '@/application/services/PragnaFlowService';
 
 /**
  * Dependency-injection container for application services.
@@ -39,6 +40,8 @@ export interface Services {
   conversationService: ConversationService;
   /** The user's agent flows (/api/flows). */
   flowService: FlowService;
+  /** Chat slash-command discovery for the composer (/api/pragna/flows). */
+  pragnaFlowService: PragnaFlowService;
 }
 
 export const ServiceContext = createContext<Services | null>(null);
