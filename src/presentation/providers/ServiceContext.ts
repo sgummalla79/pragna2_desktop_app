@@ -3,6 +3,10 @@ import type { AuthService } from '@/application/services/AuthService';
 import type { LlmProviderService } from '@/application/services/LlmProviderService';
 import type { ProviderService } from '@/application/services/ProviderService';
 import type { ModelService } from '@/application/services/ModelService';
+import type { EmbeddingKeyService } from '@/application/services/EmbeddingKeyService';
+import type { McpConnectorService } from '@/application/services/McpConnectorService';
+import type { ToolService } from '@/application/services/ToolService';
+import type { KnowledgeService } from '@/application/services/KnowledgeService';
 
 /**
  * Dependency-injection container for application services.
@@ -18,6 +22,14 @@ export interface Services {
   providerService: ProviderService;
   /** The user's models (/api/user-models). */
   modelService: ModelService;
+  /** The user's per-user embedding (Voyage) key (/api/auth/me/embedding-key). */
+  embeddingKeyService: EmbeddingKeyService;
+  /** The user's MCP connectors (/api/mcp-connectors). */
+  mcpConnectorService: McpConnectorService;
+  /** The user's tools inventory (/api/tools). */
+  toolService: ToolService;
+  /** The user's knowledge libraries (/api/knowledge-libraries). */
+  knowledgeService: KnowledgeService;
 }
 
 export const ServiceContext = createContext<Services | null>(null);

@@ -1,0 +1,135 @@
+/**
+ * Domain types for MCP (Model Context Protocol) connector registrations.
+ *
+ * FE for `/api/mcp-connectors/*`. The BE serialises in snake_case; mappers in
+ * `infrastructure/repositories/mappers/mapMcpConnector.ts` translate at the
+ * boundary. UI code only sees the camelCase shapes here.
+ */
+
+/** Transport discriminator on an `McpConnector`. `http` = HTTP-SSE;
+ *  `streamable_http` = the modern remote transport used by OAuth-era servers.
+ *  The local `stdio` transport is intentionally not supported in the app. */
+export type McpTransport = 'http' | 'streamable_http';
+
+/** Lifecycle status — mirrors the BE `mcp_connectors.status` column.
+ *  `active` = usable; `inactive` = parked (hidden from runtime); `archived` =
+ *  soft-deleted. */
+export type McpConnectorStatus = 'active' | 'inactive' | 'archived';
+
+/** Auth strategy discriminator — one of the BE `SUPPORTED_AUTH_TYPES`.
+ *  Drives the registration form; the stored credentials are a generic
+ *  injection list regardless (except `oauth`, which has no static creds). */
+export type McpAuthType = 'none' | 'bearer' | 'api_key' | 'headers' | 'oauth';
+
+/** Where a single credential value is injected on each upstream request. */
+export type InjectionLocation = 'header' | 'query_param';
+
+/** One credential injection — the BE stores `credentials` as a list of these,
+ *  encrypted at rest. */
+export interface CredentialInjection {
+  location: InjectionLocation;
+  name: string;
+  value: string;
+}
+
+/** The canonical credentials shape sent to / understood by the BE. */
+export interface ConnectorCredentials {
+  injections: CredentialInjection[];
+}
+
+/** Per-connector tool count summary returned by `GET /api/mcp-connectors`. */
+export interface McpConnectorToolCounts {
+  total: number;
+  enabled: number;
+}
+
+/** One row from `/api/mcp-connectors` (or the create / update response). */
+export interface McpConnector {
+  /** UUID of the mcp_connectors record. */
+  id: string;
+  /** User-facing label (unique per user among non-archived rows). */
+  displayName: string;
+  /** Optional prose describing the connector. */
+  description: string | null;
+  /** Transport discriminator. */
+  transport: McpTransport;
+  /**
+   * Transport-specific shape (both remote transports key off `url`):
+   *  - `{ url: string }`
+   *
+   * Kept as `Record<string, unknown>` here so we don't discriminate at the
+   * type level in every consumer.
+   */
+  config: Record<string, unknown>;
+  /** Auth strategy discriminator. */
+  authType: McpAuthType;
+  /** True when encrypted credentials are stored on the BE.
+   *  The ciphertext itself is NEVER returned by the BE. */
+  hasCredentials: boolean;
+  /** True once the OAuth connect flow has stored tokens (the "connected"
+   *  signal). Only meaningful for `authType === 'oauth'`. The tokens
+   *  themselves are never returned. */
+  hasOauthTokens: boolean;
+  /** Lifecycle status. */
+  status: McpConnectorStatus;
+  /** Populated on `list` responses; may be `null` on create / update
+   *  responses where the BE didn't compute it. */
+  tools: McpConnectorToolCounts | null;
+  /** ISO-8601 timestamps from the BE. */
+  createdAt: string;
+  modifiedAt: string;
+}
+
+/** The 201 response from `POST /api/mcp-connectors` extends `McpConnector`
+ *  with the list of api_names discovered at registration time. */
+export interface RegisteredMcpConnector extends McpConnector {
+  discoveredToolApiNames: string[];
+}
+
+/** Body for `POST /api/mcp-connectors`. */
+export interface CreateMcpConnectorPayload {
+  displayName: string;
+  description?: string;
+  transport: McpTransport;
+  /** Transport-specific shape — see `McpConnector.config`. */
+  config: Record<string, unknown>;
+  authType: McpAuthType;
+  /** Optional injection-list credentials (encrypted at rest by the BE).
+   *  Omitted for `none` / `oauth`. */
+  credentials?: ConnectorCredentials;
+}
+
+/** Body for `PATCH /api/mcp-connectors/{id}`. Every field optional;
+ *  set `clearCredentials: true` to wipe stored credentials regardless
+ *  of `credentials`. */
+export interface UpdateMcpConnectorPayload {
+  displayName?: string;
+  description?: string;
+  authType?: McpAuthType;
+  status?: McpConnectorStatus;
+  credentials?: ConnectorCredentials;
+  clearCredentials?: boolean;
+}
+
+/** Response from `POST /api/mcp-connectors/{id}/refresh-tools`. */
+export interface RefreshToolsResult {
+  added: number;
+  unchanged: number;
+  archived: number;
+}
+
+/** Body for `POST /api/mcp-connectors/{id}/oauth-authorization`. Both fields
+ *  are only used on the manual-client fallback (an authorization server with
+ *  no dynamic client registration). */
+export interface StartOAuthPayload {
+  clientId?: string;
+  clientSecret?: string;
+}
+
+/** Response from `POST /api/mcp-connectors/{id}/oauth-authorization`. Exactly
+ *  one state is meaningful: an `authorizationUrl` to open in the browser, or
+ *  `requiresManualClient=true` (collect a client_id and re-call). */
+export interface StartOAuthResult {
+  authorizationUrl: string | null;
+  requiresManualClient: boolean;
+}

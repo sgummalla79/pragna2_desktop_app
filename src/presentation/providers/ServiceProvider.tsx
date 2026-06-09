@@ -7,10 +7,18 @@ import { TauriLoopbackAuthFlow } from '@/infrastructure/auth0/tauriLoopbackAuthF
 import { LlmProviderRepository } from '@/infrastructure/repositories/LlmProviderRepository';
 import { ProviderRepository } from '@/infrastructure/repositories/ProviderRepository';
 import { ModelRepository } from '@/infrastructure/repositories/ModelRepository';
+import { EmbeddingKeyRepository } from '@/infrastructure/repositories/EmbeddingKeyRepository';
+import { McpConnectorRepository } from '@/infrastructure/repositories/McpConnectorRepository';
+import { ToolRepository } from '@/infrastructure/repositories/ToolRepository';
+import { KnowledgeRepository } from '@/infrastructure/repositories/KnowledgeRepository';
 import { AuthService } from '@/application/services/AuthService';
 import { LlmProviderService } from '@/application/services/LlmProviderService';
 import { ProviderService } from '@/application/services/ProviderService';
 import { ModelService } from '@/application/services/ModelService';
+import { EmbeddingKeyService } from '@/application/services/EmbeddingKeyService';
+import { McpConnectorService } from '@/application/services/McpConnectorService';
+import { ToolService } from '@/application/services/ToolService';
+import { KnowledgeService } from '@/application/services/KnowledgeService';
 import { useAuthStore } from '@/presentation/store/authStore';
 import { ServiceContext } from './ServiceContext';
 
@@ -39,6 +47,10 @@ export function ServiceProvider({ children }: ServiceProviderProps) {
       llmProviderService: new LlmProviderService(new LlmProviderRepository(axiosClient)),
       providerService: new ProviderService(new ProviderRepository(axiosClient)),
       modelService: new ModelService(new ModelRepository(axiosClient)),
+      embeddingKeyService: new EmbeddingKeyService(new EmbeddingKeyRepository(axiosClient)),
+      mcpConnectorService: new McpConnectorService(new McpConnectorRepository(axiosClient)),
+      toolService: new ToolService(new ToolRepository(axiosClient)),
+      knowledgeService: new KnowledgeService(new KnowledgeRepository(axiosClient)),
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

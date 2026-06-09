@@ -34,6 +34,32 @@ export const ERRORS = {
   MDL_002: { code: 'MDL_002', message: 'Failed to register model.', severity: 'error' },
   MDL_003: { code: 'MDL_003', message: 'Failed to remove model.', severity: 'error' },
 
+  // ── Configuration (embedding key) ───────────────────────────────────────────
+  CFG_001: { code: 'CFG_001', message: 'Failed to load your embedding key status.', severity: 'error' },
+  CFG_002: { code: 'CFG_002', message: 'Failed to save the embedding key. Check the key and try again.', severity: 'error' },
+  CFG_003: { code: 'CFG_003', message: 'Failed to clear the embedding key.', severity: 'error' },
+
+  // ── Connectors (MCP) ─────────────────────────────────────────────────────────
+  CON_001: { code: 'CON_001', message: 'Failed to load connectors.', severity: 'error' },
+  CON_002: { code: 'CON_002', message: 'Failed to register the connector. Check the URL and credentials.', severity: 'error' },
+  CON_003: { code: 'CON_003', message: 'Failed to update the connector.', severity: 'error' },
+  CON_004: { code: 'CON_004', message: 'Failed to remove the connector.', severity: 'error' },
+  CON_005: { code: 'CON_005', message: 'Failed to refresh the connector tools.', severity: 'error' },
+  CON_006: { code: 'CON_006', message: 'Failed to start the connection. Please try again.', severity: 'error' },
+
+  // ── Tools ─────────────────────────────────────────────────────────────────
+  TOOL_001: { code: 'TOOL_001', message: 'Failed to load tools.', severity: 'error' },
+  TOOL_002: { code: 'TOOL_002', message: 'Failed to update the tool.', severity: 'error' },
+
+  // ── Knowledge ────────────────────────────────────────────────────────────────
+  KNW_001: { code: 'KNW_001', message: 'Failed to load knowledge libraries.', severity: 'error' },
+  KNW_002: { code: 'KNW_002', message: 'Failed to create the library.', severity: 'error' },
+  KNW_003: { code: 'KNW_003', message: 'Failed to remove the library.', severity: 'error' },
+  KNW_004: { code: 'KNW_004', message: 'Failed to load documents.', severity: 'error' },
+  KNW_005: { code: 'KNW_005', message: 'Failed to add the document.', severity: 'error' },
+  KNW_006: { code: 'KNW_006', message: 'Failed to upload the file.', severity: 'error' },
+  KNW_007: { code: 'KNW_007', message: 'Failed to delete the document.', severity: 'error' },
+
   // ── Network / HTTP ────────────────────────────────────────────────────────
   NET_401: { code: 'NET_401', message: 'Your session has expired. Please sign in again.', severity: 'warn' },
   NET_403: { code: 'NET_403', message: 'You do not have permission to perform this action.', severity: 'warn' },

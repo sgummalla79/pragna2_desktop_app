@@ -11,6 +11,9 @@ const RegisterView = lazy(() => import('@/presentation/views/auth/RegisterView')
 
 // ── Settings views ────────────────────────────────────────────────────────────
 const ProvidersView = lazy(() => import('@/presentation/views/settings/ProvidersView/ProvidersView'));
+const ConfigurationView = lazy(() => import('@/presentation/views/settings/ConfigurationView/ConfigurationView'));
+const ConnectorsView = lazy(() => import('@/presentation/views/settings/ConnectorsView/ConnectorsView'));
+const KnowledgeView = lazy(() => import('@/presentation/views/settings/KnowledgeView/KnowledgeView'));
 const PlaceholderView = lazy(() => import('@/presentation/views/settings/PlaceholderView'));
 
 // Post-login placeholder home (kept for when chat becomes the landing).
@@ -28,9 +31,9 @@ export function AppRoutes() {
         <Route path={ROUTES.SETTINGS} element={<ProtectedRoute><SettingsLayout /></ProtectedRoute>}>
           <Route index element={<Navigate to={ROUTES.SETTINGS_PROVIDERS} replace />} />
           <Route path={ROUTES.SETTINGS_PROVIDERS} element={<ProvidersView />} />
-          <Route path={ROUTES.SETTINGS_CONFIGURATION} element={<PlaceholderView />} />
-          <Route path={ROUTES.SETTINGS_CONNECTORS} element={<PlaceholderView />} />
-          <Route path={ROUTES.SETTINGS_KNOWLEDGE} element={<PlaceholderView />} />
+          <Route path={ROUTES.SETTINGS_CONFIGURATION} element={<ConfigurationView />} />
+          <Route path={ROUTES.SETTINGS_CONNECTORS} element={<ConnectorsView />} />
+          <Route path={ROUTES.SETTINGS_KNOWLEDGE} element={<KnowledgeView />} />
           <Route path={ROUTES.SETTINGS_AGENTS} element={<PlaceholderView />} />
           <Route path={ROUTES.SETTINGS_FLOWS} element={<PlaceholderView />} />
           <Route path={ROUTES.SETTINGS_APPEARANCE} element={<PlaceholderView />} />
