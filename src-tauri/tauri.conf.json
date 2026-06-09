@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Pragna2",
+  "productName": "Pragna",
   "version": "0.1.0",
   "identifier": "com.pragna2.app",
   "build": {
