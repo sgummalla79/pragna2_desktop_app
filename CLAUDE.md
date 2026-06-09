@@ -109,3 +109,17 @@ Every feature requires **two spec documents**, created before implementation and
 | Technical Spec | `docs/specs/technical/<feature-name>.md` | Architecture decisions, every method signature + docstring, data flow, error handling strategy |
 
 Use the templates in `docs/specs/templates/` as the starting point for each new spec.
+
+### Spec Docs — Required Before Every Commit
+- **This is a strict pre-commit gate, alongside the responsive-design gate.** A
+  feature may not be committed unless **both** its spec documents exist
+  (`docs/specs/features/<name>.md` and `docs/specs/technical/<name>.md`) and match
+  the implementation as shipped.
+- Before any commit that adds or changes a feature, verify the two specs are
+  present and up to date. If they are missing or stale, write/update them first —
+  do not commit code ahead of its specs.
+
+## Deferred Work — `docs/TODO.md`
+- **Do not leave free-floating `TODO`/`FIXME` notes in code.** Record deferred work
+  as an entry in [`docs/TODO.md`](docs/TODO.md) with a stable ID, and reference that
+  ID from the code (e.g. `// see docs/TODO.md TD-001`).
