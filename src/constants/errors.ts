@@ -69,6 +69,18 @@ export const ERRORS = {
   AGT_006: { code: 'AGT_006', message: "The default agent can't be archived or deactivated. Set another agent as default first.", severity: 'warn' },
   AGT_007: { code: 'AGT_007', message: 'Agent name must be lowercase letters, digits, and hyphens (e.g. my-assistant).', severity: 'warn' },
 
+  // ── Chat / Conversations ──────────────────────────────────────────────────
+  CHT_001: { code: 'CHT_001', message: 'Failed to load conversations.', severity: 'error' },
+  CHT_002: { code: 'CHT_002', message: 'Failed to start a new conversation.', severity: 'error' },
+  CHT_003: { code: 'CHT_003', message: 'Failed to load this conversation.', severity: 'error' },
+  CHT_004: { code: 'CHT_004', message: 'The assistant run failed. Please try again.', severity: 'error' },
+  CHT_005: { code: 'CHT_005', message: 'Failed to update the conversation.', severity: 'error' },
+  CHT_006: { code: 'CHT_006', message: 'Failed to delete the conversation.', severity: 'error' },
+  CHT_007: { code: 'CHT_007', message: 'Connect a provider and enable a chat model to start chatting.', severity: 'warn' },
+
+  // ── Streaming (chat transport) ──────────────────────────────────────────────
+  STREAM_001: { code: 'STREAM_001', message: 'Lost connection to the assistant. Please try again.', severity: 'error' },
+
   // ── Network / HTTP ────────────────────────────────────────────────────────
   NET_401: { code: 'NET_401', message: 'Your session has expired. Please sign in again.', severity: 'warn' },
   NET_403: { code: 'NET_403', message: 'You do not have permission to perform this action.', severity: 'warn' },

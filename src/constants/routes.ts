@@ -6,7 +6,7 @@ export const ROUTES = {
   REGISTER:       '/register',
 
   // ── Main ─────────────────────────────────────────────────────────────────
-  // Post-login landing is currently Settings; chat becomes the landing later.
+  // Post-login landing. Index → ChatLandingView; `/chat/:id` → ChatSessionView.
   CHAT:           '/chat',
 
   // ── Settings ─────────────────────────────────────────────────────────────

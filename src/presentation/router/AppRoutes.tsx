@@ -17,8 +17,10 @@ const KnowledgeView = lazy(() => import('@/presentation/views/settings/Knowledge
 const AgentsView = lazy(() => import('@/presentation/views/settings/AgentsView/AgentsView'));
 const PlaceholderView = lazy(() => import('@/presentation/views/settings/PlaceholderView'));
 
-// Post-login placeholder home (kept for when chat becomes the landing).
-const HomeView = lazy(() => import('@/presentation/views/HomeView'));
+// ── Chat ────────────────────────────────────────────────────────────────────
+const ChatView = lazy(() => import('@/presentation/views/chat/ChatView'));
+const ChatLandingView = lazy(() => import('@/presentation/views/chat/ChatLandingView'));
+const ChatSessionView = lazy(() => import('@/presentation/views/chat/ChatSessionView'));
 
 export function AppRoutes() {
   return (
@@ -41,8 +43,11 @@ export function AppRoutes() {
           <Route path={ROUTES.SETTINGS_PROFILE} element={<PlaceholderView />} />
         </Route>
 
-        {/* ── Protected placeholder home (chat lands here later) ── */}
-        <Route path={ROUTES.CHAT} element={<ProtectedRoute><HomeView /></ProtectedRoute>} />
+        {/* ── Chat (sidebar + conversation) — the post-login landing ── */}
+        <Route path={ROUTES.CHAT} element={<ProtectedRoute><ChatView /></ProtectedRoute>}>
+          <Route index element={<ChatLandingView />} />
+          <Route path=":id" element={<ChatSessionView />} />
+        </Route>
 
         {/* ── Fallback ── */}
         <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />

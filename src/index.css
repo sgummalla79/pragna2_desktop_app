@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+/* Streamdown renders chat markdown with its own Tailwind utility classes; this
+   @source makes Tailwind scan the package so those classes are generated. It
+   styles structure only — all colors resolve through our theme tokens. */
+@source "../node_modules/streamdown/dist/index.js";
 /* Theme font (Inter) is loaded via <link> in index.html — see --font-sans below. */
 
 @custom-variant dark (&:is(.dark *));

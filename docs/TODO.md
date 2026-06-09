@@ -19,6 +19,14 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 | [TD-004](#td-004--verify-multipart-knowledge-upload-against-the-live-backend) | Verify multipart Knowledge upload end-to-end | Knowledge | P2 | open |
 | [TD-005](#td-005--client-side-file-validation-for-knowledge-upload) | Client-side file validation for Knowledge upload | Knowledge | P3 | open |
 | [TD-006](#td-006--chat-action-preferences-have-no-consumer-yet) | Chat-action preferences have no consumer yet | Configuration | P3 | open |
+| [TD-012](#td-012--chat-attachments--pdf-viewer) | Chat attachments + PDF viewer | Chat | P2 | open |
+| [TD-013](#td-013--chat-slash-commands--flow-dispatch) | Chat slash commands + flow dispatch | Chat | P3 | open |
+| [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals) | Chat HITL episodes (ask_user forms + flow proposals) | Chat | P2 | open |
+| [TD-015](#td-015--chat-message-actions-edit--branch--regenerate--continue) | Chat message actions (edit / branch / regenerate / continue) | Chat | P3 | open |
+| [TD-016](#td-016--chat-conversation-usage--cost-panel) | Chat conversation usage + cost panel | Chat | P3 | open |
+| [TD-017](#td-017--evaluate-streamdown-transitive-weight) | Evaluate Streamdown transitive weight | Chat | P3 | open |
+| [TD-018](#td-018--historical-tool-call-badges-not-rehydrated) | Historical tool-call badges not rehydrated | Chat | P3 | open |
+| [TD-019](#td-019--chat-markdown-katex-math--sketchon-diagrams) | Chat markdown: KaTeX math + sketchon diagrams | Chat | P3 | open |
 
 ---
 
@@ -196,3 +204,160 @@ message before upload (limit sourced from config, not hardcoded inline).
 (`useChatPreferences`) but nothing reads them yet — the chat surface isn't built.
 
 **Done when:** the chat UI honors these preferences (revisit when chat lands).
+
+**Update (2026-06-09):** Chat Phase 1 (core streaming chat) shipped but does not
+yet consume these toggles — the Branch and Regenerate-with-model affordances they
+gate are part of the deferred message-actions work ([TD-015](#td-015--chat-message-actions-edit--branch--regenerate--continue)).
+Still open; wire when message actions land.
+
+---
+
+## TD-012 — Chat attachments + PDF viewer
+
+**Area:** Chat · **Priority:** P2 · **Status:** open
+
+**What:** Chat Phase 1 ships text-only turns. The web app supports file
+attachments (vision/PDF) on user turns — a paperclip + drop target uploading via
+`POST /api/conversations/{id}/attachments` (multipart), attachment chips under
+user turns, and a `PdfCanvas` document viewer. The send path rides attachment ids
+through AG-UI `forwardedProps.attachment_ids`.
+
+**Where (to add):** `src/presentation/views/chat/components/` (ChatInput
+attach/drop, AttachmentChip, DocumentCard, PdfCanvas); an `AttachmentRepository`
++ `attachment.types.ts`; restore `attachments` on `PersistedMessage` + its mapper.
+
+**Approach:** Reuse the hardened multipart path in
+`src/infrastructure/http/tauriHttpAdapter.ts` (see also [TD-004](#td-004--verify-multipart-knowledge-upload-against-the-live-backend)).
+Add the `attachmentIds` param back to `useChatSession.send`.
+
+**Done when:** a user can attach an image/PDF, see it on the turn, and the model
+receives it.
+
+---
+
+## TD-013 — Chat slash commands + flow dispatch
+
+**Area:** Chat · **Priority:** P3 · **Status:** open
+
+**What:** A `/{flow-name}` prefix should route a turn to the deterministic
+`POST {PRAGNA_BASE_URL}/flows/{name}` endpoint instead of `/chat`, with a
+slash-command popover sourced from `GET {PRAGNA_BASE_URL}/flows`. Phase 1 always
+posts to `/chat`.
+
+**Where (to add):** `useChatSession` (slash detection + per-turn URL override —
+the `overrideUrlRef` restore seam already exists), a `usePragnaSlashFlows` hook,
+and a `SlashCommandPopover` in `ChatInput`.
+
+**Done when:** typing `/<flow>` dispatches that flow and the popover lists the
+user's slash-exposed flows. Pairs with the Agent Flows feature.
+
+---
+
+## TD-014 — Chat HITL episodes (ask_user forms + flow proposals)
+
+**Area:** Chat · **Priority:** P2 · **Status:** open
+
+**What:** When the agent calls the `ask_user` tool or proposes a flow, the run
+pauses (`awaiting_user`) and the UI must render an interactive form
+(`HITLFormCard`) / proposal card (`FlowProposalCard`), then resume via
+`POST /api/conversations/{id}/episodes/{eid}/resume` (SSE). Also covers
+re-attaching to a live background episode on remount
+(`POST .../episodes/{eid}/stream`). Deferred to the Agent Flows phase since it
+shares the flow + episode machinery.
+
+**Where (to add):** an `EpisodeRepository` + `episode.types.ts`; `useEpisodes`
+hook; `HITLFormCard` / `FlowProposalCard` components; restore `attach` +
+`replaceMessages` on `useChatSession`.
+
+**Done when:** an `ask_user` pause renders a form whose submission resumes the run,
+and navigating away/back during a live run re-attaches to it.
+
+---
+
+## TD-015 — Chat message actions (edit / branch / regenerate / continue)
+
+**Area:** Chat · **Priority:** P3 · **Status:** open
+
+**What:** Per-message hover actions on assistant/user turns: copy, regenerate
+(optionally with a different model), edit-and-resend, branch the conversation, and
+Continue when an assistant turn stopped on `length`. These rely on the BE
+`truncate-from` and `branch` endpoints (deferred from the repository) and the
+per-turn `?user_model_id=` override (`sendWithModel`).
+
+**Where (to add):** restore `truncateFrom` + `branch` on `IConversationRepository`
+/ `ConversationService` / `ConversationRepository` + `useTruncateFromMessage` /
+`useBranchConversation`; restore `sendWithModel` on `useChatSession`; a
+`MessageActions` component. This also unblocks [TD-006](#td-006--chat-action-preferences-have-no-consumer-yet)
+(the `useChatPreferences` Branch / regen-with-model toggles).
+
+**Done when:** the four actions work and honor the chat preferences.
+
+---
+
+## TD-016 — Chat conversation usage + cost panel
+
+**Area:** Chat · **Priority:** P3 · **Status:** open
+
+**What:** Surface per-conversation token usage + cost from
+`GET /api/conversations/{id}/usage` (a `useConversationUsage` hook + the
+`getUsage` repo method, both deferred from Phase 1).
+
+**Where (to add):** restore `getUsage` on the conversation port/service/repo +
+`ConversationUsage` / `UsageRecord` types; a usage panel/chip in the chat header.
+
+**Done when:** a conversation shows its running token + cost totals.
+
+---
+
+## TD-017 — Evaluate Streamdown transitive weight
+
+**Area:** Chat · **Priority:** P3 · **Status:** open
+
+**What:** `streamdown` (the chat markdown renderer) pulls in heavy **lazy** chunks
+— mermaid (~885 kB), cytoscape (~443 kB), a wasm blob (~622 kB), wardley, and the
+full Shiki language-grammar set. They are code-split (only fetched when such a
+block renders), so the eager bundle is unaffected, but the on-demand footprint is
+large for "core chat."
+
+**Where:** `src/presentation/views/chat/components/MarkdownMessage.tsx`; bundler
+config.
+
+**Approach:** Decide between (a) keeping Streamdown but trimming/disabling the
+diagram (mermaid/cytoscape/wardley) support, or (b) switching to
+`react-markdown` + `shiki` with a curated grammar set. Measure first.
+
+**Done when:** the chat markdown dependency footprint is a deliberate, documented
+choice.
+
+---
+
+## TD-018 — Historical tool-call badges not rehydrated
+
+**Area:** Chat · **Priority:** P3 · **Status:** open
+
+**What:** On resume, `persistedToAGUIMessage` seeds assistant turns with content +
+reasoning only; the persisted `tool_calls` array is not re-rendered as
+`ToolCallBadge`s (live tool calls during the active run do render). So a reopened
+conversation shows the assistant prose but not the tool calls it made.
+
+**Where:** `src/presentation/views/chat/ChatSessionView.tsx`
+(`persistedToAGUIMessage`) + `useChatSession`'s `toChatMessage` / tool-call ref
+seeding.
+
+**Done when:** reopened conversations render their historical tool calls.
+
+---
+
+## TD-019 — Chat markdown: KaTeX math + sketchon diagrams
+
+**Area:** Chat · **Priority:** P3 · **Status:** open
+
+**What:** Phase 1's `MarkdownMessage` renders standard markdown + code
+highlighting but omits the web app's KaTeX math pass and the custom `rehypeSketchon`
+diagram plugin (`<sketchon-diagram>`).
+
+**Where:** `src/presentation/views/chat/components/MarkdownMessage.tsx`.
+
+**Done when:** math and sketchon diagrams render (decide alongside
+[TD-017](#td-017--evaluate-streamdown-transitive-weight), since they affect the
+renderer choice).

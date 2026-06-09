@@ -8,6 +8,7 @@ import type { McpConnectorService } from '@/application/services/McpConnectorSer
 import type { ToolService } from '@/application/services/ToolService';
 import type { KnowledgeService } from '@/application/services/KnowledgeService';
 import type { AgentService } from '@/application/services/AgentService';
+import type { ConversationService } from '@/application/services/ConversationService';
 
 /**
  * Dependency-injection container for application services.
@@ -33,6 +34,8 @@ export interface Services {
   knowledgeService: KnowledgeService;
   /** The user's standalone agents (/api/agents). */
   agentService: AgentService;
+  /** The user's chat conversations + messages (/api/conversations). */
+  conversationService: ConversationService;
 }
 
 export const ServiceContext = createContext<Services | null>(null);

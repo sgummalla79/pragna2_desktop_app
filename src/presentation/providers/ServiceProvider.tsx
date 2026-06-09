@@ -12,6 +12,7 @@ import { McpConnectorRepository } from '@/infrastructure/repositories/McpConnect
 import { ToolRepository } from '@/infrastructure/repositories/ToolRepository';
 import { KnowledgeRepository } from '@/infrastructure/repositories/KnowledgeRepository';
 import { AgentRepository } from '@/infrastructure/repositories/AgentRepository';
+import { ConversationRepository } from '@/infrastructure/repositories/ConversationRepository';
 import { AuthService } from '@/application/services/AuthService';
 import { LlmProviderService } from '@/application/services/LlmProviderService';
 import { ProviderService } from '@/application/services/ProviderService';
@@ -21,6 +22,7 @@ import { McpConnectorService } from '@/application/services/McpConnectorService'
 import { ToolService } from '@/application/services/ToolService';
 import { KnowledgeService } from '@/application/services/KnowledgeService';
 import { AgentService } from '@/application/services/AgentService';
+import { ConversationService } from '@/application/services/ConversationService';
 import { useAuthStore } from '@/presentation/store/authStore';
 import { ServiceContext } from './ServiceContext';
 
@@ -54,6 +56,9 @@ export function ServiceProvider({ children }: ServiceProviderProps) {
       toolService: new ToolService(new ToolRepository(axiosClient)),
       knowledgeService: new KnowledgeService(new KnowledgeRepository(axiosClient)),
       agentService: new AgentService(new AgentRepository(axiosClient)),
+      conversationService: new ConversationService(
+        new ConversationRepository(axiosClient),
+      ),
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

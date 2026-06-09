@@ -10,6 +10,21 @@ export const envOr = (value: string | undefined, fallback: string): string =>
 export const API_BASE_URL: string =
   envOr(import.meta.env.VITE_API_BASE_URL as string | undefined, 'http://localhost:8000/api');
 
+// Base for the AG-UI native chat surface, nested under `/api` alongside the REST
+// API. Three routes hang off it: `POST {PRAGNA_BASE_URL}/chat` (default chat
+// agent), `POST {PRAGNA_BASE_URL}/flows/{name}` (slash-exposed flow, deferred),
+// and `GET {PRAGNA_BASE_URL}/flows` (slash discovery, deferred).
+//
+// Unlike the web app — which uses a RELATIVE `/api/pragna` so the Vite dev proxy
+// avoids CORS — the desktop webview has no proxy and a non-HTTP origin, so this
+// MUST be an ABSOLUTE URL. We derive it from `API_BASE_URL` (which already
+// carries the `/api` prefix) so a single env var configures both surfaces;
+// `VITE_PRAGNA_BASE_URL` can override it independently when needed.
+export const PRAGNA_BASE_URL: string = envOr(
+  import.meta.env.VITE_PRAGNA_BASE_URL as string | undefined,
+  `${API_BASE_URL}/pragna`,
+);
+
 export const LOG_LEVEL: string =
   envOr(import.meta.env.VITE_LOG_LEVEL as string | undefined, 'info');
 
