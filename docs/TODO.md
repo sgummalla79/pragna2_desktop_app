@@ -13,6 +13,8 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 | [TD-007](#td-007--backfill-spec-docs-for-login--providers) | Backfill spec docs for Login + Providers | Docs | P2 | done |
 | [TD-008](#td-008--providers-view-swallows-errors) | Providers view swallows several errors | Providers | P3 | open |
 | [TD-009](#td-009--auth-session-does-not-persist-across-restart) | Auth session does not persist across restart | Login | P3 | open |
+| [TD-010](#td-010--agent-tool-entry-autocomplete-against-apitools) | Agent tool entry: autocomplete against /api/tools | Agents | P3 | open |
+| [TD-011](#td-011--model--temperature-selection-on-standalone-agents) | Model / temperature selection on standalone agents | Agents | P3 | open |
 | [TD-003](#td-003--unit-tests-for-the-three-new-features) | Unit tests for the three new features | Testing | P2 | open |
 | [TD-004](#td-004--verify-multipart-knowledge-upload-against-the-live-backend) | Verify multipart Knowledge upload end-to-end | Knowledge | P2 | open |
 | [TD-005](#td-005--client-side-file-validation-for-knowledge-upload) | Client-side file validation for Knowledge upload | Knowledge | P3 | open |
@@ -107,6 +109,41 @@ storage + refresh) or intentionally require sign-in each launch.
 **Where:** `src/presentation/store/authStore.ts`, `src/infrastructure/auth0/*`
 
 **Done when:** the persistence behavior is a deliberate, documented decision.
+
+---
+
+## TD-010 — Agent tool entry: autocomplete against /api/tools
+
+**Area:** Agents · **Priority:** P3 · **Status:** open
+
+**What:** In the agent editor, tools are entered as a free-form chip input of tool
+handles (matching the web app) — no validation or autocomplete against the actual
+tools inventory. Upgrade it to an autocomplete/picker sourced from `GET /api/tools`
+so users select from real, enabled tools instead of typing handles by hand.
+
+**Where:** `src/presentation/views/settings/AgentsView/ChipInput.tsx` /
+`AgentFormModal.tsx`; reuse `useTools()`.
+
+**Done when:** tool entry suggests/validates against the live tools list.
+
+---
+
+## TD-011 — Model / temperature selection on standalone agents
+
+**Area:** Agents · **Priority:** P3 · **Status:** open
+
+**What:** Standalone agents currently have no model or sampling-parameter
+(temperature/top_p) selection — the `/api/agents` contract does not include them
+(model selection lives on *flow* agents). Add per-agent model + temperature
+selection once the backend contract supports it, sourcing models from the
+already-ported Providers/Models layer (`useModels`).
+
+**Where:** `src/presentation/views/settings/AgentsView/AgentFormModal.tsx`;
+domain `agent.types.ts`; backend `/api/agents` contract.
+
+**Done when:** a standalone agent can pin a model + temperature, persisted by the backend.
+
+**Blocked by:** backend support on the `/api/agents` contract.
 
 ---
 

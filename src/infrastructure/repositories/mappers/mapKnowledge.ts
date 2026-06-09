@@ -3,6 +3,7 @@
  */
 
 import type {
+  AgentKnowledgeLibrary,
   CreateLibraryPayload,
   IngestSourcePayload,
   KnowledgeLibrary,
@@ -70,6 +71,32 @@ export function mapKnowledgeSource(
     contentHash: r.content_hash,
     sourceAttachmentId: r.source_attachment_id,
     status: r.status,
+    createdAt: r.created_at,
+    modifiedAt: r.modified_at,
+  };
+}
+
+/** Raw shape returned by `GET/POST /api/agents/{id}/knowledge-libraries`. */
+export interface ApiAgentKnowledgeLibraryResponse {
+  id: string;
+  agent_id: string;
+  library_id: string;
+  library_name: string;
+  library_slug: string;
+  created_at: string;
+  modified_at: string;
+}
+
+/** Maps a raw agent↔library binding response to the domain shape. */
+export function mapAgentKnowledgeLibrary(
+  r: ApiAgentKnowledgeLibraryResponse,
+): AgentKnowledgeLibrary {
+  return {
+    id: r.id,
+    agentId: r.agent_id,
+    libraryId: r.library_id,
+    libraryName: r.library_name,
+    librarySlug: r.library_slug,
     createdAt: r.created_at,
     modifiedAt: r.modified_at,
   };

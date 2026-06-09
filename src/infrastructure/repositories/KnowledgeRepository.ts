@@ -8,6 +8,8 @@
 import type { AxiosInstance } from 'axios';
 import type { IKnowledgeRepository } from '@/application/ports/IKnowledgeRepository';
 import type {
+  AgentKnowledgeLibrary,
+  AttachLibraryPayload,
   CreateLibraryPayload,
   IngestSourcePayload,
   KnowledgeLibrary,
@@ -15,8 +17,10 @@ import type {
   UploadSourcePayload,
 } from '@/domain/types/knowledge.types';
 import {
+  type ApiAgentKnowledgeLibraryResponse,
   type ApiKnowledgeLibraryResponse,
   type ApiKnowledgeSourceResponse,
+  mapAgentKnowledgeLibrary,
   mapKnowledgeLibrary,
   mapKnowledgeSource,
   toApiCreateLibraryPayload,
@@ -89,6 +93,32 @@ export class KnowledgeRepository implements IKnowledgeRepository {
   async deleteSource(libraryId: string, sourceId: string): Promise<void> {
     await this.http.delete(
       `/knowledge-libraries/${libraryId}/sources/${sourceId}`,
+    );
+  }
+
+  // ── Agent attachments ──────────────────────────────────────────────────────
+
+  async listAgentLibraries(agentId: string): Promise<AgentKnowledgeLibrary[]> {
+    const { data } = await this.http.get<ApiAgentKnowledgeLibraryResponse[]>(
+      `/agents/${agentId}/knowledge-libraries`,
+    );
+    return data.map(mapAgentKnowledgeLibrary);
+  }
+
+  async attachAgentLibrary(
+    agentId: string,
+    payload: AttachLibraryPayload,
+  ): Promise<AgentKnowledgeLibrary> {
+    const { data } = await this.http.post<ApiAgentKnowledgeLibraryResponse>(
+      `/agents/${agentId}/knowledge-libraries`,
+      { library_id: payload.libraryId },
+    );
+    return mapAgentKnowledgeLibrary(data);
+  }
+
+  async detachAgentLibrary(agentId: string, bindingId: string): Promise<void> {
+    await this.http.delete(
+      `/agents/${agentId}/knowledge-libraries/${bindingId}`,
     );
   }
 }

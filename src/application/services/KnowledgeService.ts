@@ -7,6 +7,8 @@
 
 import type { IKnowledgeRepository } from '@/application/ports/IKnowledgeRepository';
 import type {
+  AgentKnowledgeLibrary,
+  AttachLibraryPayload,
   CreateLibraryPayload,
   IngestSourcePayload,
   KnowledgeLibrary,
@@ -57,5 +59,23 @@ export class KnowledgeService {
   /** Deletes a document from a library (cascades its chunks). */
   deleteSource(libraryId: string, sourceId: string): Promise<void> {
     return this.repo.deleteSource(libraryId, sourceId);
+  }
+
+  /** Lists the libraries attached to an agent. */
+  listAgentLibraries(agentId: string): Promise<AgentKnowledgeLibrary[]> {
+    return this.repo.listAgentLibraries(agentId);
+  }
+
+  /** Attaches a library to an agent. */
+  attachAgentLibrary(
+    agentId: string,
+    payload: AttachLibraryPayload,
+  ): Promise<AgentKnowledgeLibrary> {
+    return this.repo.attachAgentLibrary(agentId, payload);
+  }
+
+  /** Detaches a library binding from an agent. */
+  detachAgentLibrary(agentId: string, bindingId: string): Promise<void> {
+    return this.repo.detachAgentLibrary(agentId, bindingId);
   }
 }

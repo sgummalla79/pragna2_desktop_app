@@ -7,6 +7,7 @@ import type { EmbeddingKeyService } from '@/application/services/EmbeddingKeySer
 import type { McpConnectorService } from '@/application/services/McpConnectorService';
 import type { ToolService } from '@/application/services/ToolService';
 import type { KnowledgeService } from '@/application/services/KnowledgeService';
+import type { AgentService } from '@/application/services/AgentService';
 
 /**
  * Dependency-injection container for application services.
@@ -30,6 +31,8 @@ export interface Services {
   toolService: ToolService;
   /** The user's knowledge libraries (/api/knowledge-libraries). */
   knowledgeService: KnowledgeService;
+  /** The user's standalone agents (/api/agents). */
+  agentService: AgentService;
 }
 
 export const ServiceContext = createContext<Services | null>(null);

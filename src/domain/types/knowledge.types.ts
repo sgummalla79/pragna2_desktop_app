@@ -81,3 +81,21 @@ export interface UploadSourcePayload {
   summary?: string;
   file: File;
 }
+
+/** One agent↔library attachment row (binding + library details), returned by
+ *  `GET /api/agents/{id}/knowledge-libraries`. `id` is the binding id (used to
+ *  detach). Consumed by the Agents feature's knowledge section. */
+export interface AgentKnowledgeLibrary {
+  id: string;
+  agentId: string;
+  libraryId: string;
+  libraryName: string;
+  librarySlug: string;
+  createdAt: string;
+  modifiedAt: string;
+}
+
+/** Body for `POST /api/agents/{id}/knowledge-libraries`. */
+export interface AttachLibraryPayload {
+  libraryId: string;
+}

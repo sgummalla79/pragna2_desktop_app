@@ -60,6 +60,15 @@ export const ERRORS = {
   KNW_006: { code: 'KNW_006', message: 'Failed to upload the file.', severity: 'error' },
   KNW_007: { code: 'KNW_007', message: 'Failed to delete the document.', severity: 'error' },
 
+  // ── Agents ────────────────────────────────────────────────────────────────
+  AGT_001: { code: 'AGT_001', message: 'Failed to load agents.', severity: 'error' },
+  AGT_002: { code: 'AGT_002', message: 'You already have an agent with this name.', severity: 'warn' },
+  AGT_003: { code: 'AGT_003', message: 'Failed to save agent. Check the fields and try again.', severity: 'error' },
+  AGT_004: { code: 'AGT_004', message: 'Failed to archive agent.', severity: 'error' },
+  AGT_005: { code: 'AGT_005', message: 'Failed to set the default agent.', severity: 'error' },
+  AGT_006: { code: 'AGT_006', message: "The default agent can't be archived or deactivated. Set another agent as default first.", severity: 'warn' },
+  AGT_007: { code: 'AGT_007', message: 'Agent name must be lowercase letters, digits, and hyphens (e.g. my-assistant).', severity: 'warn' },
+
   // ── Network / HTTP ────────────────────────────────────────────────────────
   NET_401: { code: 'NET_401', message: 'Your session has expired. Please sign in again.', severity: 'warn' },
   NET_403: { code: 'NET_403', message: 'You do not have permission to perform this action.', severity: 'warn' },

@@ -11,6 +11,7 @@ import { EmbeddingKeyRepository } from '@/infrastructure/repositories/EmbeddingK
 import { McpConnectorRepository } from '@/infrastructure/repositories/McpConnectorRepository';
 import { ToolRepository } from '@/infrastructure/repositories/ToolRepository';
 import { KnowledgeRepository } from '@/infrastructure/repositories/KnowledgeRepository';
+import { AgentRepository } from '@/infrastructure/repositories/AgentRepository';
 import { AuthService } from '@/application/services/AuthService';
 import { LlmProviderService } from '@/application/services/LlmProviderService';
 import { ProviderService } from '@/application/services/ProviderService';
@@ -19,6 +20,7 @@ import { EmbeddingKeyService } from '@/application/services/EmbeddingKeyService'
 import { McpConnectorService } from '@/application/services/McpConnectorService';
 import { ToolService } from '@/application/services/ToolService';
 import { KnowledgeService } from '@/application/services/KnowledgeService';
+import { AgentService } from '@/application/services/AgentService';
 import { useAuthStore } from '@/presentation/store/authStore';
 import { ServiceContext } from './ServiceContext';
 
@@ -51,6 +53,7 @@ export function ServiceProvider({ children }: ServiceProviderProps) {
       mcpConnectorService: new McpConnectorService(new McpConnectorRepository(axiosClient)),
       toolService: new ToolService(new ToolRepository(axiosClient)),
       knowledgeService: new KnowledgeService(new KnowledgeRepository(axiosClient)),
+      agentService: new AgentService(new AgentRepository(axiosClient)),
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

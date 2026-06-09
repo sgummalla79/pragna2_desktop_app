@@ -7,6 +7,8 @@
  */
 
 import type {
+  AgentKnowledgeLibrary,
+  AttachLibraryPayload,
   CreateLibraryPayload,
   IngestSourcePayload,
   KnowledgeLibrary,
@@ -49,4 +51,21 @@ export interface IKnowledgeRepository {
   /** Delete a document (cascades its chunks). Maps to
    *  `DELETE /api/knowledge-libraries/{id}/sources/{sourceId}` (204). */
   deleteSource(libraryId: string, sourceId: string): Promise<void>;
+
+  // ── Agent attachments (sub-resource keyed by agent id) ─────────────────────
+
+  /** List the libraries attached to an agent. Maps to
+   *  `GET /api/agents/{agentId}/knowledge-libraries`. */
+  listAgentLibraries(agentId: string): Promise<AgentKnowledgeLibrary[]>;
+
+  /** Attach a library to an agent. Maps to
+   *  `POST /api/agents/{agentId}/knowledge-libraries`. */
+  attachAgentLibrary(
+    agentId: string,
+    payload: AttachLibraryPayload,
+  ): Promise<AgentKnowledgeLibrary>;
+
+  /** Detach a library binding from an agent. Maps to
+   *  `DELETE /api/agents/{agentId}/knowledge-libraries/{bindingId}`. */
+  detachAgentLibrary(agentId: string, bindingId: string): Promise<void>;
 }
