@@ -51,6 +51,14 @@ src-tauri/
 
 ## Engineering Rules
 
+### No Hallucination — Discuss Every Decision
+- **Never invent, guess, or assume.** If a value, API, file, or behavior is not verified in the
+  code, the repo, or an authoritative source, do not fabricate it — go and confirm it.
+- **Surface every non-trivial decision and discuss it with the user before implementing.** When a
+  task involves a structural choice, an ambiguous requirement, or a trade-off, present the options
+  (with pros/cons) and get a decision rather than picking silently. Reasonable defaults may be
+  stated and used only for genuinely trivial choices.
+
 ### Error Handling
 - Explicit error handling everywhere — no silent fallbacks, no swallowed errors, no untyped rejections.
 - Use typed error enums per layer; propagate with `?` and convert at layer boundaries.

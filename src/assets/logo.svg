@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <g stroke="#c97040" stroke-width="3.5">
+    <!-- Outer 12-pointed star -->
+    <polygon fill="none" stroke-linejoin="round"
+      points="50,3 60.4,13.2 73.2,9.7 77.5,23 90.3,27.2 87,40.9 97,50 87,59.1 90.3,72.8 77.5,77 73.2,90.3 60.4,86.8 50,97 39.6,86.8 26.8,90.3 22.5,77 9.7,72.8 13,59.1 3,50 13,40.9 9.7,27.2 22.5,23 26.8,9.7 39.6,13.2"/>
+    <!-- Outer ring -->
+    <circle cx="50" cy="50" r="33"/>
+    <!-- 12 spokes -->
+    <line x1="50" y1="17" x2="50" y2="41"/>
+    <line x1="50" y1="17" x2="50" y2="41" transform="rotate(30,50,50)"/>
+    <line x1="50" y1="17" x2="50" y2="41" transform="rotate(60,50,50)"/>
+    <line x1="50" y1="17" x2="50" y2="41" transform="rotate(90,50,50)"/>
+    <line x1="50" y1="17" x2="50" y2="41" transform="rotate(120,50,50)"/>
+    <line x1="50" y1="17" x2="50" y2="41" transform="rotate(150,50,50)"/>
+    <line x1="50" y1="17" x2="50" y2="41" transform="rotate(180,50,50)"/>
+    <line x1="50" y1="17" x2="50" y2="41" transform="rotate(210,50,50)"/>
+    <line x1="50" y1="17" x2="50" y2="41" transform="rotate(240,50,50)"/>
+    <line x1="50" y1="17" x2="50" y2="41" transform="rotate(270,50,50)"/>
+    <line x1="50" y1="17" x2="50" y2="41" transform="rotate(300,50,50)"/>
+    <line x1="50" y1="17" x2="50" y2="41" transform="rotate(330,50,50)"/>
+    <!-- Inner ring -->
+    <circle cx="50" cy="50" r="16"/>
+    <!-- Hub -->
+    <circle cx="50" cy="50" r="8" fill="#c97040" fill-opacity="0.2" stroke-width="3.8"/>
+  </g>
+  <circle cx="50" cy="50" r="4" fill="#c97040"/>
+</svg>
