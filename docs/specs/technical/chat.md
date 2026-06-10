@@ -140,14 +140,16 @@ change.
 
 ## 7. Deferred / known gaps
 
-See `docs/TODO.md`: `TD-012` attachments+PDF. Shipped since Phase 1: `TD-013`
-slash/flow dispatch (per-turn URL dispatch, see `slash-commands.md`) and `TD-014`
-Phase A HITL `ask_user` pause/resume — streamed natively via
+See `docs/TODO.md`. **Shipped since Phase 1:** `TD-013` slash/flow dispatch
+(per-turn URL dispatch, see `slash-commands.md`); `TD-014` HITL `ask_user`
+pause/resume **and** flow proposals — the run streams natively via
 `TauriHttpAgent.runRaw` through ag-ui's `apply`/`processApplyEvents`, so it does
-**not** use the web app's `replaceMessages` resync (see `hitl-episodes.md`); flow
-proposals (`TD-014` Phase B) remain open. `TD-015` message
-actions (restores `truncateFrom`/`branch`/`sendWithModel`), `TD-016` usage
-(restores `getUsage`), `TD-017` Streamdown weight, `TD-018` historical tool-call
-rehydration, `TD-019` KaTeX/sketchon. Unit tests for the new repo/mappers/hooks
-fold into `TD-003`. Live end-to-end SSE verification requires the running backend
+**not** use the web app's `replaceMessages` resync (see `hitl-episodes.md`); and
+`TD-018` historical tool-call rehydration (`persistedToAGUIMessage` carries
+`tool_calls`; `toChatMessage` rebuilds badges from the seed — name + args; the
+persisted result string isn't on the AG-UI shape). **Still deferred:** `TD-012`
+attachments+PDF, `TD-015` message actions (restores
+`truncateFrom`/`branch`/`sendWithModel`), `TD-016` usage (restores `getUsage`),
+`TD-017` Streamdown weight, `TD-019` KaTeX/sketchon. Unit tests for the new
+repo/mappers/hooks fold into `TD-003`. Live end-to-end SSE verification requires the running backend
 + a valid Auth0 token (cannot be exercised from the dev box).

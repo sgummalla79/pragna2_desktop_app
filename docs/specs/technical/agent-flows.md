@@ -68,8 +68,10 @@ primitives. Files:
   `ConditionEdge.tsx` (`FLOW_EDGE_TYPES.condition`: selectable bezier, condition label/color, a
   read-only per-item chip when dynamic dispatch is set).
 - **Panels:** `PalettePanel` (add nodes), `NodePanel` (agent fields; model select from `useModels`
-  filtered `availableForFlows && enabled && !archived`, storing `model.modelName`; tools/emits via
-  the reused `AgentsView/ChipInput`), `DecisionPanel` (conditions), `ConnectorPanel`
+  filtered `availableForFlows && enabled && !archived`, storing `model.modelName`; emits via the
+  reused `AgentsView/ChipInput`; the **tools** chip passes `suggestions` from `useTools()` enabled
+  `api_name`s → autocomplete dropdown + an "not in your tools" flag on unknown chips, free-form
+  still allowed — TD-010), `DecisionPanel` (conditions), `ConnectorPanel`
   (`useMcpConnectors` + per-tool subset via `useTools`), `KnowledgePanel` (`useKnowledgeLibraries`),
   `EdgePanel` (condition select + delete).
 - **`FlowEditor.tsx`** — `FlowEditor({ flow })`: hydrates the store from `buildEditorGraph(

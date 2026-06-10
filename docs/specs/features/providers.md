@@ -72,12 +72,14 @@ The Providers settings page lets a user connect their own **LLM providers** (e.g
 | Scenario | Expected Behavior |
 |----------|------------------|
 | Catalogue fails to load | `PRV_005` message shown in place of the tile grid (the page's load-error path). |
-| Connect fails (bad API key, network, already-registered) | `PRV_003` ("Failed to add provider. Check your API key and try again.") shown inline in the connect form; the modal stays on the form. The form does not distinguish a duplicate registration from a bad key (`PRV_002` is catalogued but not wired into this view). |
+| Connect fails (bad API key, network) | Prefers the backend `detail`, falling back to `PRV_003`; shown inline in the connect form. |
+| Connect fails — already registered (409) | Surfaces `PRV_002` ("This provider is already registered."), distinct from a bad-key error (TD-008). |
 | Disconnect fails | `PRV_004` ("Failed to remove provider.") shown in the connected panel error slot; the modal stays open. |
-| Refresh fails | The refresh mutation rejects; the modal does not render a dedicated refresh error message (the Refresh button simply re-enables — see Open Questions). |
+| Refresh fails | Surfaces the backend `detail` (else `PRV_006`) under the Refresh action (TD-008). |
+| Refresh succeeds | Shows a diff summary — "N added · N archived · N restored" (or "No changes") under the Refresh action (TD-008). |
 | Provider returns no models (empty discovery) | The grid shows "No models yet — click Refresh to discover models." |
-| Toggle-provider (tile pill) fails | The pill mutation rejects; the pill re-enables. No inline error is surfaced on the tile (fire-and-`mutate`, not awaited with a catch — see Open Questions). |
-| Bulk model save partially invalid (one bad id / constraint) | The whole batch rejects all-or-nothing; the buffer is retained (Save's `await` throws before clearing). No dedicated MDL error message is rendered in the panel (see Open Questions). |
+| Toggle-provider (tile pill) fails | Surfaces `PRV_007` (else backend `detail`) above the tile grid (TD-008). |
+| Bulk model save fails | The whole batch rejects all-or-nothing; the buffer is **retained** so the user can retry, and `MDL_004` (else backend `detail`) is shown in the panel (TD-008). |
 | Model row is archived | Its toggles are disabled and the row renders at reduced opacity; archived rows are excluded from the embedded model list anyway (server excludes them). |
 | Display-name edited to empty / whitespace | The grid's `isValid` rejects it and reverts the cell to its saved value; nothing is buffered. |
 | User closes the modal mid-edit | `useDirtyDialog` blocks Escape / overlay dismissal while `modelEditsDirty` is true; the explicit ✕ / Close still works. |
@@ -91,16 +93,17 @@ The Providers settings page lets a user connect their own **LLM providers** (e.g
 - Multiple registrations per provider in the UI (only the first registration is managed).
 - Backend-served credential field definitions or provider logos.
 - Client-side credential validation / format checking.
-- Surfacing the refresh diff summary (created / archived / unarchived counts) in the UI — the result is computed and returned but not yet displayed.
 - Automated tests for the providers/models repos, mappers, services, and hooks (tracked under the repo's testing debt).
 
 ## 7. Open Questions
 
-- [ ] **Refresh has no UI feedback on failure.** `handleRefresh` in `ProvidersView` does not catch the rejection, so a failed refresh shows no message (the button just re-enables in `finally`). Should this surface a `PRV_*` / backend `detail` message like connect/disconnect do?
-- [ ] **Tile pill toggle is fire-and-forget.** `onToggleEnabled` calls `toggleProvider.mutate(...)` (not `mutateAsync` with a catch), so a failed enable/disable surfaces no error to the user. Confirm this is acceptable or add error handling.
-- [ ] **Refresh diff summary unused.** `RefreshModelsResult` carries `created` / `archived` / `unarchived`, but the UI only invalidates caches and never shows the "X added, Y archived" summary. Should this be surfaced like the connectors refresh summary?
-- [ ] **`PRV_001`, `PRV_002`, and `MDL_001..MDL_003` are catalogued but unused in this view.** `ProvidersView` references only `PRV_003`, `PRV_004`, `PRV_005`. Are the unused codes reserved for a future flow (e.g. a duplicate-registration `PRV_002` path, a dedicated models page), or should they be pruned / wired in?
-- [ ] **Backend `detail` is not surfaced here.** Unlike the Connectors view, the Providers handlers swallow the caught error and show a fixed `PRV_*` message rather than preferring `error.response.data.detail`. Confirm whether `detail` surfacing should be adopted for parity.
+> **Resolved (TD-008, 2026-06-09):** error surfacing is now on par with Connectors
+> — connect prefers backend `detail` and maps 409 → `PRV_002`; refresh catches
+> failures (`PRV_006`) and shows a created/archived/restored diff summary; the tile
+> toggle surfaces failures (`PRV_007`); bulk model save catches and shows `MDL_004`
+> while keeping the edit buffer. Extraction shared via `src/lib/httpError.ts`.
+
+- [ ] **`PRV_001` and `MDL_001..MDL_003` remain catalogued but unused in this view.** Reserved for a future flow (e.g. a dedicated models page) or to be pruned.
 
 ---
 

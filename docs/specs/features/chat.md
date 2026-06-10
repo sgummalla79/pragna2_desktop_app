@@ -99,10 +99,9 @@ forms / flow proposals, message actions (edit/branch/regenerate/continue), usage
 
 ## 7. Deferred Scope (later phases)
 
-Attachments + PDF viewer (`TD-012`), message actions
-(`TD-015`), usage & cost (`TD-016`),
-Streamdown weight review (`TD-017`), historical tool-call rehydration (`TD-018`),
-KaTeX math + sketchon diagrams (`TD-019`). Shipped separately: slash commands +
-flow dispatch (`TD-013`, see `slash-commands.md`) and HITL `ask_user`
-pause/resume (`TD-014` Phase A, see `hitl-episodes.md`); flow proposals
-(`TD-014` Phase B) remain deferred.
+Still deferred: attachments + PDF viewer (`TD-012`), message actions (`TD-015`),
+usage & cost (`TD-016`), Streamdown weight review (`TD-017`), KaTeX math + sketchon
+diagrams (`TD-019`). **Shipped since Phase 1:** slash commands + flow dispatch
+(`TD-013`, see `slash-commands.md`), HITL `ask_user` pause/resume **and** flow
+proposals (`TD-014`, see `hitl-episodes.md`), and historical tool-call
+rehydration on resume (`TD-018`).

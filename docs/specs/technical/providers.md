@@ -420,7 +420,7 @@ src/
 | **Purpose** | Mutation calling `register`. |
 | **Inputs** | Variables: `RegisterProviderPayload`. |
 | **Output** | `UseMutationResult<ProviderWithModels, Error, RegisterProviderPayload>`. |
-| **Errors** | Rejects; `ProvidersView.handleConnect` catches and shows `PRV_003`. |
+| **Errors** | Rejects; `ProvidersView.handleConnect` maps a 409 → `PRV_002`, else prefers backend `detail` (`PRV_003` fallback) via `src/lib/httpError.ts` (TD-008). |
 | **Side Effects** | `onSuccess`: invalidates `['llm-providers-with-registrations']` AND `['models']`. |
 | **Invariants** | Cross-invalidation because registration creates models. |
 
@@ -431,9 +431,9 @@ src/
 | **Purpose** | Mutation calling `refreshModels`. |
 | **Inputs** | Variables: `providerId: string` (user_providers id). |
 | **Output** | `UseMutationResult<RefreshModelsResult, Error, string>`. |
-| **Errors** | Rejects; `ProvidersView.handleRefresh` does NOT catch — no UI error message (see Open Questions). |
+| **Errors** | Rejects; `ProvidersView.handleRefresh` catches → backend `detail` else `PRV_006` shown under the Refresh action (TD-008). |
 | **Side Effects** | `onSuccess`: invalidates `['models']` AND `['llm-providers-with-registrations']`. |
-| **Invariants** | The returned diff (`created`/`archived`/`unarchived`) is currently unused by the UI. |
+| **Invariants** | The returned diff (`created`/`archived`/`unarchived`) is summarized in the UI via `summarizeRefresh` (TD-008). |
 
 #### `useToggleProvider()`
 
@@ -442,7 +442,7 @@ src/
 | **Purpose** | Mutation calling `toggle`. |
 | **Inputs** | Variables: `{ id: string; enabled: boolean }`. |
 | **Output** | `UseMutationResult<UserProvider, Error, { id, enabled }>`. |
-| **Errors** | Rejects; called via `mutate` (fire-and-forget) from the tile pill — no UI error surfaced (see Open Questions). |
+| **Errors** | Rejects; `ProvidersView.handleToggle` passes an `onError` that shows `PRV_007` (else backend `detail`) above the tile grid (TD-008). |
 | **Side Effects** | `onSuccess`: invalidates `['llm-providers-with-registrations']` only. |
 | **Invariants** | Drives the per-tile enable/disable pill. |
 
@@ -502,20 +502,22 @@ src/
 
 ## 6. Error Handling Strategy
 
-Repositories let axios errors propagate (no swallowing). Hooks expose them via mutation/query rejection. Unlike the Connectors view, the Providers view does **not** surface the backend `detail`: each handler catches and renders a fixed `PRV_*` catalog message (flagged in Open Questions).
+Repositories let axios errors propagate (no swallowing). Hooks expose them via mutation/query rejection. Since TD-008 the Providers view surfaces the backend `detail` (via the shared `src/lib/httpError.ts` `detailOr`/`statusOf`), falling back to a `PRV_*`/`MDL_*` catalog message — on par with Connectors.
 
 | Error | Layer | Propagation |
 |---|---|---|
 | `PRV_001` "Failed to load providers." | Presentation (catalog) | Catalogued; **not referenced** in `ProvidersView` (reserved / for the flat providers list). |
-| `PRV_002` "This provider is already registered." | Presentation (catalog) | Catalogued; **not referenced** in `ProvidersView` — a duplicate registration currently surfaces as the generic `PRV_003`. |
-| `PRV_003` "Failed to add provider. Check your API key and try again." | Presentation | Shown inline in `ProviderConnectForm` when `useRegisterProvider` rejects (`ProvidersView.handleConnect` catch). |
+| `PRV_002` "This provider is already registered." | Presentation | Shown by `handleConnect` when the register call returns **409** (TD-008). |
+| `PRV_003` "Failed to add provider. Check your API key and try again." | Presentation | Connect fallback when no backend `detail` and not a 409 (`handleConnect`). |
 | `PRV_004` "Failed to remove provider." | Presentation | Shown in `ConnectedPanel` error slot when `useDeleteProvider` rejects (`handleDisconnect` catch). |
 | `PRV_005` "Failed to load provider catalogue." | Presentation (catalog) | Shown when `useLlmProvidersWithRegistrations` `isError`. |
 | `MDL_001` "Failed to load models." | Presentation (catalog) | Catalog message for `useModels` load failures; the page uses embedded models, so not rendered in this view. |
 | `MDL_002` "Failed to register model." | Presentation (catalog) | Catalogued; **not referenced** in this view. |
 | `MDL_003` "Failed to remove model." | Presentation (catalog) | Catalogued; **not referenced** in this view. |
-| Refresh / bulk-save rejection | Presentation | Currently **no dedicated message** — refresh swallows (re-enables button), bulk-save retains the buffer (see Open Questions). |
-| Backend `detail` (4xx/5xx) | Infrastructure → Presentation | Present on the axios error but **not surfaced** by the Providers handlers (unlike Connectors). |
+| `PRV_006` "Failed to refresh models." | Presentation | `handleRefresh` fallback when no backend `detail` (TD-008). |
+| `PRV_007` "Failed to update the provider." | Presentation | Tile toggle `onError` fallback when no backend `detail` (TD-008). |
+| `MDL_004` "Failed to save model changes…" | Presentation | `ConnectedPanel.handleSave` fallback; the edit buffer is retained for retry (TD-008). |
+| Backend `detail` (4xx/5xx) | Infrastructure → Presentation | **Surfaced** by the Providers handlers via `detailOr` (preferred over the catalog fallback) since TD-008. |
 | HTTP status (401/403/404/409/500) | Infrastructure | Axios rejects; `NET_*` catalog entries exist for global handling. |
 
 ## 7. Configuration & Constants
@@ -565,13 +567,12 @@ Repositories let axios errors propagate (no swallowing). Hooks expose them via m
 
 ## 10. Open Questions / Risks
 
-- [ ] **No `detail` surfacing in Providers handlers.** Connectors prefers `error.response.data.detail` over the catalog message; Providers shows a fixed `PRV_*` message instead. Adopt `detail` surfacing for parity?
-- [ ] **Refresh has no failure UI.** `handleRefresh` does not catch the rejection — a failed refresh is silent. Add a `PRV_*` / `detail` message?
-- [ ] **Tile pill toggle is fire-and-forget.** `useToggleProvider` is invoked via `mutate` with no error handling; a failed enable/disable is silent. Confirm acceptable or add handling.
-- [ ] **Bulk-save failure has no message.** `handleSave` `await`s `bulkUpdate.mutateAsync`; on rejection the buffer is retained but no error is shown to the user. Surface an `MDL_*` / `detail` message?
-- [ ] **Unused error codes.** `PRV_001`, `PRV_002`, `MDL_001..MDL_003` are catalogued but unreferenced in this view. Reserve, wire in (e.g. a duplicate-registration `PRV_002` path), or prune.
+> **Resolved (TD-008):** Providers handlers now surface backend `detail`
+> (shared `src/lib/httpError.ts`); connect maps 409 → `PRV_002`; refresh catches
+> (`PRV_006`) + shows a diff summary; the tile toggle surfaces failures
+> (`PRV_007`); bulk-save catches (`MDL_004`) keeping the buffer.
+- [ ] **Unused error codes.** `PRV_001` and `MDL_001..MDL_003` remain catalogued but unreferenced in this view (`PRV_002`/`PRV_006`/`PRV_007`/`MDL_004` are now wired — TD-008). Reserve for a future flow or prune.
 - [ ] **Single-registration assumption.** The modal manages `userProviders[0]` only; multiple registrations per provider are not represented in the UI.
-- [ ] **Refresh diff unused.** `RefreshModelsResult.created/archived/unarchived` is returned but never displayed — consider a summary like the Connectors refresh.
 
 ---
 

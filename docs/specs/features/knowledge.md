@@ -28,7 +28,8 @@ The Knowledge settings page lets a user manage reusable document libraries (corp
 - Attaching/referencing a library from an agent or a flow (not ported here — see Out of Scope).
 - Viewing or editing the stored document text after ingestion (the API never returns it).
 - Editing an existing library's name/slug/description, or editing a document after creation.
-- Client-side file size or type enforcement (see Edge Cases + TD-005).
+- *(Implemented in TD-005 — no longer out of scope.)* Client-side file size/type
+  pre-validation before upload; see Edge Cases.
 
 ## 3. User Stories
 
@@ -76,8 +77,8 @@ The Knowledge settings page lets a user manage reusable document libraries (corp
 | Add (paste text) rejected | Backend `detail` if present, else `KNW_005`. |
 | Add (file upload) rejected | Backend `detail` if present, else `KNW_006`. |
 | Delete document rejected | Backend `detail` if present, else `KNW_007`. |
-| Unsupported file type chosen | Only filtered out as a picker hint via `accept`; the backend is the real gate (HTTP 415 surfaced via `detail` / `KNW_006`). Drag-and-drop bypasses the `accept` filter entirely. |
-| Oversized file uploaded | No client-side size guard exists yet; the request is sent and fails only after the round-trip, surfacing the backend error. See TD-005. |
+| Unsupported file type chosen | Rejected client-side before upload by `validateKnowledgeFile` (extension vs the accept list) on **both** the picker and drag-drop paths, with an inline message (TD-005). The backend stays the real gate (415 via `detail` / `KNW_006`). |
+| Oversized file uploaded | Rejected client-side when over `KNOWLEDGE_MAX_FILE_BYTES` (25 MB) with an inline message, before the round-trip (TD-005). The backend remains the real cap (413). |
 | Multipart upload not yet verified live | The FormData/multipart upload path through the native-HTTP adapter has not been exercised end-to-end against the running backend from the dev environment. See TD-004. |
 | Slug/title left as filename default | Accepted as-is; pre-fill only fills empty fields and is user-editable. |
 
@@ -87,12 +88,14 @@ The Knowledge settings page lets a user manage reusable document libraries (corp
 - **Embedding-model selection.** The model is pinned by the backend at creation and shown read-only.
 - **Reading/editing stored document text.** The sources API returns metadata only.
 - **Editing existing libraries or documents.** Only create / list / archive (library) and add / list / delete (document) are implemented.
-- **Client-side file validation** (size/type). Deferred to TD-005.
 
 ## 7. Open Questions
 
 - [ ] TD-004 — Verify the multipart Knowledge upload end-to-end against the live backend (a real pdf/txt/md/csv/docx/xlsx upload succeeds on a packaged macOS build and the source appears in the library).
-- [ ] TD-005 — Add client-side file size/type validation so oversized/unsupported files are rejected before the round-trip, with the limit sourced from config (not hardcoded inline).
+- [x] TD-005 — *(Done 2026-06-09.)* Client-side size/type validation
+  (`validateKnowledgeFile`, picker + drag-drop) rejects oversized/unsupported
+  files before upload. The 25 MB cap (`KNOWLEDGE_MAX_FILE_BYTES`) is a named
+  constant with a comment (the API exposes no limit; backend stays the real gate).
 
 ---
 

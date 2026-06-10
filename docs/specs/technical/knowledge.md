@@ -459,7 +459,11 @@ Unit tests for the Knowledge layer are deferred under TD-003 (not yet shipped). 
 ## 10. Open Questions / Risks
 
 - [ ] **TD-004** — The multipart upload path (FormData → native-HTTP adapter → backend) has not been verified end-to-end against the running backend from the dev environment. Risk: an undiscovered boundary/streaming issue in the packaged build. Done when a real document uploads successfully on a packaged macOS build and the source appears in the library.
-- [ ] **TD-005** — There is no client-side file size/type guard; the `accept` filter is only a picker hint and drag-and-drop bypasses it, so oversized/unsupported files fail only after the round-trip. Done when such files are rejected client-side with a clear message, with the limit sourced from config (not hardcoded inline).
+- [x] **TD-005** *(Done 2026-06-09.)* `validateKnowledgeFile` (extension vs the
+  accept list + size vs `KNOWLEDGE_MAX_FILE_BYTES` = 25 MB) runs in
+  `LibraryDocumentsManager.handleFilePick` on **both** the picker and drag-drop
+  paths; rejected files aren't accepted and show an inline message. The backend
+  remains the real gate (413/415).
 
 ---
 
