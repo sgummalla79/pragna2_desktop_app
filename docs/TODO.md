@@ -29,6 +29,11 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 | [TD-019](#td-019--chat-markdown-katex-math--sketchon-diagrams) | Chat markdown: KaTeX math + sketchon diagrams | Chat | P3 | ✅ done |
 | [TD-020](#td-020--agent-flows-phase-2-interactive-editor) | Agent Flows Phase 2: interactive editor | Flows | P2 | ✅ done |
 | [TD-021](#td-021--flow-editor-advanced-sub-features) | Flow editor: advanced sub-features | Flows | P3 | ✅ done (parity) |
+| [TD-022](#td-022--chat-account-menu-avatar--sign-out) | Chat account menu (avatar + sign-out) | Chat | P2 | ✅ done |
+| [TD-023](#td-023--appearance-page--lightdarksystem-theme-toggle) | Appearance page + light/dark/system theme toggle | Settings | P2 | ✅ done |
+| [TD-024](#td-024--conversation-history-browser) | Conversation history browser (search + infinite scroll) | Chat | P2 | ✅ done |
+| [TD-025](#td-025--generated-document-cards--reader-create_pdf) | Generated-document cards + reader (create_pdf) | Chat | P2 | ✅ done |
+| [TD-026](#td-026--appearance-full-tweakcn-palette-parity) | Appearance: full TweakCN palette parity | Settings | P3 | ⬜ open |
 
 ---
 
@@ -554,6 +559,113 @@ deviations, otherwise drop:**
 **Done when:** the two parity-gap sub-features (dispatch fan-out, connector
 inline-register) are editable in the UI to match the web app; reducers +
 editable-YAML stay deferred unless explicitly chosen as documented enhancements.
+
+---
+
+## TD-022 — Chat account menu (avatar + sign-out)
+
+**Area:** Chat · **Priority:** P2 · **Status:** ✅ done (2026-06-10)
+
+**What:** Surfaced via the chat-area parity audit (2026-06-10). The desktop had
+**no sign-out affordance reachable from the running app** — the only `logout()`
+button lived on the orphaned `HomeView`, no longer in the routed flow now that
+the real chat surface shipped. The web app puts an `AvatarMenu` in the chat
+sidebar footer (avatar → email + Settings + Sign out).
+
+**Resolved:** added `AvatarMenu` (`src/presentation/views/chat/components/
+AvatarMenu.tsx`) to the `ChatSidebar` footer, replacing the bare Settings link.
+Built on the unified `radix-ui` `DropdownMenu` (no new dependency); delegates
+identity + teardown to the existing `useAuth` hook. Sign out resets the auth
+store (→ `ProtectedRoute` redirect) and navigates to `/login`. Spec pair
+`account-menu.md` (feature + technical); deviation (no collapsed mode — the
+desktop rail isn't collapsible) recorded in `docs/web-app-parity.md` §4. Tests:
+`AvatarMenu.test.tsx` (6). Pointer-capture polyfills added to `src/__tests__/
+setup.ts` so Radix menus open under jsdom.
+
+---
+
+## TD-023 — Appearance page + light/dark/system theme toggle
+
+**Area:** Settings · **Priority:** P2 · **Status:** ✅ done (2026-06-10)
+
+**What:** Surfaced via the settings-area parity audit (2026-06-10). The desktop
+had `:root` (light) and `.dark` token sets in `index.css` but **no UI to switch
+between them** — `/settings/appearance` was a `PlaceholderView` stub. The web app
+has a real Appearance page (mode toggle + TweakCN palette grid).
+
+**Resolved (toggle only):** added `AppearanceView`
+(`src/presentation/views/settings/AppearanceView/AppearanceView.tsx`) with a
+Light/Dark/System selector, backed by a new `themeStore`
+(`src/presentation/store/themeStore.ts`) that persists to
+`localStorage['pragna:theme']` and toggles the `.dark` class on `<html>`.
+`System` follows the OS via `prefers-color-scheme` and tracks live changes;
+`initTheme()` is called from `main.tsx` before first paint. Constants in
+`src/constants/theme.ts`. Router points `/settings/appearance` at the real view.
+Spec pair `appearance.md` (feature + technical). Tests: `themeStore.test.ts` (6),
+`AppearanceView.test.tsx` (4). Deviation (default `system`; separate store) in
+`docs/web-app-parity.md`. Full TweakCN palette parity tracked as TD-026.
+
+---
+
+## TD-026 — Appearance: full TweakCN palette parity
+
+**Area:** Settings · **Priority:** P3 · **Status:** ⬜ open
+
+**What:** The web app's `AppearanceView` (235 LOC) also offers a **palette grid**
+(bundled + installed palettes, preview swatches, "Active"/"Installed" badges) and
+an **Import from TweakCN** dialog (paste/upload JSON) with uninstall. The desktop
+shipped the **mode toggle only** (TD-023); the palette layer is deferred.
+
+**When taken up:** port the web app's `themes/` registry (`registry.ts`,
+`tweakcn.ts`, bundled palettes) + `ImportThemeDialog`, extend `themeStore` with a
+`paletteId` slice (persisted) that applies palette CSS variables alongside the
+`.dark` class, and add the palette grid + import dialog to `AppearanceView`.
+Reference: `pragna2_sgummalla_works/src/presentation/views/settings/AppearanceView/`
+and `src/themes/`.
+
+---
+
+## TD-025 — Generated-document cards + reader (create_pdf)
+
+**Area:** Chat · **Priority:** P2 · **Status:** ✅ done (2026-06-10)
+
+**What:** Surfaced via the chat-area parity audit (2026-06-10). Assistant-generated
+PDFs (backend `create_pdf_short`/`create_pdf_long`) were already plumbed onto
+messages but rendered as a tiny `AttachmentChip`, and the `create_pdf` tool showed
+a raw-JSON badge. The web app renders a prominent `DocumentCard` + opens a reader,
+and suppresses the document-tool badge.
+
+**Resolved:** added `DocumentCard`
+(`src/presentation/views/chat/components/DocumentCard.tsx`) — full-width card
+(icon, title sans `.pdf`, "Document · PDF", Download) — rendered for assistant
+attachments in `ChatMessage`; user uploads still render as chips. Document-tool
+badges suppressed via a new `src/constants/documentTools.ts`. Open routes through
+the existing `AttachmentViewer` (no separate `PdfCanvas`; `useAttachmentBlob` ≈
+the web app's `usePdfDocument`); download via a new `src/lib/download.ts`. Spec
+pair `generated-documents.md` (feature + technical). Tests: `download` (1),
+`DocumentCard` (5), `ChatMessage.documents` (3). Deviations (reuse viewer; no
+long-PDF episode progress) in `docs/web-app-parity.md`.
+
+---
+
+## TD-024 — Conversation history browser
+
+**Area:** Chat · **Priority:** P2 · **Status:** ✅ done (2026-06-10)
+
+**What:** Surfaced via the chat-area parity audit (2026-06-10). The desktop only
+showed recent conversations in the sidebar — no way to browse/search/page the
+full history. The web app has a full-width `ChatsBrowserView`.
+
+**Resolved:** added `ChatsBrowserView`
+(`src/presentation/views/chat/ChatsBrowserView.tsx`) at a new `/chat/history`
+route (static, ranks above `:id`), reachable from the sidebar's **All chats**
+entry. Title search (client-side), infinite scroll via `useInfiniteConversations`
+(`useInfiniteQuery` over `conversationService.list({limit,offset})`, short-page =
+end signal) + an `IntersectionObserver` sentinel, and relative timestamps via a
+new pure `domain/utils/relativeTime.ts`. Spec pair `conversation-history.md`
+(feature + technical). Tests: `relativeTime` (5), `useInfiniteConversations` (3),
+`ChatsBrowserView` (6). Deviation (route vs. the web app's browse-mode flag) in
+`docs/web-app-parity.md`.
 
 ---
 

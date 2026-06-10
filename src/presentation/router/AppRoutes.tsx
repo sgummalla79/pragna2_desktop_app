@@ -17,12 +17,14 @@ const KnowledgeView = lazy(() => import('@/presentation/views/settings/Knowledge
 const AgentsView = lazy(() => import('@/presentation/views/settings/AgentsView/AgentsView'));
 const FlowsView = lazy(() => import('@/presentation/views/settings/FlowsView/FlowsView'));
 const FlowDetailView = lazy(() => import('@/presentation/views/settings/FlowDetailView/FlowDetailView'));
+const AppearanceView = lazy(() => import('@/presentation/views/settings/AppearanceView/AppearanceView'));
 const PlaceholderView = lazy(() => import('@/presentation/views/settings/PlaceholderView'));
 
 // ── Chat ────────────────────────────────────────────────────────────────────
 const ChatView = lazy(() => import('@/presentation/views/chat/ChatView'));
 const ChatLandingView = lazy(() => import('@/presentation/views/chat/ChatLandingView'));
 const ChatSessionView = lazy(() => import('@/presentation/views/chat/ChatSessionView'));
+const ChatsBrowserView = lazy(() => import('@/presentation/views/chat/ChatsBrowserView'));
 
 export function AppRoutes() {
   return (
@@ -42,13 +44,15 @@ export function AppRoutes() {
           <Route path={ROUTES.SETTINGS_AGENTS} element={<AgentsView />} />
           <Route path={ROUTES.SETTINGS_FLOWS} element={<FlowsView />} />
           <Route path={ROUTES.SETTINGS_FLOW_DETAIL} element={<FlowDetailView />} />
-          <Route path={ROUTES.SETTINGS_APPEARANCE} element={<PlaceholderView />} />
+          <Route path={ROUTES.SETTINGS_APPEARANCE} element={<AppearanceView />} />
           <Route path={ROUTES.SETTINGS_PROFILE} element={<PlaceholderView />} />
         </Route>
 
         {/* ── Chat (sidebar + conversation) — the post-login landing ── */}
         <Route path={ROUTES.CHAT} element={<ProtectedRoute><ChatView /></ProtectedRoute>}>
           <Route index element={<ChatLandingView />} />
+          {/* Static `history` ranks above the dynamic `:id` in React Router. */}
+          <Route path="history" element={<ChatsBrowserView />} />
           <Route path=":id" element={<ChatSessionView />} />
         </Route>
 

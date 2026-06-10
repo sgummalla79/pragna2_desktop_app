@@ -12,7 +12,9 @@ import { ToolCallBadge } from './ToolCallBadge';
 import { ModelBadge } from './ModelBadge';
 import { FlowProposalCard } from './FlowProposalCard';
 import { AttachmentChip } from './AttachmentChip';
+import { DocumentCard } from './DocumentCard';
 import { MessageActions, type ModelOption } from './MessageActions';
+import { DOCUMENT_TOOL_NAMES } from '@/constants/documentTools';
 
 /** Backend prefix for propose-flow tool names (`propose_flow_<api_name>`). */
 const PROPOSE_FLOW_PREFIX = 'propose_flow_';
@@ -190,6 +192,10 @@ export function ChatMessage({
         <MarkdownMessage content={message.content} isStreaming={streaming} />
       )}
       {message.toolCalls?.map((call) => {
+        // Document tools (create_pdf_short / create_pdf_long) surface as a
+        // DocumentCard below the reply — suppress the generic badge so the raw
+        // JSON args / "PDF … created" ack never show. See constants/documentTools.
+        if (DOCUMENT_TOOL_NAMES.has(call.name)) return null;
         const proposed = proposalFlowByToolName.get(call.name);
         if (proposed && onAcceptProposal) {
           return (
@@ -206,7 +212,15 @@ export function ChatMessage({
         }
         return <ToolCallBadge key={call.id} call={call} />;
       })}
-      {attachmentChips(false)}
+      {/* Assistant-generated documents (e.g. create_pdf PDFs) render as
+          full-width cards that open in the attachment viewer. */}
+      {attachments && attachments.length > 0 && (
+        <div className="mt-2 flex flex-col gap-2">
+          {attachments.map((a) => (
+            <DocumentCard key={a.id} attachment={a} onOpen={onOpenAttachment} />
+          ))}
+        </div>
+      )}
       {!streaming && (
         <div className={cn('flex items-center gap-2', !message.content && 'mt-0', message.content && 'mt-0.5')}>
           <ModelBadge userModelId={userModelId} />

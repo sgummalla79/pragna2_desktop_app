@@ -8,6 +8,8 @@ export const ROUTES = {
   // ── Main ─────────────────────────────────────────────────────────────────
   // Post-login landing. Index → ChatLandingView; `/chat/:id` → ChatSessionView.
   CHAT:           '/chat',
+  // Full-width conversation history browser (search + infinite scroll).
+  CHAT_HISTORY:   '/chat/history',
 
   // ── Settings ─────────────────────────────────────────────────────────────
   SETTINGS:               '/settings',

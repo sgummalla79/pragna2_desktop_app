@@ -124,8 +124,10 @@ These are genuine functional differences to close for full parity.
 > message actions — edit / branch / regenerate (+ with-model) / continue
 > (`TD-015`), the **full markdown renderer** — KaTeX math + Mermaid/`sketchon`
 > diagrams + smooth-streaming reveal (`TD-019`; faithful port of the web app's
-> `MarkdownMessage`, see §4 for the one adaptation), and the **per-conversation
-> usage + cost** sidebar chip (`TD-016`, see §4/§5).
+> `MarkdownMessage`, see §4 for the one adaptation), the **per-conversation
+> usage + cost** sidebar chip (`TD-016`, see §4/§5), and the **account menu**
+> (chat sidebar avatar → email + Settings + Sign out — `TD-022`; closes the
+> "no in-app sign-out" gap, see §4 for the one deviation).
 
 > **Not a gap (verified):** neither app re-attaches to a *live, in-flight* episode
 > stream on remount — there is no `/stream` re-attach endpoint in the web app. Both
@@ -171,6 +173,10 @@ The event-parsing + state machinery (`transformHttpEventStream`, `transformChunk
 | **Connector inline-register (`TD-021`)** | A single inline `RegisterConnectorForm` (wraps `ConnectorDetailsForm`) inside the ConnectorPanel's add modal | The add dialog's "Register a new connector" opens the shared `AddConnectorWizard` (gallery → details → tools/OAuth) — the **same** create flow as Settings → Connectors — with a new `onRegistered` callback that attaches the result to the node | Both register a connector without leaving the editor; desktop reuses its richer wizard so there's one connector-create path app-wide (no second divergent form). Functionally equivalent |
 | **Dispatch "blocked" note styling (`TD-021`)** | amber hard-coded note (`amber-300/50/900`) | theme-token note (`border-border bg-muted/50 text-muted-foreground` + `Info` icon) | UI only, per the theme-tokens rule; same copy/behaviour |
 | **Slash popover, form fields, cards** | web-app styling | theme tokens (tweakcn) + shadcn primitives | UI only, per the standing theme rule |
+| **Account menu collapsed mode (`TD-022`)** | `AvatarMenu` takes a `collapsed` prop (icon-only) for the web app's collapsible sidebar rail | Prop omitted — the desktop chat rail is fixed-width (260px) / drawer (280px) and not collapsible, so there is no collapsed state to render | No functional change; the menu's identity/Settings/Sign-out contents are identical |
+| **Theme default + scope (`TD-023`)** | `Theme = 'light' \| 'dark'`, default `dark`, stored in the combined `uiStore`; Appearance page also has a TweakCN palette grid | `ThemeMode = 'light' \| 'dark' \| 'system'`, default **`system`** (follows the OS, desktop convention), in a dedicated `themeStore`; Appearance ships the **mode toggle only** (palette grid deferred → `TD-026`) | Same `.dark`-class mechanism; desktop adds a `system` mode and tracks OS changes live. Palette parity tracked separately |
+| **History browser entry (`TD-024`)** | `ChatView` toggles a `browseMode` flag and renders `ChatsBrowserView` in place; "New chat" clears the flag | A nested **`/chat/history`** route renders `ChatsBrowserView`; reached from the sidebar's "All chats"; "New chat" navigates to `/chat` | Route-based shell vs. in-place flag; identical list/search/infinite-scroll behaviour. `relativeTime` also extracted to `domain/utils` (web app inlines it) for testability |
+| **Generated-document reader (`TD-025`)** | `DocumentCard` opens a dedicated `PdfCanvas` slide-over driven by `uiStore.openPdfDocument`; bytes via `usePdfDocument` | `DocumentCard` opens the existing full-screen `AttachmentViewer` (PDF `<iframe>` via `useAttachmentBlob`); no `PdfCanvas`/`usePdfDocument`/`uiStore` action added | Same card + open-to-read + download behaviour; desktop reuses its one attachment-viewer path (DRY) instead of a second reader. `create_pdf_long` background-episode live progress not ported (the doc still appears as a card once attached) |
 
 ---
 

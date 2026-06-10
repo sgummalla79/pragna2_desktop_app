@@ -117,3 +117,13 @@ Mermaid + `sketchon` diagrams, smooth-streaming reveal (`TD-019`), with the
 (`TD-016`, see `conversation-usage.md`): each sidebar row shows a quiet
 running-total-cost chip (hidden at `$0`, fades on hover so the row actions take the
 slot) sourced from `GET /api/conversations/{id}/usage`.
+
+**Shipped via the 2026-06-10 chat parity round:** an **account menu** in the
+sidebar footer (avatar → email + Settings + Sign out — `TD-022`, see
+`account-menu.md`), a full-width **conversation history browser** at
+`/chat/history` with search + infinite scroll + relative timestamps (`TD-024`,
+see `conversation-history.md`), and **generated-document cards** for `create_pdf`
+outputs (prominent card + open-in-viewer + download; document-tool badges
+suppressed — `TD-025`, see `generated-documents.md`). The app-wide
+light/dark/system **theme toggle** lives on the new Appearance settings page
+(`TD-023`, see `appearance.md`).
