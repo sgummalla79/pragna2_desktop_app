@@ -24,6 +24,19 @@ cargo clippy --manifest-path src-tauri/Cargo.toml        # lint Rust
 cargo fmt --manifest-path src-tauri/Cargo.toml           # format Rust
 ```
 
+End-to-end browser tests live in the isolated `e2e/` sub-workspace (Playwright,
+installed with **npm** — NOT in the root pnpm workspace). They drive the FE in
+browser-fallback mode against a real local backend stack. See `e2e/README.md`.
+
+```sh
+cd e2e
+npm install                       # one-time
+npx playwright install chromium   # one-time (~100 MB)
+npm run setup                     # spin Postgres + BE (local-auth) + FE; seed user/model
+npm test                          # run the Playwright suite (seed-token auth, no login UI)
+npm run teardown                  # stop processes + drop the throwaway DB container
+```
+
 ## Architecture
 
 Follows **Clean Architecture** with strict layer boundaries:

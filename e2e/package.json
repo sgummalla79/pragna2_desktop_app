@@ -1,0 +1,20 @@
+{
+  "name": "pragna2-desktop-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end browser tests for the pragna2 desktop frontend (Playwright). Self-contained sub-workspace: deps installed here only, NOT in the root FE package.json — a casual dev doesn't pay the Chromium download cost. Drives the desktop FE in browser-fallback mode (pnpm dev, XHR transport) against a real local backend stack.",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report",
+    "setup": "bash scripts/setup-stack.sh",
+    "teardown": "bash scripts/teardown-stack.sh"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^22.15.21",
+    "typescript": "~5.8.3"
+  }
+}

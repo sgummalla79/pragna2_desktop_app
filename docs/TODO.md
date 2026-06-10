@@ -34,6 +34,8 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 | [TD-024](#td-024--conversation-history-browser) | Conversation history browser (search + infinite scroll) | Chat | P2 | ✅ done |
 | [TD-025](#td-025--generated-document-cards--reader-create_pdf) | Generated-document cards + reader (create_pdf) | Chat | P2 | ✅ done |
 | [TD-026](#td-026--appearance-full-tweakcn-palette-parity) | Appearance: full TweakCN palette parity | Settings | P3 | ⬜ open |
+| [TD-027](#td-027--integration--e2e-test-suite-tiers-1--2--manual-doc) | Integration + E2E test suite (Tiers 1 & 2 + manual doc) | Testing | P2 | 🟡 in-progress |
+| [TD-028](#td-028--true-tauri-window-e2e-deferred-to-windows) | True Tauri-window e2e (native seam) — deferred to Windows | Testing | P3 | ⬜ open |
 
 ---
 
@@ -604,6 +606,62 @@ Light/Dark/System selector, backed by a new `themeStore`
 Spec pair `appearance.md` (feature + technical). Tests: `themeStore.test.ts` (6),
 `AppearanceView.test.tsx` (4). Deviation (default `system`; separate store) in
 `docs/web-app-parity.md`. Full TweakCN palette parity tracked as TD-026.
+
+---
+
+## TD-027 — Integration + E2E test suite (Tiers 1 & 2 + manual doc)
+
+**Area:** Testing · **Priority:** P2 · **Status:** 🟡 in-progress (2026-06-10)
+
+**What:** The unit suite covers logic/data/hooks but left the view/orchestration
+components at ~0% — the integration glue unit tests shouldn't cover. Bring the
+desktop to the web app's bar with **Tier 1** component-integration tests (Vitest
++ jsdom — real views, mock services) and **Tier 2** browser e2e (Playwright vs a
+real local stack), plus a desktop-owned manual-testing doc. Plan:
+`docs/plans/integration-e2e-tests.md`. Spec pair `integration-e2e-tests.md`
+(feature + technical).
+
+**Done so far:**
+- **Harness (Phase 1):** self-contained `e2e/` Playwright sub-workspace (npm,
+  isolated) driving the desktop FE in browser-fallback mode against a real local
+  stack; **seed-token auth** (no login UI — `global-setup.ts` mints a real
+  local-BE access JWT + an unsigned decodable ID token; `fixtures.ts` injects
+  both into sessionStorage so `Auth0Repository.me()` resolves locally with no
+  Auth0 network). `scripts/{setup,teardown,seed-model}-stack.sh`. Smoke spec
+  green (seeded → authed `/chat`; unseeded → `/login`).
+- **Tier 1 (Phase 2):** shared `src/__tests__/renderWithProviders.tsx` + 22
+  co-located view `*.test.tsx` for the high-value 0%-coverage views (chat,
+  connectors, flows, settings, auth). Suite **65→88 files / 281→452 tests**;
+  coverage **~24%→~56% lines** (above the web app's ~46%). `tsc` clean.
+
+**Remaining:** Tier 2 — port the web app's 32 parity specs (chat, flow editor,
+documents, connectors/knowledge, design/regression), adding `data-testid`s to
+source only where role/text is ambiguous; then `docs/MANUAL_TEST_SCENARIOS.md`
+for the un-automatable residue. Tier 1 jsdom limits (ReactFlow canvas, Radix
+Select open-menu) are intentionally covered in Tier 2.
+
+---
+
+## TD-028 — True Tauri-window e2e (native seam) — deferred to Windows
+
+**Area:** Testing · **Priority:** P3 · **Status:** ⬜ open (deferred)
+
+**What:** Tiers 1 & 2 (TD-027) run the React frontend in a browser; they cannot
+exercise the **native seam** — OS keychain persistence (`secureStore`), native
+HTTP (`tauriHttpAdapter`), and the loopback OAuth flow
+(`tauriLoopbackAuthFlow`). A true Tauri-window e2e layer would cover these.
+
+**Why deferred:** the official `tauri-driver` has **no macOS support** (no
+WKWebView WebDriver) — it runs on **Windows/Linux only**. The dev machine is a
+Mac, so this can't run here today. The native seams are already unit-tested and
+their user-visible behavior is captured in the manual doc, so deferring loses no
+practical coverage now.
+
+**When taken up (build on Windows/Linux):** a `tauri-driver` + WebdriverIO (or
+`@crabnebula/tauri-driver`) harness under `e2e-tauri/`, covering keychain
+"stay signed in" across restart, native cross-origin HTTP, and system-browser
+loopback OAuth. No re-research needed — the macOS limitation, target platforms,
+covered seams, and candidate tooling are all recorded here.
 
 ---
 
