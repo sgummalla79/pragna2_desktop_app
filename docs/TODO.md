@@ -21,7 +21,7 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 | [TD-006](#td-006--chat-action-preferences-have-no-consumer-yet) | Chat-action preferences have no consumer yet | Configuration | P3 | open |
 | [TD-012](#td-012--chat-attachments--pdf-viewer) | Chat attachments + PDF viewer | Chat | P2 | open |
 | [TD-013](#td-013--chat-slash-commands--flow-dispatch) | Chat slash commands + flow dispatch | Chat | P3 | done |
-| [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals) | Chat HITL episodes (ask_user forms + flow proposals) | Chat | P2 | open |
+| [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals) | Chat HITL episodes (ask_user forms + flow proposals) | Chat | P2 | Phase A done; Phase B open |
 | [TD-015](#td-015--chat-message-actions-edit--branch--regenerate--continue) | Chat message actions (edit / branch / regenerate / continue) | Chat | P3 | open |
 | [TD-016](#td-016--chat-conversation-usage--cost-panel) | Chat conversation usage + cost panel | Chat | P3 | open |
 | [TD-017](#td-017--evaluate-streamdown-transitive-weight) | Evaluate Streamdown transitive weight | Chat | P3 | open |
@@ -262,22 +262,40 @@ Flows, then in chat type `/<name> …` and confirm the popover + flow dispatch.
 
 ## TD-014 — Chat HITL episodes (ask_user forms + flow proposals)
 
-**Area:** Chat · **Priority:** P2 · **Status:** open
+**Area:** Chat · **Priority:** P2 · **Status:** Phase A done (2026-06-09); Phase B open
 
-**What:** When the agent calls the `ask_user` tool or proposes a flow, the run
-pauses (`awaiting_user`) and the UI must render an interactive form
-(`HITLFormCard`) / proposal card (`FlowProposalCard`), then resume via
-`POST /api/conversations/{id}/episodes/{eid}/resume` (SSE). Also covers
-re-attaching to a live background episode on remount
-(`POST .../episodes/{eid}/stream`). Deferred to the Agent Flows phase since it
-shares the flow + episode machinery.
+**What:** When a flow run calls `ask_user` it pauses (`awaiting_user`); the UI
+renders an interactive form and resumes via
+`POST /api/conversations/{id}/episodes/{eid}/resume` (SSE). Flow *proposals*
+(`propose_flow_*` tool calls → proposal card → start episode) are the second half.
 
-**Where (to add):** an `EpisodeRepository` + `episode.types.ts`; `useEpisodes`
-hook; `HITLFormCard` / `FlowProposalCard` components; restore `attach` +
-`replaceMessages` on `useChatSession`.
+**Phase A — shipped (ask_user pause/resume), fully native:** `episode.types.ts`,
+`IEpisodeRepository`/`EpisodeRepository`/`mapEpisode`/`EpisodeService` (read-only;
+list/get), DI. **`TauriHttpAgent.runRaw(url, body, signal)`** streams the resume
+(and start) SSE through ag-ui's inherited `apply()`/`processApplyEvents()` — so
+the continuation renders live and a second `on_interrupt` surfaces natively, **no
+buffer/poll/`replaceMessages`** (the web app's documented debt, avoided by
+construction). `useChatSession` gains `on_interrupt` detection +
+`resolveOpenEpisode` (one `episodes?limit=1` GET for the id the event omits) +
+`pendingInterrupt` / `submitInterrupt` / `startEpisode`. Form subsystem in
+`components/hitl/` (`validators`, `FormField`, `HITLFormCard`; 8 field types — file
+unsupported pending TD-012). Wired into `ChatSessionView`. Errors `HITL_001..003`.
+Specs: `docs/specs/{features,technical}/hitl-episodes.md`.
 
-**Done when:** an `ask_user` pause renders a form whose submission resumes the run,
-and navigating away/back during a live run re-attaches to it.
+**Phase B — open (flow proposals):** detect `propose_flow_<api_name>` tool calls
+in `ChatMessage`, render a proposal card, accept → `startEpisode` (plumbing
+already exists). **Blocked on** confirming the `flow_api_name` the create endpoint
+expects — the web-app reference is contradictory about the `propose_flow_` prefix
+(`FlowProposalCard` matches `f.apiName === call.name` (bare) but detection uses the
+prefix). Resolve against the live contract before wiring.
+
+**Live-verify (needs a backend):** resume SSE opens with `RUN_STARTED` (else relax
+`verifyEvents`); how the form-submission user turn is echoed in the resumed stream.
+Also deferred: episode cancel from the UI; file-upload fields (TD-012).
+
+**Done when (Phase A):** an `ask_user` pause renders a form whose submission
+resumes the run live; a second pause re-shows a form; reopening a paused
+conversation restores the form. ✓
 
 ---
 
@@ -431,5 +449,6 @@ surfacing vs. leaving to YAML).
 > **Cross-link:** the chat ↔ flows integration was unblocked by the Agent Flows
 > flow layer (`useFlows`, `FlowService`, `flow.types`).
 > [TD-013](#td-013--chat-slash-commands--flow-dispatch) (chat slash dispatch) is
-> now **done**; [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals)
-> (chat HITL episodes) remains the deferred half.
+> **done**; [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals)
+> (chat HITL episodes) is **Phase A done** (ask_user pause/resume, fully native via
+> `TauriHttpAgent.runRaw`) with **Phase B** (flow proposals) the remaining half.

@@ -15,6 +15,7 @@ import type {
 } from '@/domain/types/conversation.types';
 import { ChatInput } from './components/ChatInput';
 import { ChatMessage } from './components/ChatMessage';
+import { HITLFormCard } from './components/hitl/HITLFormCard';
 import { ModelPicker } from './components/ModelPicker';
 import { ThinkingToggle } from './components/ThinkingToggle';
 import { ThinkingStrip } from './components/ThinkingStrip';
@@ -115,6 +116,8 @@ function ChatConversation({
     stop,
     streamingMessageIds,
     streamingModelByMessageId,
+    pendingInterrupt,
+    submitInterrupt,
   } = useChatSession({ threadId: conversationId, initialMessages, slashFlowNames });
 
   const [draft, setDraft] = useState('');
@@ -190,6 +193,15 @@ function ChatConversation({
               {error}
             </div>
           )}
+          {pendingInterrupt && (
+            <HITLFormCard
+              // Remount per pause so a fresh interrupt resets the form.
+              key={pendingInterrupt.episodeId}
+              schema={pendingInterrupt.schema}
+              submitting={status === 'running'}
+              onSubmit={(form, text) => submitInterrupt(form, text)}
+            />
+          )}
           <div ref={bottomRef} />
         </div>
       </div>
@@ -203,7 +215,8 @@ function ChatConversation({
             onSubmit={handleSend}
             onStop={stop}
             running={status === 'running'}
-            placeholder="Reply…"
+            disabled={Boolean(pendingInterrupt)}
+            placeholder={pendingInterrupt ? 'Complete the form above to continue…' : 'Reply…'}
             slashFlows={slashFlows}
             controls={
               <>

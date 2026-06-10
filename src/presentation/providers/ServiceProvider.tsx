@@ -15,6 +15,7 @@ import { AgentRepository } from '@/infrastructure/repositories/AgentRepository';
 import { ConversationRepository } from '@/infrastructure/repositories/ConversationRepository';
 import { FlowRepository } from '@/infrastructure/repositories/FlowRepository';
 import { PragnaFlowRepository } from '@/infrastructure/repositories/PragnaFlowRepository';
+import { EpisodeRepository } from '@/infrastructure/repositories/EpisodeRepository';
 import { AuthService } from '@/application/services/AuthService';
 import { LlmProviderService } from '@/application/services/LlmProviderService';
 import { ProviderService } from '@/application/services/ProviderService';
@@ -27,6 +28,7 @@ import { AgentService } from '@/application/services/AgentService';
 import { ConversationService } from '@/application/services/ConversationService';
 import { FlowService } from '@/application/services/FlowService';
 import { PragnaFlowService } from '@/application/services/PragnaFlowService';
+import { EpisodeService } from '@/application/services/EpisodeService';
 import { useAuthStore } from '@/presentation/store/authStore';
 import { ServiceContext } from './ServiceContext';
 
@@ -65,6 +67,7 @@ export function ServiceProvider({ children }: ServiceProviderProps) {
       ),
       flowService: new FlowService(new FlowRepository(axiosClient)),
       pragnaFlowService: new PragnaFlowService(new PragnaFlowRepository(axiosClient)),
+      episodeService: new EpisodeService(new EpisodeRepository(axiosClient)),
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -11,6 +11,7 @@ import type { AgentService } from '@/application/services/AgentService';
 import type { ConversationService } from '@/application/services/ConversationService';
 import type { FlowService } from '@/application/services/FlowService';
 import type { PragnaFlowService } from '@/application/services/PragnaFlowService';
+import type { EpisodeService } from '@/application/services/EpisodeService';
 
 /**
  * Dependency-injection container for application services.
@@ -42,6 +43,8 @@ export interface Services {
   flowService: FlowService;
   /** Chat slash-command discovery for the composer (/api/pragna/flows). */
   pragnaFlowService: PragnaFlowService;
+  /** HITL episode reads (/api/conversations/{id}/episodes). */
+  episodeService: EpisodeService;
 }
 
 export const ServiceContext = createContext<Services | null>(null);

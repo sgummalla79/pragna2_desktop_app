@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AgentSubscriber, Message } from '@ag-ui/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { PRAGNA_BASE_URL } from '@/constants/api';
+import { API_BASE_URL, PRAGNA_BASE_URL } from '@/constants/api';
+import { ERRORS } from '@/constants/errors';
 import { SLASH_COMMAND_RE } from '@/constants/slashCommands';
 import { TauriHttpAgent } from '@/infrastructure/agui/TauriHttpAgent';
 import { invalidateConversationListQueries } from '@/presentation/hooks/conversations/useConversations';
+import { useServices } from '@/presentation/providers/ServiceContext';
 import { useAuthStore } from '@/presentation/store/authStore';
 import { logger } from '@/infrastructure/logging/logger';
+import type { AskUserSchema, CreateEpisodePayload } from '@/domain/types/episode.types';
 
 /** A tool call rendered inline under an assistant turn. */
 export interface ChatToolCall {
@@ -41,6 +44,16 @@ export interface SendOverrides {
   thinkingEnabled?: boolean;
 }
 
+/**
+ * A live HITL pause: the open episode awaiting the user, plus the `ask_user`
+ * form schema to render. Cleared once the user submits (and re-set if the
+ * resumed run pauses again).
+ */
+export interface PendingInterrupt {
+  episodeId: string;
+  schema: AskUserSchema;
+}
+
 export interface ChatSessionApi {
   /** Current turn state. Reflects the underlying agent's `messages` 1:1. */
   messages: ChatMessage[];
@@ -66,6 +79,24 @@ export interface ChatSessionApi {
   streamingMessageIds: Set<string>;
   /** Per-streaming-message producer-model attribution (no-flip badge render). */
   streamingModelByMessageId: Map<string, string>;
+  /**
+   * The current HITL pause (open episode + `ask_user` schema), or `null`. Set
+   * when a run pauses (`on_interrupt` seen → open-episode resolved to
+   * `awaiting_user`); the view renders a form from `schema`.
+   */
+  pendingInterrupt: PendingInterrupt | null;
+  /**
+   * Submit the HITL form to resume the paused episode (`POST …/episodes/{id}/
+   * resume`). Streams the continuation live through the same transport; if the
+   * resumed run pauses again, {@link pendingInterrupt} is re-set. No-op while a
+   * run is in flight or when there's no pending interrupt.
+   */
+  submitInterrupt: (form: Record<string, unknown>, text: string) => void;
+  /**
+   * Start a flow episode (`POST …/episodes`) — e.g. accepting a flow proposal —
+   * and stream its run live. May immediately pause into a {@link pendingInterrupt}.
+   */
+  startEpisode: (payload: CreateEpisodePayload) => void;
 }
 
 export interface UseChatSessionOptions {
@@ -106,6 +137,7 @@ export function useChatSession(
   const { threadId, initialMessages, slashFlowNames } = options;
   const accessToken = useAuthStore((s) => s.accessToken);
   const qc = useQueryClient();
+  const { episodeService } = useServices();
 
   // Lazy-init from `initialMessages` so the first render already shows the
   // seeded transcript (avoids a one-frame blank scroll area on resume).
@@ -142,6 +174,26 @@ export function useChatSession(
   // re-fire the landing handoff effect).
   const slashFlowNamesRef = useRef<Set<string> | undefined>(undefined);
   slashFlowNamesRef.current = slashFlowNames;
+
+  // ── HITL episode state ──────────────────────────────────────────────────────
+  // The live pause awaiting a form submission; null when not paused.
+  const [pendingInterrupt, setPendingInterrupt] =
+    useState<PendingInterrupt | null>(null);
+  // Latest pending interrupt, read inside the stable `send` callback to block a
+  // normal chat turn while a form is open (the backend 409s on an open episode).
+  const pendingInterruptRef = useRef<PendingInterrupt | null>(null);
+  pendingInterruptRef.current = pendingInterrupt;
+  // Set when an `on_interrupt` is seen mid-stream; the trigger to resolve the
+  // open episode (for its id) once the run finalizes. Schema is stashed for an
+  // instant form render (the event carries the schema but not the episode id).
+  const sawInterruptRef = useRef(false);
+  const interruptSchemaRef = useRef<AskUserSchema | null>(null);
+  // Abort controller for an in-flight raw episode run (start/resume), so `stop`
+  // can cancel it (these bypass ag-ui's `runAgent`/`abortRun`).
+  const rawAbortRef = useRef<AbortController | null>(null);
+  // Stable ref to the latest open-episode resolver, called from the subscriber
+  // (avoids adding it to the subscribe effect's deps).
+  const resolveOpenEpisodeRef = useRef<() => void>(() => {});
 
   const agent = useMemo<TauriHttpAgent | null>(() => {
     if (!accessToken) return null;
@@ -225,6 +277,11 @@ export function useChatSession(
           qc.invalidateQueries({
             queryKey: ['conversations', threadId, 'messages'],
           });
+        }
+        // If this run paused for human input, resolve the open episode (the
+        // `on_interrupt` event carried the schema but not the episode id).
+        if (sawInterruptRef.current) {
+          resolveOpenEpisodeRef.current();
         }
       },
       onTextMessageStartEvent: ({ event }) => {
@@ -354,6 +411,18 @@ export function useChatSession(
           }
           return;
         }
+        // on_interrupt — the run paused for human input (ask_user). The value
+        // carries the form `schema` but NOT the episode id, so stash the schema
+        // and flag the run; the open episode is resolved (for its id) once the
+        // run finalizes (chat path) or the raw episode run completes (resume).
+        if (event.name === 'on_interrupt') {
+          const value = event.value as { schema?: AskUserSchema } | null | undefined;
+          const schema =
+            value && typeof value === 'object' && value.schema ? value.schema : null;
+          if (schema) interruptSchemaRef.current = schema;
+          sawInterruptRef.current = true;
+          return;
+        }
         // Unknown custom events are ignored.
       },
     };
@@ -367,11 +436,20 @@ export function useChatSession(
     };
   }, [agent, syncMessages, qc, threadId]);
 
+  // On conversation (re)mount, surface any already-open `awaiting_user` episode
+  // so a paused form reappears when the user returns to the chat. One cheap GET
+  // per open; resolves to no pending interrupt for ordinary conversations.
+  useEffect(() => {
+    void resolveOpenEpisodeRef.current();
+  }, [threadId]);
+
   const send = useCallback(
     (text: string) => {
       const trimmed = text.trim();
       if (!agent || !trimmed) return;
       if (status === 'running') return;
+      // A pending HITL form owns the conversation — submit the form, not chat.
+      if (pendingInterruptRef.current) return;
 
       // Per-turn slash dispatch: a `/{name} …` prefix whose name is an exposed
       // flow routes this turn to the flow endpoint. Slash wins over any per-turn
@@ -423,7 +501,125 @@ export function useChatSession(
     [agent, status, send],
   );
 
+  // Resolve the conversation's open episode after a pause — the `on_interrupt`
+  // event gives us the schema but not the episode id, so one lookup gets the id
+  // (and the canonical schema). Sets `pendingInterrupt` iff `awaiting_user`.
+  const resolveOpenEpisode = useCallback(async () => {
+    sawInterruptRef.current = false;
+    if (!threadId) return;
+    try {
+      const page = await episodeService.list(threadId, { limit: 1, offset: 0 });
+      const ep = page.episodes[0];
+      if (ep && ep.status === 'awaiting_user') {
+        const schema =
+          (ep.interruptValue as { schema?: AskUserSchema } | null)?.schema ??
+          interruptSchemaRef.current ??
+          null;
+        if (schema) {
+          setPendingInterrupt({ episodeId: ep.id, schema });
+          return;
+        }
+      }
+      setPendingInterrupt(null);
+    } catch (e) {
+      logger.fromError(
+        'HITL_001:open_episode',
+        e instanceof Error ? e : new Error(String(e)),
+      );
+    } finally {
+      interruptSchemaRef.current = null;
+    }
+  }, [threadId, episodeService]);
+  resolveOpenEpisodeRef.current = resolveOpenEpisode;
+
+  // Stream a raw episode run (start or resume) through the agent transport,
+  // managing status + abort ourselves (these bypass ag-ui's runAgent lifecycle,
+  // so onRunInitialized/onRunFinalized don't fire). The per-event subscriber
+  // hooks still fire via `apply`, so messages + a second `on_interrupt` surface
+  // live; we resolve the open episode again after it completes.
+  const runEpisodeStream = useCallback(
+    async (url: string, body: unknown, errCode: 'HITL_002' | 'HITL_003') => {
+      if (!agent || !threadId) return;
+      const controller = new AbortController();
+      rawAbortRef.current = controller;
+      setStatus('running');
+      setError(null);
+      setProgressLabel(null);
+      setStreamingMessageIds(new Set());
+      reasoningByMessageIdRef.current = new Map();
+      let errored = false;
+      try {
+        await agent.runRaw(url, body, controller.signal);
+        await resolveOpenEpisode();
+      } catch (e) {
+        if (
+          e instanceof Error &&
+          (e.name === 'AbortError' || /abort/i.test(e.message))
+        ) {
+          // user-initiated unwind (Stop / navigation) — silent
+        } else {
+          errored = true;
+          setStatus('error');
+          setError(e instanceof Error && e.message ? e.message : ERRORS[errCode].message);
+          logger.fromError(
+            `${errCode}:episode_run`,
+            e instanceof Error ? e : new Error(String(e)),
+          );
+        }
+      } finally {
+        setStreamingMessageIds(new Set());
+        setProgressLabel(null);
+        if (!errored) setStatus('idle');
+        rawAbortRef.current = null;
+        invalidateConversationListQueries(qc, { conversationId: threadId });
+        qc.invalidateQueries({
+          queryKey: ['conversations', threadId, 'messages'],
+        });
+      }
+    },
+    [agent, threadId, resolveOpenEpisode, qc],
+  );
+
+  const submitInterrupt = useCallback(
+    (form: Record<string, unknown>, text: string) => {
+      if (!agent || !threadId || !pendingInterrupt) return;
+      if (status === 'running') return;
+      const url = `${API_BASE_URL}/conversations/${threadId}/episodes/${pendingInterrupt.episodeId}/resume`;
+      // Hide the form while the resume streams; re-set if it pauses again.
+      setPendingInterrupt(null);
+      void runEpisodeStream(url, { form, text }, 'HITL_002');
+    },
+    [agent, threadId, pendingInterrupt, status, runEpisodeStream],
+  );
+
+  const startEpisode = useCallback(
+    (payload: CreateEpisodePayload) => {
+      if (!agent || !threadId) return;
+      if (status === 'running') return;
+      const url = `${API_BASE_URL}/conversations/${threadId}/episodes`;
+      void runEpisodeStream(
+        url,
+        {
+          flow_api_name: payload.flowApiName,
+          seed_summary: payload.seedSummary ?? null,
+          seed_user_input: payload.seedUserInput ?? null,
+        },
+        'HITL_003',
+      );
+    },
+    [agent, threadId, status, runEpisodeStream],
+  );
+
   const stop = useCallback(() => {
+    // A raw episode run (start/resume) bypasses ag-ui's abortRun — cancel its
+    // own controller first.
+    if (rawAbortRef.current) {
+      rawAbortRef.current.abort();
+      rawAbortRef.current = null;
+      setStatus('idle');
+      setProgressLabel(null);
+      return;
+    }
     if (agent && status === 'running') {
       agent.abortRun();
       setStatus('idle');
@@ -441,6 +637,9 @@ export function useChatSession(
     stop,
     streamingMessageIds,
     streamingModelByMessageId,
+    pendingInterrupt,
+    submitInterrupt,
+    startEpisode,
   };
 }
 

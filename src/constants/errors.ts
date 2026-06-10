@@ -82,6 +82,11 @@ export const ERRORS = {
   // ── Streaming (chat transport) ──────────────────────────────────────────────
   STREAM_001: { code: 'STREAM_001', message: 'Lost connection to the assistant. Please try again.', severity: 'error' },
 
+  // ── HITL episodes (human-in-the-loop) ───────────────────────────────────────
+  HITL_001: { code: 'HITL_001', message: 'Failed to load the pending form.', severity: 'warn' },
+  HITL_002: { code: 'HITL_002', message: 'Failed to submit your response. Please try again.', severity: 'error' },
+  HITL_003: { code: 'HITL_003', message: 'Failed to start the flow. Please try again.', severity: 'error' },
+
   // ── Agent Flows ─────────────────────────────────────────────────────────────
   FLW_001: { code: 'FLW_001', message: 'Failed to load flows.', severity: 'error' },
   FLW_002: { code: 'FLW_002', message: 'Failed to load this flow.', severity: 'error' },
