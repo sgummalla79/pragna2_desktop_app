@@ -10,19 +10,19 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 |----|-------|------|----------|--------|
 | [TD-001](#td-001--desktop-oauth-connector-callback-round-trip) | Desktop OAuth connector callback round-trip | Connectors | P1 | ⬜ open |
 | [TD-002](#td-002--feature--technical-spec-docs-for-the-three-settings-pages) | Spec docs for Configuration / Connectors / Knowledge | Docs | P2 | ✅ done |
+| [TD-003](#td-003--unit-tests-for-the-three-new-features) | Unit tests for the three new features | Testing | P2 | ⬜ open |
+| [TD-004](#td-004--verify-multipart-knowledge-upload-against-the-live-backend) | Verify multipart Knowledge upload end-to-end | Knowledge | P2 | ⬜ open |
+| [TD-005](#td-005--client-side-file-validation-for-knowledge-upload) | Client-side file validation for Knowledge upload | Knowledge | P3 | ✅ done |
+| [TD-006](#td-006--chat-action-preferences-have-no-consumer-yet) | Chat-action preferences have no consumer yet | Configuration | P3 | ✅ done |
 | [TD-007](#td-007--backfill-spec-docs-for-login--providers) | Backfill spec docs for Login + Providers | Docs | P2 | ✅ done |
 | [TD-008](#td-008--providers-view-swallows-errors) | Providers view swallows several errors | Providers | P3 | ✅ done |
 | [TD-009](#td-009--auth-session-does-not-persist-across-restart) | Auth session does not persist across restart | Login | P3 | ✅ done |
 | [TD-010](#td-010--agent-tool-entry-autocomplete-against-apitools) | Agent tool entry: autocomplete against /api/tools | Agents | P3 | ✅ done |
 | [TD-011](#td-011--model--temperature-selection-on-standalone-agents) | Model / temperature selection on standalone agents | Agents | P3 | ⬜ open |
-| [TD-003](#td-003--unit-tests-for-the-three-new-features) | Unit tests for the three new features | Testing | P2 | ⬜ open |
-| [TD-004](#td-004--verify-multipart-knowledge-upload-against-the-live-backend) | Verify multipart Knowledge upload end-to-end | Knowledge | P2 | ⬜ open |
-| [TD-005](#td-005--client-side-file-validation-for-knowledge-upload) | Client-side file validation for Knowledge upload | Knowledge | P3 | ✅ done |
-| [TD-006](#td-006--chat-action-preferences-have-no-consumer-yet) | Chat-action preferences have no consumer yet | Configuration | P3 | ⬜ open |
 | [TD-012](#td-012--chat-attachments--pdf-viewer) | Chat attachments + PDF viewer | Chat | P2 | ✅ done (session view) |
 | [TD-013](#td-013--chat-slash-commands--flow-dispatch) | Chat slash commands + flow dispatch | Chat | P3 | ✅ done |
 | [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals) | Chat HITL episodes (ask_user forms + flow proposals) | Chat | P2 | ✅ done |
-| [TD-015](#td-015--chat-message-actions-edit--branch--regenerate--continue) | Chat message actions (edit / branch / regenerate / continue) | Chat | P3 | ⬜ open |
+| [TD-015](#td-015--chat-message-actions-edit--branch--regenerate--continue) | Chat message actions (edit / branch / regenerate / continue) | Chat | P3 | ✅ done |
 | [TD-016](#td-016--chat-conversation-usage--cost-panel) | Chat conversation usage + cost panel | Chat | P3 | ⬜ open |
 | [TD-017](#td-017--evaluate-streamdown-transitive-weight) | Evaluate Streamdown transitive weight | Chat | P3 | ⬜ open |
 | [TD-018](#td-018--historical-tool-call-badges-not-rehydrated) | Historical tool-call badges not rehydrated | Chat | P3 | ✅ done |
@@ -68,6 +68,59 @@ its tools appear automatically.
 
 **Done:** `configuration.md`, `connectors.md`, `knowledge.md` written under both
 `docs/specs/features/` and `docs/specs/technical/`, sourced from the shipped code.
+
+---
+
+## TD-003 — Unit tests for the three new features
+
+**Area:** Testing · **Priority:** P2 · **Status:** open
+
+**What:** The testing standard calls for tests with every feature. The ported
+repositories, mappers, services, and hooks shipped without tests.
+
+**Scope:** repository HTTP contracts (mock network — incl. the multipart upload
+path), boundary mappers (snake_case ↔ camelCase), and react-query hook behavior
+(query keys + invalidation). Mirror the web app's existing test style where useful.
+
+**Done when:** `pnpm test` (frontend) covers the new repos/mappers/hooks and passes.
+
+---
+
+## TD-004 — Verify multipart Knowledge upload against the live backend
+
+**Area:** Knowledge · **Priority:** P2 · **Status:** open
+
+**What:** File upload posts `FormData` through the native-HTTP axios adapter, which
+was hardened to drop the JSON `Content-Type` so the transport sets the multipart
+boundary (`src/infrastructure/http/tauriHttpAdapter.ts`). This was not exercised
+against the running backend from the dev environment.
+
+**Done when:** a real document (pdf/txt/md/csv/docx/xlsx) uploads successfully on a
+packaged macOS build and the source appears in the library.
+
+---
+
+## TD-005 — Client-side file validation for Knowledge upload
+
+**Area:** Knowledge · **Priority:** P3 · **Status:** done (2026-06-09)
+
+**Resolved:** `LibraryDocumentsManager.handleFilePick` now runs
+`validateKnowledgeFile` (extension against the accept list + size vs
+`KNOWLEDGE_MAX_FILE_BYTES` = 25 MB) on both the picker and drag-drop paths;
+a rejected file isn't accepted and shows an inline message. The size cap is a
+named constant with a comment (the API exposes no limit; the backend remains the
+real gate at 413/415).
+
+---
+
+## TD-006 — Chat-action preferences have no consumer yet
+
+**Area:** Configuration · **Priority:** P3 · **Status:** done (2026-06-09)
+
+**Resolved:** `ChatSessionView` now reads `useChatPreferences` (`pragna:chat-prefs`)
+to gate the message-action affordances — `branchEnabled` shows/hides the Branch
+button; `regenWithModelEnabled` shows/hides the regenerate-with-model dropdown.
+Shipped with [TD-015](#td-015--chat-message-actions-edit--branch--regenerate--continue).
 
 ---
 
@@ -183,64 +236,6 @@ domain `agent.types.ts`; backend `/api/agents` contract.
 
 ---
 
-## TD-003 — Unit tests for the three new features
-
-**Area:** Testing · **Priority:** P2 · **Status:** open
-
-**What:** The testing standard calls for tests with every feature. The ported
-repositories, mappers, services, and hooks shipped without tests.
-
-**Scope:** repository HTTP contracts (mock network — incl. the multipart upload
-path), boundary mappers (snake_case ↔ camelCase), and react-query hook behavior
-(query keys + invalidation). Mirror the web app's existing test style where useful.
-
-**Done when:** `pnpm test` (frontend) covers the new repos/mappers/hooks and passes.
-
----
-
-## TD-004 — Verify multipart Knowledge upload against the live backend
-
-**Area:** Knowledge · **Priority:** P2 · **Status:** open
-
-**What:** File upload posts `FormData` through the native-HTTP axios adapter, which
-was hardened to drop the JSON `Content-Type` so the transport sets the multipart
-boundary (`src/infrastructure/http/tauriHttpAdapter.ts`). This was not exercised
-against the running backend from the dev environment.
-
-**Done when:** a real document (pdf/txt/md/csv/docx/xlsx) uploads successfully on a
-packaged macOS build and the source appears in the library.
-
----
-
-## TD-005 — Client-side file validation for Knowledge upload
-
-**Area:** Knowledge · **Priority:** P3 · **Status:** done (2026-06-09)
-
-**Resolved:** `LibraryDocumentsManager.handleFilePick` now runs
-`validateKnowledgeFile` (extension against the accept list + size vs
-`KNOWLEDGE_MAX_FILE_BYTES` = 25 MB) on both the picker and drag-drop paths;
-a rejected file isn't accepted and shows an inline message. The size cap is a
-named constant with a comment (the API exposes no limit; the backend remains the
-real gate at 413/415).
-
----
-
-## TD-006 — Chat-action preferences have no consumer yet
-
-**Area:** Configuration · **Priority:** P3 · **Status:** open
-
-**What:** The Configuration page's "Chat actions" toggles persist to local storage
-(`useChatPreferences`) but nothing reads them yet — the chat surface isn't built.
-
-**Done when:** the chat UI honors these preferences (revisit when chat lands).
-
-**Update (2026-06-09):** Chat Phase 1 (core streaming chat) shipped but does not
-yet consume these toggles — the Branch and Regenerate-with-model affordances they
-gate are part of the deferred message-actions work ([TD-015](#td-015--chat-message-actions-edit--branch--regenerate--continue)).
-Still open; wire when message actions land.
-
----
-
 ## TD-012 — Chat attachments + PDF viewer
 
 **Area:** Chat · **Priority:** P2 · **Status:** done — session view (2026-06-09); landing uploads deferred
@@ -335,21 +330,23 @@ conversation restores the form. ✓
 
 ## TD-015 — Chat message actions (edit / branch / regenerate / continue)
 
-**Area:** Chat · **Priority:** P3 · **Status:** open
+**Area:** Chat · **Priority:** P3 · **Status:** done (2026-06-09)
 
-**What:** Per-message hover actions on assistant/user turns: copy, regenerate
-(optionally with a different model), edit-and-resend, branch the conversation, and
-Continue when an assistant turn stopped on `length`. These rely on the BE
-`truncate-from` and `branch` endpoints (deferred from the repository) and the
-per-turn `?user_model_id=` override (`sendWithModel`).
+**Shipped:** per-message hover actions. Conversation layer gained `truncateFrom`
+(`POST …/messages/truncate-from`) + `branch` (`POST …/branch`) on the port/service/
+repository + `useTruncateFromMessage`/`useBranchConversation`. `useChatSession`
+gained `sendWithModel` (wrapper over `sendWithOverrides({userModelId})`).
+`MessageActions` (edit/branch on user; regenerate/regenerate-with-model/copy on
+assistant) + inline edit + a Continue button (when the last assistant turn's
+persisted `finishReason === 'length'`). `ChatSessionView` orchestrates: edit/
+regenerate = truncate-then-resend, branch = fork + handoff + navigate, continue =
+`send(CONTINUE_PROMPT)`. Closes [TD-006](#td-006--chat-action-preferences-have-no-consumer-yet)
+(prefs gate Branch + regen-with-model). Specs: `docs/specs/{features,technical}/
+message-actions.md`. Deviations (no functional impact) logged in
+`docs/web-app-parity.md` §4.
 
-**Where (to add):** restore `truncateFrom` + `branch` on `IConversationRepository`
-/ `ConversationService` / `ConversationRepository` + `useTruncateFromMessage` /
-`useBranchConversation`; restore `sendWithModel` on `useChatSession`; a
-`MessageActions` component. This also unblocks [TD-006](#td-006--chat-action-preferences-have-no-consumer-yet)
-(the `useChatPreferences` Branch / regen-with-model toggles).
-
-**Done when:** the four actions work and honor the chat preferences.
+**Live-verify (needs backend):** truncate-from + branch endpoints; that branch's
+re-send doesn't duplicate the branch-point turn (mirrors web-app behavior).
 
 ---
 

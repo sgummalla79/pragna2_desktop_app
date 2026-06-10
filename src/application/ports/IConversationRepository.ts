@@ -46,4 +46,15 @@ export interface IConversationRepository {
   ): Promise<Conversation>;
   /** Hard-delete; FK cascade removes messages + usage records. */
   delete(conversationId: string): Promise<void>;
+  /**
+   * Delete the given message and every message after it (tail truncation).
+   * The shared primitive behind edit + regenerate (truncate, then re-send).
+   */
+  truncateFrom(conversationId: string, messageId: string): Promise<void>;
+  /**
+   * Fork a new conversation containing every message up to + including the
+   * given one; returns the new conversation (inherits flow + model). The chat
+   * surface navigates to it and re-sends the branch-point user message.
+   */
+  branch(conversationId: string, messageId: string): Promise<Conversation>;
 }

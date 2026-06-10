@@ -108,4 +108,19 @@ export class ConversationRepository implements IConversationRepository {
   async delete(conversationId: string): Promise<void> {
     await this.http.delete(`/conversations/${conversationId}`);
   }
+
+  async truncateFrom(conversationId: string, messageId: string): Promise<void> {
+    await this.http.post(
+      `/conversations/${conversationId}/messages/truncate-from`,
+      { message_id: messageId },
+    );
+  }
+
+  async branch(conversationId: string, messageId: string): Promise<Conversation> {
+    const { data } = await this.http.post<ApiConversationResponse>(
+      `/conversations/${conversationId}/branch`,
+      { message_id: messageId },
+    );
+    return mapConversation(data);
+  }
 }

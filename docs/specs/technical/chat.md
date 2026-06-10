@@ -151,8 +151,9 @@ persisted result string isn't on the AG-UI shape); and `TD-012` **attachments +
 viewer** (session view — upload + `forwardedProps.attachment_ids` + persisted-turn
 chips + an authed-blob image/PDF viewer; needed a `blob` `responseType` in the
 native adapter — see `attachments.md`; landing-composer uploads deferred).
-**Still deferred:** `TD-015` message actions (restores
-`truncateFrom`/`branch`/`sendWithModel`), `TD-016` usage (restores `getUsage`),
-`TD-017` Streamdown weight, `TD-019` KaTeX/sketchon. Unit tests for the new
+and `TD-015` **message actions** (edit/branch/regenerate/continue — `truncateFrom`
++ `branch` conversation methods, `sendWithModel`, `MessageActions`; also wires the
+`TD-006` chat-action prefs — see `message-actions.md`). **Still deferred:** `TD-016`
+usage (restores `getUsage`), `TD-017` Streamdown weight, `TD-019` KaTeX/sketchon. Unit tests for the new
 repo/mappers/hooks fold into `TD-003`. Live end-to-end SSE verification requires the running backend
 + a valid Auth0 token (cannot be exercised from the dev box).

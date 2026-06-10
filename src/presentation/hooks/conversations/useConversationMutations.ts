@@ -84,3 +84,37 @@ export function useDeleteConversation() {
     },
   });
 }
+
+/**
+ * Truncate a conversation at a message (delete it + everything after). The
+ * shared primitive behind edit + regenerate; the caller re-sends afterward.
+ * Invalidates the per-conversation message log so the truncated state shows.
+ */
+export function useTruncateFromMessage() {
+  const { conversationService } = useServices();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, messageId }: { conversationId: string; messageId: string }) =>
+      conversationService.truncateFrom(conversationId, messageId),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({
+        queryKey: ['conversations', vars.conversationId, 'messages'],
+      });
+    },
+  });
+}
+
+/**
+ * Fork a new conversation from a message; returns the new conversation (the
+ * caller navigates to it and re-sends the branch-point message). Refreshes the
+ * sidebar list so the fork appears.
+ */
+export function useBranchConversation() {
+  const { conversationService } = useServices();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, messageId }: { conversationId: string; messageId: string }) =>
+      conversationService.branch(conversationId, messageId),
+    onSuccess: () => invalidateConversationListQueries(qc),
+  });
+}

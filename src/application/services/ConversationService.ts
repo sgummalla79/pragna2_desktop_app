@@ -51,4 +51,14 @@ export class ConversationService {
   delete(conversationId: string): Promise<void> {
     return this.conversationRepository.delete(conversationId);
   }
+
+  /** Truncate the conversation at a message (delete it + everything after). */
+  truncateFrom(conversationId: string, messageId: string): Promise<void> {
+    return this.conversationRepository.truncateFrom(conversationId, messageId);
+  }
+
+  /** Fork a new conversation up to + including a message. */
+  branch(conversationId: string, messageId: string): Promise<Conversation> {
+    return this.conversationRepository.branch(conversationId, messageId);
+  }
 }

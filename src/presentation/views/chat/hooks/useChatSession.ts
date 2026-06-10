@@ -77,6 +77,12 @@ export interface ChatSessionApi {
    * use server defaults regardless of what the user picked.
    */
   sendWithOverrides: (text: string, opts: SendOverrides) => void;
+  /**
+   * Send a turn against a specific model for this run only (appends
+   * `?user_model_id=`); used by "regenerate with model". The conversation's
+   * persisted model is unaffected — the URL reverts on run finalize.
+   */
+  sendWithModel: (text: string, userModelId: string) => void;
   /** Abort the current run (client-side). Safe to call when idle. */
   stop: () => void;
   /** Ids of assistant turns currently mid-stream (for reveal animation). */
@@ -512,6 +518,11 @@ export function useChatSession(
     [agent, status, send],
   );
 
+  const sendWithModel = useCallback(
+    (text: string, userModelId: string) => sendWithOverrides(text, { userModelId }),
+    [sendWithOverrides],
+  );
+
   // Resolve the conversation's open episode after a pause — the `on_interrupt`
   // event gives us the schema but not the episode id, so one lookup gets the id
   // (and the canonical schema). Sets `pendingInterrupt` iff `awaiting_user`.
@@ -645,6 +656,7 @@ export function useChatSession(
     progressLabel,
     send,
     sendWithOverrides,
+    sendWithModel,
     stop,
     streamingMessageIds,
     streamingModelByMessageId,

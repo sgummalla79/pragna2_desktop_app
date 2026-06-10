@@ -1,14 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { Message } from '@ag-ui/client';
+import { ROUTES } from '@/constants/routes';
+import { CONTINUE_PROMPT } from '@/constants/chat';
 import { useConversation } from '@/presentation/hooks/conversations/useConversation';
 import { useConversationMessages } from '@/presentation/hooks/conversations/useConversationMessages';
 import {
+  useBranchConversation,
   useSetConversationModel,
   useSetThinkingEnabled,
+  useTruncateFromMessage,
 } from '@/presentation/hooks/conversations/useConversationMutations';
 import { usePragnaSlashFlows } from '@/presentation/hooks/flows/usePragnaSlashFlows';
 import { useFlows } from '@/presentation/hooks/flows/useFlows';
+import { useChatModels } from './hooks/useChatModels';
+import { useChatPreferences } from '@/presentation/hooks/preferences/useChatPreferences';
 import { logger } from '@/infrastructure/logging/logger';
 import type {
   Conversation,
@@ -26,6 +32,7 @@ import { useChatSession } from './hooks/useChatSession';
 import {
   clearPendingInitialMessage,
   readPendingInitialMessage,
+  writePendingInitialMessage,
 } from './hooks/initialMessageHandoff';
 
 /** Placeholder header title before the auto-title lands. */
@@ -102,8 +109,13 @@ function ChatConversation({
   conversation,
   persisted,
 }: ChatConversationProps) {
+  const navigate = useNavigate();
   const setModel = useSetConversationModel();
   const setThinking = useSetThinkingEnabled();
+  const truncate = useTruncateFromMessage();
+  const branch = useBranchConversation();
+  const { prefs } = useChatPreferences();
+  const { chatModels } = useChatModels();
 
   const initialMessages = useMemo(
     () => persisted.map(persistedToAGUIMessage),
@@ -125,6 +137,7 @@ function ChatConversation({
     progressLabel,
     send,
     sendWithOverrides,
+    sendWithModel,
     stop,
     streamingMessageIds,
     streamingModelByMessageId,
@@ -159,6 +172,85 @@ function ChatConversation({
     }
     return map;
   }, [persisted]);
+
+  // Persisted finish reason per message id; `'length'` on the last assistant
+  // turn surfaces a Continue affordance.
+  const finishReasonById = useMemo(() => {
+    const map = new Map<string, PersistedMessage['finishReason']>();
+    for (const m of persisted) {
+      if (m.role === 'assistant') map.set(m.id, m.finishReason);
+    }
+    return map;
+  }, [persisted]);
+
+  // Id of the chronologically last assistant turn (gates Continue).
+  const lastAssistantId = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'assistant') return messages[i].id;
+    }
+    return null;
+  }, [messages]);
+
+  // Models for the regenerate-with-model dropdown. Gated by the chat preference
+  // and only for plain (non-flow) conversations — a flow runs its own model.
+  const availableModels = useMemo(() => {
+    if (!prefs.regenWithModelEnabled || conversation?.flowId) return [];
+    return chatModels.map((m) => ({ id: m.id, displayName: m.displayName }));
+  }, [prefs.regenWithModelEnabled, conversation?.flowId, chatModels]);
+
+  /** Nearest preceding user-turn content for an assistant message (regenerate). */
+  const priorUserContent = (assistantMessageId: string): string | null => {
+    const idx = messages.findIndex((m) => m.id === assistantMessageId);
+    for (let i = idx - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') return messages[i].content;
+    }
+    return null;
+  };
+
+  // Message-action handlers (edit/branch on user; regenerate/continue on assistant).
+  const messageActions = {
+    onEdit: (messageId: string, newContent: string) => {
+      truncate.mutate(
+        { conversationId, messageId },
+        { onSuccess: () => send(newContent), onError: (e) => logger.fromError('CHT_005:edit', e) },
+      );
+    },
+    onBranch: (messageId: string) => {
+      const branchPoint = messages.find((m) => m.id === messageId);
+      branch.mutate(
+        { conversationId, messageId },
+        {
+          onSuccess: (fork) => {
+            if (branchPoint?.role === 'user') {
+              writePendingInitialMessage(fork.id, { text: branchPoint.content });
+            }
+            navigate(`${ROUTES.CHAT}/${fork.id}`);
+          },
+          onError: (e) => logger.fromError('CHT_005:branch', e),
+        },
+      );
+    },
+    onRegenerate: (assistantMessageId: string) => {
+      const content = priorUserContent(assistantMessageId);
+      if (!content) return;
+      truncate.mutate(
+        { conversationId, messageId: assistantMessageId },
+        { onSuccess: () => send(content), onError: (e) => logger.fromError('CHT_004:regen', e) },
+      );
+    },
+    onRegenerateWithModel: (assistantMessageId: string, modelId: string) => {
+      const content = priorUserContent(assistantMessageId);
+      if (!content) return;
+      truncate.mutate(
+        { conversationId, messageId: assistantMessageId },
+        {
+          onSuccess: () => sendWithModel(content, modelId),
+          onError: (e) => logger.fromError('CHT_004:regen-model', e),
+        },
+      );
+    },
+    onContinue: () => send(CONTINUE_PROMPT),
+  };
 
   // Fire the landing's pending first message exactly once on mount.
   const firedFirstMessage = useRef(false);
@@ -224,6 +316,11 @@ function ChatConversation({
               }
               attachments={attachmentsByMessageId.get(m.id)}
               onOpenAttachment={setViewingAttachment}
+              actions={messageActions}
+              branchEnabled={prefs.branchEnabled}
+              availableModels={availableModels}
+              isLastAssistant={m.id === lastAssistantId}
+              finishReason={finishReasonById.get(m.id) ?? null}
             />
           ))}
           <ThinkingStrip active={status === 'running'} label={progressLabel} />

@@ -99,10 +99,11 @@ forms / flow proposals, message actions (edit/branch/regenerate/continue), usage
 
 ## 7. Deferred Scope (later phases)
 
-Still deferred: message actions (`TD-015`), usage & cost (`TD-016`), Streamdown
-weight review (`TD-017`), KaTeX math + sketchon diagrams (`TD-019`). **Shipped
-since Phase 1:** slash commands + flow dispatch (`TD-013`, see `slash-commands.md`),
-HITL `ask_user` pause/resume **and** flow proposals (`TD-014`, see
-`hitl-episodes.md`), historical tool-call rehydration (`TD-018`), and
-**attachments + viewer** (`TD-012`, session view — see `attachments.md`;
-landing-composer uploads remain deferred).
+Still deferred: usage & cost (`TD-016`), Streamdown weight review (`TD-017`),
+KaTeX math + sketchon diagrams (`TD-019`). **Shipped since Phase 1:** slash
+commands + flow dispatch (`TD-013`, see `slash-commands.md`), HITL `ask_user`
+pause/resume **and** flow proposals (`TD-014`, see `hitl-episodes.md`), historical
+tool-call rehydration (`TD-018`), **attachments + viewer** (`TD-012`, session
+view — see `attachments.md`), and **message actions** edit/branch/regenerate/
+continue (`TD-015`, see `message-actions.md` — also wires the Configuration
+chat-action toggles, `TD-006`).

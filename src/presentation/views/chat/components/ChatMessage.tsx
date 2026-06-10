@@ -1,7 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import type { Flow } from '@/domain/types/flow.types';
 import type { Attachment } from '@/domain/types/attachment.types';
+import type { FinishReason } from '@/domain/types/conversation.types';
 import type { ChatMessage as ChatMessageModel } from '@/presentation/views/chat/hooks/useChatSession';
 import { MarkdownMessage } from './MarkdownMessage';
 import { ReasoningPanel } from './ReasoningPanel';
@@ -9,9 +12,19 @@ import { ToolCallBadge } from './ToolCallBadge';
 import { ModelBadge } from './ModelBadge';
 import { FlowProposalCard } from './FlowProposalCard';
 import { AttachmentChip } from './AttachmentChip';
+import { MessageActions, type ModelOption } from './MessageActions';
 
 /** Backend prefix for propose-flow tool names (`propose_flow_<api_name>`). */
 const PROPOSE_FLOW_PREFIX = 'propose_flow_';
+
+/** Per-message action callbacks (edit/branch on user; regen/continue on assistant). */
+export interface MessageActionHandlers {
+  onEdit?: (messageId: string, newContent: string) => void;
+  onBranch?: (messageId: string) => void;
+  onRegenerate?: (messageId: string) => void;
+  onRegenerateWithModel?: (messageId: string, modelId: string) => void;
+  onContinue?: () => void;
+}
 
 interface ChatMessageProps {
   message: ChatMessageModel;
@@ -41,6 +54,16 @@ interface ChatMessageProps {
   attachments?: Attachment[];
   /** Open an attachment in the viewer (image/PDF inline, else download). */
   onOpenAttachment?: (attachment: Attachment) => void;
+  /** Message-action callbacks; when present, hover reveals the action row. */
+  actions?: MessageActionHandlers;
+  /** Show the Branch button on user turns (chat preference). */
+  branchEnabled?: boolean;
+  /** Models for the regenerate-with-model dropdown (empty hides it). */
+  availableModels?: ModelOption[];
+  /** True for the chronologically last assistant turn (gates Continue). */
+  isLastAssistant?: boolean;
+  /** Persisted finish reason; `'length'` on the last assistant turn shows Continue. */
+  finishReason?: FinishReason | null;
 }
 
 /**
@@ -60,7 +83,14 @@ export function ChatMessage({
   proposalBusy,
   attachments,
   onOpenAttachment,
+  actions,
+  branchEnabled = true,
+  availableModels,
+  isLastAssistant,
+  finishReason,
 }: ChatMessageProps) {
+  const [editing, setEditing] = useState(false);
+  const [editDraft, setEditDraft] = useState('');
   // Map propose-flow tool names → the flow they refer to, so a matching tool
   // call renders a proposal card instead of a badge.
   const proposalFlowByToolName = useMemo(() => {
@@ -86,13 +116,53 @@ export function ChatMessage({
     ) : null;
 
   if (message.role === 'user') {
+    if (editing) {
+      const trimmed = editDraft.trim();
+      return (
+        <div className="flex w-full flex-col items-end gap-2">
+          <Textarea
+            value={editDraft}
+            autoFocus
+            rows={3}
+            onChange={(e) => setEditDraft(e.target.value)}
+            className="w-full max-w-[85%]"
+          />
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={!trimmed}
+              onClick={() => {
+                setEditing(false);
+                actions?.onEdit?.(message.id, trimmed);
+              }}
+            >
+              Save &amp; submit
+            </Button>
+          </div>
+        </div>
+      );
+    }
     return (
-      <div className="flex flex-col items-end gap-1.5">
+      <div className="group flex flex-col items-end gap-1.5">
         {attachmentChips(true)}
         {message.content && (
           <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-br-sm bg-primary/10 px-4 py-2.5 text-[15px] leading-relaxed text-foreground">
             {message.content}
           </div>
+        )}
+        {actions?.onEdit && (
+          <MessageActions
+            role="user"
+            onEdit={() => {
+              setEditDraft(message.content);
+              setEditing(true);
+            }}
+            onBranch={() => actions.onBranch?.(message.id)}
+            showBranch={branchEnabled && Boolean(actions.onBranch)}
+          />
         )}
       </div>
     );
@@ -105,8 +175,14 @@ export function ChatMessage({
   }
 
   // Assistant turn.
+  const showContinue =
+    !streaming &&
+    isLastAssistant &&
+    finishReason === 'length' &&
+    Boolean(actions?.onContinue);
+
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="group flex flex-col gap-1.5">
       {message.reasoning && (
         <ReasoningPanel reasoning={message.reasoning} defaultOpen={streaming} />
       )}
@@ -130,8 +206,29 @@ export function ChatMessage({
       })}
       {attachmentChips(false)}
       {!streaming && (
-        <div className={cn('mt-0.5', !message.content && 'mt-0')}>
+        <div className={cn('flex items-center gap-2', !message.content && 'mt-0', message.content && 'mt-0.5')}>
           <ModelBadge userModelId={userModelId} />
+          {actions?.onRegenerate && (
+            <MessageActions
+              role="assistant"
+              content={message.content}
+              onRegenerate={() => actions.onRegenerate?.(message.id)}
+              onRegenerateWithModel={
+                actions.onRegenerateWithModel
+                  ? (modelId) => actions.onRegenerateWithModel?.(message.id, modelId)
+                  : undefined
+              }
+              availableModels={availableModels}
+            />
+          )}
+        </div>
+      )}
+      {showContinue && (
+        <div className="mt-1 flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => actions?.onContinue?.()}>
+            Continue
+          </Button>
+          <span className="text-[12px] text-muted-foreground">Response was cut short.</span>
         </div>
       )}
     </div>

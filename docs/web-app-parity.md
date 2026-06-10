@@ -118,8 +118,11 @@ These are genuine functional differences to close for full parity.
 | Capability | Web app | Desktop | Tracking |
 |---|---|---|---|
 | **Cancel a paused episode** | `EpisodeRepository.cancel` + `useCancelEpisode` + a Cancel button on the form card (status → `cancelled`) | **Not implemented.** A user must complete the form (or navigate away); no in-UI cancel | `TD-014` (deferred note) |
-| **`file` ask_user field** | Uploads via the attachments system, stores the `attachment_id` as the field value | **Unsupported** — renders a "not supported yet" hint; a *required* file field blocks submit | `TD-012` (attachments) |
-| **Attachments + PDF, message actions (edit/branch/regenerate/continue), usage & cost, KaTeX/diagrams** | Present | Deferred (pre-existing, from the chat port) | `TD-012`, `TD-015`, `TD-016`, `TD-019` |
+| **`file` ask_user field** | Uploads via the attachments system, stores the `attachment_id` as the field value | **Unsupported** — renders a "not supported yet" hint (attachments now exist (`TD-012`); wiring the form field to them is the remaining step) | `TD-014`/`TD-012` |
+| **Usage & cost panel, KaTeX math + diagrams** | Present | Deferred (pre-existing, from the chat port) | `TD-016`, `TD-019` |
+
+> **Now shipped (were gaps):** attachments + viewer (`TD-012`, session view) and
+> message actions — edit / branch / regenerate (+ with-model) / continue (`TD-015`).
 
 > **Not a gap (verified):** neither app re-attaches to a *live, in-flight* episode
 > stream on remount — there is no `/stream` re-attach endpoint in the web app. Both
@@ -152,6 +155,10 @@ The event-parsing + state machinery (`transformHttpEventStream`, `transformChunk
 | **`HITLFormCard` state ownership** | Fully parent-controlled (values/touched/textValue lifted to the chat view) | **Self-contained** — owns its values/touched/free-text, remounted per pause (keyed by episode id) | Implementation simplification; identical behavior |
 | **Form schema types** | Re-declared locally in `form/validators.ts` | Centralised in `domain/types/episode.types.ts` (imported by the validators) | No behavior change |
 | **`multiselect` / `checkbox` / `date` controls** | same | Native inputs (no kit primitive) | UI only |
+| **Branch handoff (`TD-015`)** | Stashes `{ text, agent }` before navigating to the fork | Stashes `{ text }` only — desktop's handoff has no `agent` field; the fork inherits `flow_id`/`user_model_id` server-side and the session view resolves the agent from the conversation | No functional impact (desktop chat conversations are non-flow; the inherited model/flow drives the re-send) |
+| **`sendWithModel` (`TD-015`)** | Standalone hook method | Thin wrapper over `sendWithOverrides(text, { userModelId })` — same `?user_model_id` query param | Identical behavior |
+| **Regen-with-model gating (`TD-015`)** | Gated on `agentName === DEFAULT_AGENT_NAME` | Gated on `!conversation.flowId` | Equivalent (desktop has no flow-agent resolution; `flowId` null = default chat) |
+| **Continue prompt (`TD-015`)** | Inline literal `'continue'` | `CONTINUE_PROMPT` constant (`constants/chat.ts`) | Same value; externalised per the no-hardcoding rule |
 | **Slash popover, form fields, cards** | web-app styling | theme tokens (tweakcn) + shadcn primitives | UI only, per the standing theme rule |
 
 ---
