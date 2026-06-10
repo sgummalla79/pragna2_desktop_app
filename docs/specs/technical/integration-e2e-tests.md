@@ -1,6 +1,6 @@
 # Technical Spec: Integration + E2E Test Suite
 
-> **Status**: Implemented (Tiers 1 & harness; Tier 2 in progress)
+> **Status**: Implemented (harness + Tier 1 + Tier 2 + manual doc)
 > **Author**: Suman Gummalla
 > **Created**: 2026-06-10
 > **Last Updated**: 2026-06-10
@@ -146,7 +146,15 @@ e2e/
 | `renderWithProviders.test.tsx` | unit | Renderer injects services + router; returns client |
 | `smoke-auth.spec.ts` | e2e | Seeded token → authenticated `/chat`; unseeded → `/login` |
 | 22 co-located view `*.test.tsx` | integration | Loading/error/empty/gating branches + interactions call the right service/hook |
-| ported 32 parity specs (Tier 2) | e2e | Real user journeys vs. local backend (in progress) |
+| ported parity specs (Tier 2) | e2e | Real user journeys vs. local backend — 29 passed, 11 skipped (LLM-gated), 0 failed |
+
+### Tier 2 helpers (`e2e/helpers/`)
+`db.ts` (psql seeding/asserts via the throwaway container), `network.ts` (intercept the FE's own
+API responses), `canvas.ts` (React Flow handle-reveal + drag tricks), `flow-author.ts` (seed/open a
+flow, drop-from-palette, configure agent, save), `seed.ts` + `scripts/seed_pdf_conversation.py` (run
+the BE's real create_pdf render path, no LLM). Minimal `data-testid`s added to flow + chat source
+(e.g. `edge-panel`, `dispatch-toggle`, `dispatch-badge`, `decision-panel`, `thinking-strip`,
+`tool-call-badge`, and `data-role` on chat message containers).
 
 ## 9. Dependencies & External Integrations
 

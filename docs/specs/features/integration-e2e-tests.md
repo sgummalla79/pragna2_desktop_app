@@ -1,6 +1,6 @@
 # Feature Spec: Integration + E2E Test Suite
 
-> **Status**: Implemented (Tiers 1 & harness; Tier 2 in progress)
+> **Status**: Implemented (harness + Tier 1 + Tier 2 + manual doc)
 > **Author**: Suman Gummalla
 > **Created**: 2026-06-10
 > **Last Updated**: 2026-06-10
@@ -30,9 +30,10 @@ support.
       the standard provider stack and caller-supplied mock services.
 - [x] Tier 1 component-integration tests for the high-value 0%-coverage views,
       lifting total coverage above the web app's ~46%.
-- [ ] Tier 2: port the web app's 32 Playwright specs (chat, flow editor,
-      documents, connectors/knowledge, design/regression).
-- [ ] `docs/MANUAL_TEST_SCENARIOS.md` for the un-automatable residue.
+- [x] Tier 2: port the web app's Playwright specs (chat, flow editor,
+      documents, connectors/knowledge, sketchon). Full suite: 29 passed, 11
+      skipped (LLM-gated), 0 failed.
+- [x] `docs/MANUAL_TEST_SCENARIOS.md` for the un-automatable residue.
 
 **Non-Goals**
 - True Tauri-window e2e (keychain, native HTTP, loopback OAuth) — deferred to
@@ -60,8 +61,10 @@ support.
       throws — a forgotten-mock signal).
 - [x] Given the full unit suite runs, then it is green and total coverage is
       above ~46% (achieved: ~56% lines).
-- [ ] Given the Tier 2 suite runs against the local stack, then the ported
+- [x] Given the Tier 2 suite runs against the local stack, then the ported
       parity specs pass (authoring specs keyless; LLM specs skip without keys).
+- [x] The Tier 2 suite caught two real defects (CF-001 Select-behind-overlay;
+      CF-002 missing `process.env` shim) — both fixed; see `docs/CODE_FIXES.md`.
 
 ## 5. Edge Cases & Error Scenarios
 

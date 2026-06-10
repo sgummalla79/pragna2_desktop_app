@@ -19,6 +19,14 @@ export const TEST_USER = {
   password: 'VerifyTest123!',
 };
 
+/** Friendly model label the flow-editor / chat model picker option is matched
+ *  by. `seed-model.sh` seeds `user_models.display_name = "<label> (test)"`, so
+ *  this substring regex finds the option regardless of provider. Anthropic is
+ *  the default-seeded provider; override via `E2E_MODEL_LABEL`. */
+export const MODEL_PICKER_LABEL = process.env.E2E_MODEL_LABEL
+  ? new RegExp(process.env.E2E_MODEL_LABEL)
+  : /Claude Sonnet 4\.6/;
+
 /** sessionStorage keys the FE's `tokenStorage` reads (see
  *  `src/infrastructure/storage/tokenStorage.ts`). The seed fixture writes the
  *  minted tokens under exactly these keys so `AuthService.bootstrap()` restores

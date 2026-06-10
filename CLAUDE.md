@@ -93,6 +93,15 @@ src-tauri/
 - Explicit error handling everywhere — no silent fallbacks, no swallowed errors, no untyped rejections.
 - Use typed error enums per layer; propagate with `?` and convert at layer boundaries.
 
+### Document Every Bug Fix
+- **Whenever you fix a bug (correct broken behavior — not add a feature), you MUST log it in
+  [`docs/CODE_FIXES.md`](docs/CODE_FIXES.md)** before moving on. Each entry records: the date, the
+  area/file, **the bug + its root cause**, **the fix**, and **whether the sibling web app
+  (`pragna2_sgummalla_works`) likely has the same bug** and should get the same fix.
+- **Why:** the desktop and web app share architecture and components, so a defect found on one side
+  very often exists on the other. The fix log is the hand-off the team uses to apply the same fix to
+  the web app. An undocumented fix means the web-app side silently keeps the bug.
+
 ### Coding Conventions
 - Descriptive naming mirroring existing repository conventions.
 - Docstrings required for all exported functions, traits, and domain types.

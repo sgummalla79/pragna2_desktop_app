@@ -20,6 +20,7 @@ export function ThinkingStrip({ active, label }: Props) {
   if (!active) return null;
   return (
     <div
+      data-testid="thinking-strip"
       className="flex w-full items-center gap-2 px-1 py-1"
       role="status"
       aria-live="polite"

@@ -9,8 +9,28 @@ const host = process.env.TAURI_DEV_HOST;
 // @ts-expect-error process is a nodejs global
 const apiTarget = process.env.VITE_API_PROXY_TARGET || "http://localhost:8000";
 
+// satori (bundled by @sgummalla-works/sketchon for the browser diagram renderer)
+// reads `process.env.SATORI_*` / `process.env.JEST_*` without guarding, and the
+// webview/browser has no `process` — so the bare access throws "process is not
+// defined", crashing any chat turn that renders markdown/diagrams. Shim
+// `process.env`: NODE_ENV stays correct (React's production build depends on it),
+// and every other `process.env.X` resolves to a safe `undefined`, which is what
+// satori's feature checks expect. App code uses `import.meta.env`, never this.
+// Applied to dep pre-bundling too, since satori is a pre-bundled dep.
+// See docs/CODE_FIXES.md CF-002 (the web app already carries this shim).
+const processEnvShim = (mode: string): Record<string, string> => ({
+  "process.env.NODE_ENV": JSON.stringify(mode),
+  "process.env": "{}",
+});
+
 // https://vite.dev/config/
-export default defineConfig(async () => ({
+export default defineConfig(async ({ mode }) => ({
+  define: processEnvShim(mode),
+  optimizeDeps: {
+    esbuildOptions: {
+      define: processEnvShim(mode),
+    },
+  },
   plugins: [react(), tailwindcss(), svgr()],
 
   resolve: {

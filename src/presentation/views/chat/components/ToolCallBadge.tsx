@@ -18,7 +18,10 @@ export function ToolCallBadge({ call }: ToolCallBadgeProps) {
       : (call.argsBuffer || '…').trim();
 
   return (
-    <div className="my-2 rounded-md border border-border bg-accent px-3 py-2 text-[12px]">
+    <div
+      data-testid="tool-call-badge"
+      className="my-2 rounded-md border border-border bg-accent px-3 py-2 text-[12px]"
+    >
       <div className="flex items-center gap-2">
         <span className="font-mono text-[11px] text-primary">tool</span>
         <span className="font-mono text-[12px] font-semibold text-foreground">

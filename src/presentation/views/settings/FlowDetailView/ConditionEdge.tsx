@@ -72,6 +72,7 @@ export function ConditionEdge({
             )}
             {isDispatch && (
               <span
+                data-testid="dispatch-badge"
                 className="rounded-md border border-primary bg-card px-1.5 py-0.5 text-[10px] font-medium text-primary shadow"
                 title={`Dynamic fan-out: one parallel target invocation per item in "${data?.itemsSlot ?? '?'}".`}
               >

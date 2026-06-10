@@ -62,7 +62,10 @@ export function DecisionPanel() {
 
   return (
     <>
-      <aside className="flex h-full w-[360px] shrink-0 flex-col border-l border-border bg-card">
+      <aside
+        data-testid="decision-panel"
+        className="flex h-full w-[360px] shrink-0 flex-col border-l border-border bg-card"
+      >
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <span
@@ -115,6 +118,7 @@ export function DecisionPanel() {
             )}
             <button
               type="button"
+              data-testid="decision-add-condition"
               onClick={addCondition}
               className="inline-flex items-center gap-1.5 self-start rounded-md border border-dashed border-border px-2.5 py-1.5 text-[12px] text-muted-foreground transition hover:bg-muted hover:text-foreground"
             >

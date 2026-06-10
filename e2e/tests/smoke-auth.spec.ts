@@ -17,9 +17,11 @@ test.describe('Smoke — seed-token auth', () => {
   test('seeded token boots straight into authenticated /chat', async ({ page }) => {
     await page.goto('/chat');
 
-    // The authenticated chat chrome renders: the sidebar "New chat" button is
-    // a stable, role-addressable signal that ProtectedRoute let us through.
-    await expect(page.getByRole('button', { name: /new chat/i })).toBeVisible({
+    // The authenticated chat chrome renders: the sidebar "All chats" button is
+    // a stable, UNIQUE signal that ProtectedRoute let us through. (We avoid
+    // "New chat" — untitled seeded conversations also surface as "New chat" in
+    // the sidebar list, so that name is ambiguous once the DB has history.)
+    await expect(page.getByRole('button', { name: /all chats/i })).toBeVisible({
       timeout: 15_000,
     });
 

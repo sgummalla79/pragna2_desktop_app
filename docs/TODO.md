@@ -34,7 +34,7 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 | [TD-024](#td-024--conversation-history-browser) | Conversation history browser (search + infinite scroll) | Chat | P2 | ✅ done |
 | [TD-025](#td-025--generated-document-cards--reader-create_pdf) | Generated-document cards + reader (create_pdf) | Chat | P2 | ✅ done |
 | [TD-026](#td-026--appearance-full-tweakcn-palette-parity) | Appearance: full TweakCN palette parity | Settings | P3 | ⬜ open |
-| [TD-027](#td-027--integration--e2e-test-suite-tiers-1--2--manual-doc) | Integration + E2E test suite (Tiers 1 & 2 + manual doc) | Testing | P2 | 🟡 in-progress |
+| [TD-027](#td-027--integration--e2e-test-suite-tiers-1--2--manual-doc) | Integration + E2E test suite (Tiers 1 & 2 + manual doc) | Testing | P2 | ✅ done |
 | [TD-028](#td-028--true-tauri-window-e2e-deferred-to-windows) | True Tauri-window e2e (native seam) — deferred to Windows | Testing | P3 | ⬜ open |
 
 ---
@@ -611,7 +611,7 @@ Spec pair `appearance.md` (feature + technical). Tests: `themeStore.test.ts` (6)
 
 ## TD-027 — Integration + E2E test suite (Tiers 1 & 2 + manual doc)
 
-**Area:** Testing · **Priority:** P2 · **Status:** 🟡 in-progress (2026-06-10)
+**Area:** Testing · **Priority:** P2 · **Status:** ✅ done (2026-06-10)
 
 **What:** The unit suite covers logic/data/hooks but left the view/orchestration
 components at ~0% — the integration glue unit tests shouldn't cover. Bring the
@@ -634,11 +634,24 @@ real local stack), plus a desktop-owned manual-testing doc. Plan:
   connectors, flows, settings, auth). Suite **65→88 files / 281→452 tests**;
   coverage **~24%→~56% lines** (above the web app's ~46%). `tsc` clean.
 
-**Remaining:** Tier 2 — port the web app's 32 parity specs (chat, flow editor,
-documents, connectors/knowledge, design/regression), adding `data-testid`s to
-source only where role/text is ambiguous; then `docs/MANUAL_TEST_SCENARIOS.md`
-for the un-automatable residue. Tier 1 jsdom limits (ReactFlow canvas, Radix
-Select open-menu) are intentionally covered in Tier 2.
+- **Tier 2 (Phase 3):** ported the web app's parity specs into `e2e/tests/` —
+  settings (connector-manage, knowledge-manage, agent-connector-attach,
+  agent-knowledge-attach), flow editor (flow-editor + scenarios 5/7/8/9/10/16/17
+  + flow-design probes), documents (create-pdf render + sketchon), and the chat
+  group (skip-gated on `E2E_ANTHROPIC_API_KEY`). Added reusable helpers
+  (`canvas`, `flow-author`, `db`, `network`, `seed` + `seed_pdf_conversation.py`)
+  and minimal `data-testid`s to flow/chat source. **Full e2e suite: 29 passed,
+  11 skipped (LLM-gated), 0 failed.** The Tier-1 jsdom limits (ReactFlow canvas,
+  Radix Select open-menu) are now covered here in a real browser.
+- **Bugs found + fixed by the Tier-2 suite** (see `docs/CODE_FIXES.md`): CF-001
+  (Radix Select dropdowns behind `z-[700]` modal overlays → unclickable) and
+  CF-002 (missing Vite `process.env` shim → "process is not defined" crash on the
+  chat view). Both flagged for web-app cross-check.
+- **Manual doc (Phase 4):** `docs/MANUAL_TEST_SCENARIOS.md` (M1–M9) covers the
+  un-automatable residue (streaming feel, reduced-motion, PDF fidelity, MCP
+  OAuth consent, native keychain/social-login/file-dialogs).
+- **Deferred:** real-LLM chat scenarios run only with provider keys present
+  (self-skip otherwise); the native Tauri-window seam is TD-028.
 
 ---
 

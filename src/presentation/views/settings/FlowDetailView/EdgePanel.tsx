@@ -119,7 +119,10 @@ export function EdgePanel() {
   }
 
   return (
-    <aside className="flex h-full w-[360px] shrink-0 flex-col border-l border-border bg-card">
+    <aside
+      data-testid="edge-panel"
+      className="flex h-full w-[360px] shrink-0 flex-col border-l border-border bg-card"
+    >
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex flex-col">
           <h2 className="text-sm font-semibold">Edge</h2>
@@ -184,6 +187,7 @@ export function EdgePanel() {
             </Label>
             <label className="flex items-center gap-2 text-xs">
               <input
+                data-testid="dispatch-toggle"
                 type="checkbox"
                 checked={dispatchOn}
                 onChange={(e) => setDispatchOn(e.target.checked)}
@@ -196,6 +200,7 @@ export function EdgePanel() {
 
           {(dispatchBlockedReason || targetBlockedReason) && !dispatchOn && (
             <div
+              data-testid="dispatch-blocked-reason"
               className="flex items-start gap-2 rounded-md border border-border bg-muted/50 p-2 text-xs text-muted-foreground"
               role="note"
             >
@@ -205,14 +210,14 @@ export function EdgePanel() {
           )}
 
           {dispatchOn && (
-            <div className="space-y-3">
+            <div data-testid="dispatch-fields" className="space-y-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Items slot (source list)</Label>
                 <Select
                   value={data.itemsSlot ?? ''}
                   onValueChange={(v) => updateEdgeData(selectedEdgeId, { itemsSlot: v })}
                 >
-                  <SelectTrigger size="sm" className="w-full">
+                  <SelectTrigger data-testid="items-slot-select" size="sm" className="w-full">
                     <SelectValue placeholder="Pick a slot…" />
                   </SelectTrigger>
                   <SelectContent>
@@ -243,7 +248,7 @@ export function EdgePanel() {
                   onValueChange={(v) => updateEdgeData(selectedEdgeId, { itemSlot: v })}
                   disabled={targetInputs.length === 0}
                 >
-                  <SelectTrigger size="sm" className="w-full">
+                  <SelectTrigger data-testid="item-slot-select" size="sm" className="w-full">
                     <SelectValue placeholder="Pick a slot…" />
                   </SelectTrigger>
                   <SelectContent>
