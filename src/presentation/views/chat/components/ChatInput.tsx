@@ -7,18 +7,36 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from 'react';
-import { ArrowUp, Square } from 'lucide-react';
+import { ArrowUp, Paperclip, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SLASH_MAX_ITEMS } from '@/constants/slashCommands';
+import { ATTACHMENT_ACCEPT, ATTACHMENT_MAX_BYTES, isImageType } from '@/constants/attachments';
 import type { PragnaSlashFlow } from '@/domain/types/pragnaSlashFlow.types';
+import type { Attachment } from '@/domain/types/attachment.types';
+import { useUploadAttachment } from '@/presentation/hooks/attachments/useUploadAttachment';
+import { logger } from '@/infrastructure/logging/logger';
 import { SlashCommandPopover } from './SlashCommandPopover';
+import { AttachmentChip } from './AttachmentChip';
+
+/** A file staged in the composer, before/while/after its upload completes. */
+interface PendingAttachment {
+  clientKey: string;
+  filename: string;
+  contentType: string;
+  /** Object URL for an image preview; revoked on remove/clear. */
+  previewUrl?: string;
+  /** Set once the upload succeeds; `id` is sent in `attachment_ids`. */
+  attachment: Attachment | null;
+  uploading: boolean;
+  errored?: boolean;
+}
 
 interface ChatInputProps {
   /** Controlled draft text. */
   value: string;
   onChange: (value: string) => void;
-  /** Submit the current draft (parent trims + clears). */
-  onSubmit: () => void;
+  /** Submit the current draft + the ids of any ready attachments. */
+  onSubmit: (attachmentIds: string[]) => void;
   /** Abort the in-flight run; only shown while `running`. */
   onStop?: () => void;
   /** A run is in flight — the action button becomes Stop. */
@@ -34,22 +52,22 @@ interface ChatInputProps {
   /**
    * Flows exposed as `/slash` commands. When provided, typing `/` at the start
    * of a word opens a suggestion popover; accepting one rewrites the draft to
-   * `/{slashApiName} `. Dispatch routing is handled by the parent's session hook
-   * (it re-parses the leading slash at send time).
+   * `/{slashApiName} `. Dispatch routing is handled by the parent's session hook.
    */
   slashFlows?: PragnaSlashFlow[];
+  /**
+   * The active conversation id. When set, the composer shows an attach button
+   * and uploads picked files to this conversation. Omit (e.g. on the landing,
+   * before a conversation row exists) to hide attachments.
+   */
+  conversationId?: string;
 }
 
 /**
- * Chat composer: an auto-growing textarea with an inline send/stop button and
- * an optional row of controls (model picker, thinking toggle). Enter submits;
- * Shift+Enter inserts a newline. Sending is suppressed while a run is in flight
- * or when `disabled`; the button flips to Stop during a run so the user can
- * abort the client stream.
- *
- * When `slashFlows` is supplied, the composer also drives a `/slash` command
- * popover: while the popover is open the arrow keys move the highlight,
- * Enter/Tab accept, and Escape dismisses — so those keys don't submit/newline.
+ * Chat composer: an auto-growing textarea with an inline send/stop button, an
+ * optional row of controls, optional `/slash` command popover, and — when
+ * `conversationId` is set — file attachments (pick → upload → staged chips →
+ * sent as `attachment_ids`). Enter submits; Shift+Enter inserts a newline.
  */
 export function ChatInput({
   value,
@@ -63,9 +81,114 @@ export function ChatInput({
   banner,
   autoFocus,
   slashFlows,
+  conversationId,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const canSend = !disabled && !running && value.trim().length > 0;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const upload = useUploadAttachment();
+
+  // ── Attachment staging ──────────────────────────────────────────────────────
+  const [pending, setPending] = useState<PendingAttachment[]>([]);
+  const attachmentsEnabled = Boolean(conversationId);
+  const uploadsInFlight = pending.some((p) => p.uploading);
+  const readyAttachmentIds = useMemo(
+    () => pending.filter((p) => p.attachment && !p.errored).map((p) => p.attachment!.id),
+    [pending],
+  );
+
+  const canSend =
+    !disabled && !running && !uploadsInFlight && value.trim().length > 0;
+
+  const stageFiles = useCallback(
+    (files: FileList) => {
+      if (!conversationId) return;
+      for (const file of Array.from(files)) {
+        if (file.size > ATTACHMENT_MAX_BYTES) {
+          setPending((prev) => [
+            ...prev,
+            {
+              clientKey: `${file.name}-${file.size}-${prev.length}`,
+              filename: file.name,
+              contentType: file.type,
+              attachment: null,
+              uploading: false,
+              errored: true,
+            },
+          ]);
+          continue;
+        }
+        const clientKey = `${file.name}-${file.size}-${Math.random().toString(36).slice(2, 8)}`;
+        const previewUrl = isImageType(file.type)
+          ? URL.createObjectURL(file)
+          : undefined;
+        setPending((prev) => [
+          ...prev,
+          {
+            clientKey,
+            filename: file.name,
+            contentType: file.type,
+            previewUrl,
+            attachment: null,
+            uploading: true,
+          },
+        ]);
+        upload
+          .mutateAsync({ conversationId, file })
+          .then((attachment) => {
+            setPending((prev) =>
+              prev.map((p) =>
+                p.clientKey === clientKey ? { ...p, attachment, uploading: false } : p,
+              ),
+            );
+          })
+          .catch((err: unknown) => {
+            logger.fromError(
+              'ATT_001:upload',
+              err instanceof Error ? err : new Error(String(err)),
+            );
+            setPending((prev) =>
+              prev.map((p) =>
+                p.clientKey === clientKey
+                  ? { ...p, uploading: false, errored: true }
+                  : p,
+              ),
+            );
+          });
+      }
+    },
+    [conversationId, upload],
+  );
+
+  const removePending = useCallback((clientKey: string) => {
+    setPending((prev) => {
+      const target = prev.find((p) => p.clientKey === clientKey);
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((p) => p.clientKey !== clientKey);
+    });
+  }, []);
+
+  const clearPending = useCallback(() => {
+    setPending((prev) => {
+      for (const p of prev) if (p.previewUrl) URL.revokeObjectURL(p.previewUrl);
+      return [];
+    });
+  }, []);
+
+  // Revoke any outstanding object URLs on unmount.
+  useEffect(() => {
+    return () => {
+      setPending((prev) => {
+        for (const p of prev) if (p.previewUrl) URL.revokeObjectURL(p.previewUrl);
+        return prev;
+      });
+    };
+  }, []);
+
+  const doSubmit = useCallback(() => {
+    if (!canSend) return;
+    onSubmit(readyAttachmentIds);
+    clearPending();
+  }, [canSend, onSubmit, readyAttachmentIds, clearPending]);
 
   // ── Slash command popover state ─────────────────────────────────────────────
   const [slashOpen, setSlashOpen] = useState(false);
@@ -75,10 +198,7 @@ export function ChatInput({
 
   const allSlashFlows = slashFlows ?? [];
 
-  // Detect / dismiss the popover on every value change. The cursor position is
-  // read off the live DOM element (the textarea owns the selection; `value`
-  // only tracks text). Slash is "active" when a `/` sits between the start of
-  // the current word and the cursor, with no whitespace after it.
+  // Detect / dismiss the popover on every value change (cursor read off the DOM).
   useEffect(() => {
     if (allSlashFlows.length === 0) {
       setSlashOpen(false);
@@ -87,14 +207,10 @@ export function ChatInput({
     const el = textareaRef.current;
     if (!el) return;
     const cursor = el.selectionStart ?? value.length;
-    // Walk backwards from the cursor: stop at the first whitespace (word
-    // boundary) or the first `/`.
     let i = cursor - 1;
     while (i >= 0 && value[i] !== '/' && !/\s/.test(value[i])) i--;
     if (i >= 0 && value[i] === '/' && (i === 0 || /\s/.test(value[i - 1]))) {
       const q = value.slice(i + 1, cursor);
-      // The query must contain no whitespace — keeps the popover closed for
-      // pasted text like "/foo bar".
       if (!/\s/.test(q)) {
         setSlashOpen(true);
         setSlashStart(i);
@@ -123,8 +239,6 @@ export function ChatInput({
       const next = `${before}/${flow.slashApiName} ${after}`;
       onChange(next);
       setSlashOpen(false);
-      // Place the caret just past the inserted name + trailing space so the
-      // user can keep typing the prompt without a manual click.
       const caret = before.length + 1 + flow.slashApiName.length + 1;
       requestAnimationFrame(() => {
         const el = textareaRef.current;
@@ -164,7 +278,7 @@ export function ChatInput({
     }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (canSend) onSubmit();
+      doSubmit();
     }
   };
 
@@ -179,6 +293,23 @@ export function ChatInput({
         />
       )}
       {banner}
+
+      {pending.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 px-0.5">
+          {pending.map((p) => (
+            <AttachmentChip
+              key={p.clientKey}
+              filename={p.filename}
+              contentType={p.contentType}
+              previewUrl={p.previewUrl}
+              uploading={p.uploading}
+              errored={p.errored}
+              onRemove={() => removePending(p.clientKey)}
+            />
+          ))}
+        </div>
+      )}
+
       <textarea
         ref={textareaRef}
         value={value}
@@ -195,7 +326,34 @@ export function ChatInput({
         )}
       />
       <div className="flex items-center justify-between gap-2">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">{controls}</div>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {attachmentsEnabled && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept={ATTACHMENT_ACCEPT}
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files) stageFiles(e.target.files);
+                  e.target.value = '';
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={disabled || running}
+                aria-label="Attach file"
+                title="Attach a file (images, PDF, text, CSV, docx, xlsx)"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+              >
+                <Paperclip size={16} aria-hidden />
+              </button>
+            </>
+          )}
+          {controls}
+        </div>
         {running ? (
           <button
             type="button"
@@ -209,10 +367,10 @@ export function ChatInput({
         ) : (
           <button
             type="button"
-            onClick={() => canSend && onSubmit()}
+            onClick={doSubmit}
             disabled={!canSend}
             aria-label="Send message"
-            title="Send message"
+            title={uploadsInFlight ? 'Waiting for uploads…' : 'Send message'}
             className={cn(
               'flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors',
               canSend

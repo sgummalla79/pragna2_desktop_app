@@ -86,6 +86,11 @@ export const ERRORS = {
   // ── Streaming (chat transport) ──────────────────────────────────────────────
   STREAM_001: { code: 'STREAM_001', message: 'Lost connection to the assistant. Please try again.', severity: 'error' },
 
+  // ── Chat attachments ────────────────────────────────────────────────────────
+  ATT_001: { code: 'ATT_001', message: 'Failed to upload the file. Please try again.', severity: 'error' },
+  ATT_002: { code: 'ATT_002', message: 'Couldn’t load the file. It may have expired.', severity: 'warn' },
+  ATT_003: { code: 'ATT_003', message: 'This file type or size isn’t supported.', severity: 'warn' },
+
   // ── HITL episodes (human-in-the-loop) ───────────────────────────────────────
   HITL_001: { code: 'HITL_001', message: 'Failed to load the pending form.', severity: 'warn' },
   HITL_002: { code: 'HITL_002', message: 'Failed to submit your response. Please try again.', severity: 'error' },

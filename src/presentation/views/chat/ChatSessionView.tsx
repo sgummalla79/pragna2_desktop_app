@@ -14,8 +14,10 @@ import type {
   Conversation,
   PersistedMessage,
 } from '@/domain/types/conversation.types';
+import type { Attachment } from '@/domain/types/attachment.types';
 import { ChatInput } from './components/ChatInput';
 import { ChatMessage } from './components/ChatMessage';
+import { AttachmentViewer } from './components/AttachmentViewer';
 import { HITLFormCard } from './components/hitl/HITLFormCard';
 import { ModelPicker } from './components/ModelPicker';
 import { ThinkingToggle } from './components/ThinkingToggle';
@@ -135,6 +137,8 @@ function ChatConversation({
   const { data: proposalFlows } = useFlows();
 
   const [draft, setDraft] = useState('');
+  // The attachment currently open in the full-screen viewer (null = closed).
+  const [viewingAttachment, setViewingAttachment] = useState<Attachment | null>(null);
 
   // Per-message producer-model attribution: persisted ids → userModelId,
   // overlaid by the live streaming map for the in-flight turn.
@@ -142,6 +146,16 @@ function ChatConversation({
     const map = new Map<string, string>();
     for (const m of persisted) {
       if (m.role === 'assistant' && m.userModelId) map.set(m.id, m.userModelId);
+    }
+    return map;
+  }, [persisted]);
+
+  // Persisted attachments per message id (the live AG-UI messages don't carry
+  // them; they come from the persisted message log).
+  const attachmentsByMessageId = useMemo(() => {
+    const map = new Map<string, Attachment[]>();
+    for (const m of persisted) {
+      if (m.attachments.length > 0) map.set(m.id, m.attachments);
     }
     return map;
   }, [persisted]);
@@ -166,11 +180,11 @@ function ChatConversation({
     bottomRef.current?.scrollIntoView({ block: 'end' });
   }, [messages, progressLabel]);
 
-  const handleSend = () => {
+  const handleSend = (attachmentIds: string[] = []) => {
     const text = draft.trim();
     if (!text) return;
     setDraft('');
-    send(text);
+    send(text, attachmentIds);
   };
 
   const title = conversation?.title?.trim() || UNTITLED;
@@ -208,6 +222,8 @@ function ChatConversation({
                   seedUserInput: additionalContext || null,
                 })
               }
+              attachments={attachmentsByMessageId.get(m.id)}
+              onOpenAttachment={setViewingAttachment}
             />
           ))}
           <ThinkingStrip active={status === 'running'} label={progressLabel} />
@@ -236,6 +252,7 @@ function ChatConversation({
             value={draft}
             onChange={setDraft}
             onSubmit={handleSend}
+            conversationId={conversationId}
             onStop={stop}
             running={status === 'running'}
             disabled={Boolean(pendingInterrupt)}
@@ -266,6 +283,11 @@ function ChatConversation({
           />
         </div>
       </div>
+
+      <AttachmentViewer
+        attachment={viewingAttachment}
+        onClose={() => setViewingAttachment(null)}
+      />
     </div>
   );
 }

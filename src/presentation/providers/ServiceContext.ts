@@ -12,6 +12,7 @@ import type { ConversationService } from '@/application/services/ConversationSer
 import type { FlowService } from '@/application/services/FlowService';
 import type { PragnaFlowService } from '@/application/services/PragnaFlowService';
 import type { EpisodeService } from '@/application/services/EpisodeService';
+import type { AttachmentService } from '@/application/services/AttachmentService';
 
 /**
  * Dependency-injection container for application services.
@@ -45,6 +46,8 @@ export interface Services {
   pragnaFlowService: PragnaFlowService;
   /** HITL episode reads (/api/conversations/{id}/episodes). */
   episodeService: EpisodeService;
+  /** Chat attachments — upload + content fetch (/api/conversations/{id}/attachments). */
+  attachmentService: AttachmentService;
 }
 
 export const ServiceContext = createContext<Services | null>(null);

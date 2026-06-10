@@ -147,8 +147,11 @@ pause/resume **and** flow proposals — the run streams natively via
 **not** use the web app's `replaceMessages` resync (see `hitl-episodes.md`); and
 `TD-018` historical tool-call rehydration (`persistedToAGUIMessage` carries
 `tool_calls`; `toChatMessage` rebuilds badges from the seed — name + args; the
-persisted result string isn't on the AG-UI shape). **Still deferred:** `TD-012`
-attachments+PDF, `TD-015` message actions (restores
+persisted result string isn't on the AG-UI shape); and `TD-012` **attachments +
+viewer** (session view — upload + `forwardedProps.attachment_ids` + persisted-turn
+chips + an authed-blob image/PDF viewer; needed a `blob` `responseType` in the
+native adapter — see `attachments.md`; landing-composer uploads deferred).
+**Still deferred:** `TD-015` message actions (restores
 `truncateFrom`/`branch`/`sendWithModel`), `TD-016` usage (restores `getUsage`),
 `TD-017` Streamdown weight, `TD-019` KaTeX/sketchon. Unit tests for the new
 repo/mappers/hooks fold into `TD-003`. Live end-to-end SSE verification requires the running backend

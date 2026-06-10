@@ -63,8 +63,12 @@ export interface ChatSessionApi {
   error: string | null;
   /** Latest live progress label from the agent's `on_progress` event. */
   progressLabel: string | null;
-  /** Append a user turn and run the agent. No-op while a run is in flight. */
-  send: (text: string) => void;
+  /**
+   * Append a user turn and run the agent. No-op while a run is in flight.
+   * `attachmentIds` (uploaded ahead of send) are passed to the backend via
+   * `forwardedProps.attachment_ids`, which it resolves into multimodal content.
+   */
+  send: (text: string, attachmentIds?: string[]) => void;
   /**
    * Landing → first-send variant. Like {@link send}, but mutates the pragna URL
    * with `?user_model_id=` / `?thinking_enabled=` query params reconstructed
@@ -444,7 +448,7 @@ export function useChatSession(
   }, [threadId]);
 
   const send = useCallback(
-    (text: string) => {
+    (text: string, attachmentIds?: string[]) => {
       const trimmed = text.trim();
       if (!agent || !trimmed) return;
       if (status === 'running') return;
@@ -465,7 +469,14 @@ export function useChatSession(
       agent.messages.push({ id: randomId(), role: 'user', content: trimmed });
       syncMessages();
 
-      agent.runAgent().catch((e: unknown) => {
+      // Attachments uploaded ahead of send ride along as a forwarded prop; the
+      // backend resolves the ids into multimodal content on the last user turn.
+      const runParams =
+        attachmentIds && attachmentIds.length > 0
+          ? { forwardedProps: { attachment_ids: attachmentIds } }
+          : undefined;
+
+      agent.runAgent(runParams).catch((e: unknown) => {
         // runAgent rejects when the subscriber chain throws; onRunFailed already
         // updated state. Log any unhandled rejection path.
         if (e instanceof Error && e.name === 'AbortError') return;

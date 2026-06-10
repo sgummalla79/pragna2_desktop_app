@@ -19,7 +19,7 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 | [TD-004](#td-004--verify-multipart-knowledge-upload-against-the-live-backend) | Verify multipart Knowledge upload end-to-end | Knowledge | P2 | ⬜ open |
 | [TD-005](#td-005--client-side-file-validation-for-knowledge-upload) | Client-side file validation for Knowledge upload | Knowledge | P3 | ✅ done |
 | [TD-006](#td-006--chat-action-preferences-have-no-consumer-yet) | Chat-action preferences have no consumer yet | Configuration | P3 | ⬜ open |
-| [TD-012](#td-012--chat-attachments--pdf-viewer) | Chat attachments + PDF viewer | Chat | P2 | ⬜ open |
+| [TD-012](#td-012--chat-attachments--pdf-viewer) | Chat attachments + PDF viewer | Chat | P2 | ✅ done (session view) |
 | [TD-013](#td-013--chat-slash-commands--flow-dispatch) | Chat slash commands + flow dispatch | Chat | P3 | ✅ done |
 | [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals) | Chat HITL episodes (ask_user forms + flow proposals) | Chat | P2 | ✅ done |
 | [TD-015](#td-015--chat-message-actions-edit--branch--regenerate--continue) | Chat message actions (edit / branch / regenerate / continue) | Chat | P3 | ⬜ open |
@@ -243,21 +243,26 @@ Still open; wire when message actions land.
 
 ## TD-012 — Chat attachments + PDF viewer
 
-**Area:** Chat · **Priority:** P2 · **Status:** open
+**Area:** Chat · **Priority:** P2 · **Status:** done — session view (2026-06-09); landing uploads deferred
 
-**What:** Chat Phase 1 ships text-only turns. The web app supports file
-attachments (vision/PDF) on user turns — a paperclip + drop target uploading via
-`POST /api/conversations/{id}/attachments` (multipart), attachment chips under
-user turns, and a `PdfCanvas` document viewer. The send path rides attachment ids
-through AG-UI `forwardedProps.attachment_ids`.
+**Shipped:** attachment data layer (`attachment.types`, `IAttachmentRepository`/
+`AttachmentRepository` upload + `fetchContent`, `mapAttachment`, `AttachmentService`,
+DI, `useUploadAttachment`); composer attach button + staged chips (`AttachmentChip`)
+with image preview/progress/remove + 10 MB/type pre-check (`constants/attachments.ts`);
+`useChatSession.send(text, attachmentIds)` → `forwardedProps.attachment_ids`;
+persisted-turn rendering (`mapMessage` now maps `attachments[]`; `PersistedMessage.
+attachments`; `ChatMessage` chips) + an authed-blob image/PDF `AttachmentViewer`
+(`useAttachmentBlob`). **Prerequisite:** added `blob`/`arraybuffer` `responseType`
+to `tauriHttpAdapter` (it only did text/json). Errors `ATT_001..003`. Specs:
+`docs/specs/{features,technical}/attachments.md`.
 
-**Where (to add):** `src/presentation/views/chat/components/` (ChatInput
-attach/drop, AttachmentChip, DocumentCard, PdfCanvas); an `AttachmentRepository`
-+ `attachment.types.ts`; restore `attachments` on `PersistedMessage` + its mapper.
+**Deferred:** landing-composer uploads (no conversation row yet); drag-and-drop;
+persisted-image inline thumbnails; client model-capability gating.
 
-**Approach:** Reuse the hardened multipart path in
-`src/infrastructure/http/tauriHttpAdapter.ts` (see also [TD-004](#td-004--verify-multipart-knowledge-upload-against-the-live-backend)).
-Add the `attachmentIds` param back to `useChatSession.send`.
+**Live-verify (needs desktop + backend):** multipart upload through the native
+adapter (also [TD-004](#td-004--verify-multipart-knowledge-upload-against-the-live-backend)),
+blob GET through the adapter, PDF in the webview `<iframe>` via blob URL (fallback:
+Tauri temp file + `convertFileSrc`).
 
 **Done when:** a user can attach an image/PDF, see it on the turn, and the model
 receives it.

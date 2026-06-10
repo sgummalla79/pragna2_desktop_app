@@ -1,12 +1,14 @@
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import type { Flow } from '@/domain/types/flow.types';
+import type { Attachment } from '@/domain/types/attachment.types';
 import type { ChatMessage as ChatMessageModel } from '@/presentation/views/chat/hooks/useChatSession';
 import { MarkdownMessage } from './MarkdownMessage';
 import { ReasoningPanel } from './ReasoningPanel';
 import { ToolCallBadge } from './ToolCallBadge';
 import { ModelBadge } from './ModelBadge';
 import { FlowProposalCard } from './FlowProposalCard';
+import { AttachmentChip } from './AttachmentChip';
 
 /** Backend prefix for propose-flow tool names (`propose_flow_<api_name>`). */
 const PROPOSE_FLOW_PREFIX = 'propose_flow_';
@@ -35,6 +37,10 @@ interface ChatMessageProps {
   ) => void;
   /** True while an episode run is in flight (disables proposal actions). */
   proposalBusy?: boolean;
+  /** Files attached to this turn (from the persisted message). */
+  attachments?: Attachment[];
+  /** Open an attachment in the viewer (image/PDF inline, else download). */
+  onOpenAttachment?: (attachment: Attachment) => void;
 }
 
 /**
@@ -52,6 +58,8 @@ export function ChatMessage({
   proposalFlows,
   onAcceptProposal,
   proposalBusy,
+  attachments,
+  onOpenAttachment,
 }: ChatMessageProps) {
   // Map propose-flow tool names → the flow they refer to, so a matching tool
   // call renders a proposal card instead of a badge.
@@ -63,12 +71,29 @@ export function ChatMessage({
     return map;
   }, [proposalFlows]);
 
+  const attachmentChips = (justifyEnd: boolean) =>
+    attachments && attachments.length > 0 ? (
+      <div className={cn('flex flex-wrap gap-1.5', justifyEnd && 'justify-end')}>
+        {attachments.map((a) => (
+          <AttachmentChip
+            key={a.id}
+            filename={a.filename}
+            contentType={a.contentType}
+            onClick={onOpenAttachment ? () => onOpenAttachment(a) : undefined}
+          />
+        ))}
+      </div>
+    ) : null;
+
   if (message.role === 'user') {
     return (
-      <div className="flex justify-end">
-        <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-br-sm bg-primary/10 px-4 py-2.5 text-[15px] leading-relaxed text-foreground">
-          {message.content}
-        </div>
+      <div className="flex flex-col items-end gap-1.5">
+        {attachmentChips(true)}
+        {message.content && (
+          <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-br-sm bg-primary/10 px-4 py-2.5 text-[15px] leading-relaxed text-foreground">
+            {message.content}
+          </div>
+        )}
       </div>
     );
   }
@@ -103,6 +128,7 @@ export function ChatMessage({
         }
         return <ToolCallBadge key={call.id} call={call} />;
       })}
+      {attachmentChips(false)}
       {!streaming && (
         <div className={cn('mt-0.5', !message.content && 'mt-0')}>
           <ModelBadge userModelId={userModelId} />

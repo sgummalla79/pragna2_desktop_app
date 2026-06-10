@@ -87,7 +87,14 @@ export const tauriHttpAdapter: AxiosAdapter = async (config) => {
 
   const responseType = config.responseType ?? 'json';
   let data: unknown;
-  if (responseType === 'text') {
+  if (responseType === 'blob') {
+    // Binary bodies (e.g. attachment content) — read as a Blob so callers can
+    // build an object URL. Must NOT go through the text/JSON path, which would
+    // corrupt the bytes.
+    data = await res.blob();
+  } else if (responseType === 'arraybuffer') {
+    data = await res.arrayBuffer();
+  } else if (responseType === 'text') {
     data = await res.text();
   } else {
     const text = await res.text();

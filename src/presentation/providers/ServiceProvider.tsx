@@ -16,6 +16,7 @@ import { ConversationRepository } from '@/infrastructure/repositories/Conversati
 import { FlowRepository } from '@/infrastructure/repositories/FlowRepository';
 import { PragnaFlowRepository } from '@/infrastructure/repositories/PragnaFlowRepository';
 import { EpisodeRepository } from '@/infrastructure/repositories/EpisodeRepository';
+import { AttachmentRepository } from '@/infrastructure/repositories/AttachmentRepository';
 import { AuthService } from '@/application/services/AuthService';
 import { LlmProviderService } from '@/application/services/LlmProviderService';
 import { ProviderService } from '@/application/services/ProviderService';
@@ -29,6 +30,7 @@ import { ConversationService } from '@/application/services/ConversationService'
 import { FlowService } from '@/application/services/FlowService';
 import { PragnaFlowService } from '@/application/services/PragnaFlowService';
 import { EpisodeService } from '@/application/services/EpisodeService';
+import { AttachmentService } from '@/application/services/AttachmentService';
 import { useAuthStore } from '@/presentation/store/authStore';
 import { ServiceContext } from './ServiceContext';
 
@@ -68,6 +70,7 @@ export function ServiceProvider({ children }: ServiceProviderProps) {
       flowService: new FlowService(new FlowRepository(axiosClient)),
       pragnaFlowService: new PragnaFlowService(new PragnaFlowRepository(axiosClient)),
       episodeService: new EpisodeService(new EpisodeRepository(axiosClient)),
+      attachmentService: new AttachmentService(new AttachmentRepository(axiosClient)),
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

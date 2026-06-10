@@ -5,9 +5,11 @@
  * snake_case; mappers in `infrastructure/repositories/mappers/mapConversation.ts`
  * translate at the boundary. UI code only sees the camelCase shapes here.
  *
- * Phase 1 (core chat) scope: attachments, usage/cost, branch and truncate are
- * deferred — see `docs/TODO.md`.
+ * Usage/cost, branch and truncate are deferred — see `docs/TODO.md`. Message
+ * attachments are mapped (TD-012).
  */
+
+import type { Attachment } from '@/domain/types/attachment.types';
 
 /** A message turn's author. `tool`/`system` turns are rendered minimally. */
 export type MessageRole = 'user' | 'assistant' | 'tool' | 'system';
@@ -64,6 +66,8 @@ export interface PersistedMessage {
   finishReason: FinishReason | null;
   /** Assistant-only extended-thinking trace (BE 0026); `null` otherwise. */
   reasoning: string | null;
+  /** Files attached to this turn (user uploads / assistant-generated docs). */
+  attachments: Attachment[];
 }
 
 /** Body for `POST /api/conversations` (eager-create before the first turn). */

@@ -1,6 +1,6 @@
 /**
  * Boundary mappers for conversations + messages (snake_case API ↔ camelCase
- * domain). Phase 1 ignores the API's `attachments` array on messages (deferred).
+ * domain). Message `attachments` are mapped via {@link mapAttachment} (TD-012).
  */
 
 import type {
@@ -10,6 +10,7 @@ import type {
   PersistedMessage,
   PersistedToolCall,
 } from '@/domain/types/conversation.types';
+import { mapAttachment, type ApiAttachmentResponse } from './mapAttachment';
 
 /** Raw shape returned by the conversation endpoints. */
 export interface ApiConversationResponse {
@@ -38,6 +39,8 @@ export interface ApiMessageResponse {
   finish_reason: FinishReason | null;
   /** BE migration 0026 — assistant-only thinking trace; optional for old BEs. */
   reasoning_content?: string | null;
+  /** Files attached to this turn; absent on older BEs → treated as empty. */
+  attachments?: ApiAttachmentResponse[] | null;
 }
 
 /** Maps a raw API conversation to the domain `Conversation`. */
@@ -69,5 +72,6 @@ export function mapMessage(raw: ApiMessageResponse): PersistedMessage {
     // `?? null` keeps the type exhaustive when older deployments omit the field.
     finishReason: raw.finish_reason ?? null,
     reasoning: raw.reasoning_content ?? null,
+    attachments: (raw.attachments ?? []).map(mapAttachment),
   };
 }
