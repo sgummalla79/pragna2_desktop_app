@@ -18,6 +18,14 @@ export interface IAuthRepository {
    */
   loginWithSocial(connection: string): Promise<AuthTokens>;
 
+  /**
+   * Exchange a stored refresh token for a fresh access token (Auth0
+   * `grant_type=refresh_token`). Returns the new tokens, including a rotated
+   * refresh token when rotation is enabled (else the same one is echoed back).
+   * Rejects when the refresh token is invalid/expired.
+   */
+  refresh(refreshToken: string): Promise<AuthTokens>;
+
   fetchSocialConnections(): Promise<SocialConnection[]>;
   me(): Promise<User>;
   updateSettings(payload: UpdateSettingsPayload): Promise<User>;

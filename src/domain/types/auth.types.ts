@@ -15,6 +15,9 @@ export interface UserSettings {
 export interface AuthTokens {
   accessToken: string;
   idToken?: string;
+  /** Long-lived refresh token (present when Auth0 issues one for `offline_access`).
+   *  Persisted to the OS keychain to restore the session across restarts. */
+  refreshToken?: string;
 }
 
 export interface LoginPayload {

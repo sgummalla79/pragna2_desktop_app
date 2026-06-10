@@ -24,4 +24,7 @@ tauri-plugin-oauth = "2"
 tauri-plugin-http = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Cross-platform OS secure store for the auth refresh token: macOS Keychain +
+# Windows Credential Manager (one API). See docs/TODO.md TD-009.
+keyring = { version = "3", features = ["apple-native", "windows-native"] }
 

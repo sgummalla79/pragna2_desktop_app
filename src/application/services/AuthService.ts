@@ -8,6 +8,7 @@ import type {
   User,
 } from '@/domain/types/auth.types';
 import { tokenStorage } from '@/infrastructure/storage/tokenStorage';
+import { secureStore } from '@/infrastructure/storage/secureStore';
 
 export class AuthService {
   constructor(private readonly authRepository: IAuthRepository) {}
@@ -18,7 +19,7 @@ export class AuthService {
 
   async login(payload: LoginPayload): Promise<{ user: User; tokens: AuthTokens }> {
     const tokens = await this.authRepository.login(payload);
-    this.storeTokens(tokens);
+    await this.storeTokens(tokens);
     const user = await this.authRepository.me();
     return { user, tokens };
   }
@@ -29,23 +30,40 @@ export class AuthService {
    */
   async loginWithSocial(connection: string): Promise<{ user: User; tokens: AuthTokens }> {
     const tokens = await this.authRepository.loginWithSocial(connection);
-    this.storeTokens(tokens);
+    await this.storeTokens(tokens);
     const user = await this.authRepository.me();
     return { user, tokens };
   }
 
   /**
-   * Restores the session from the stored access token on page load.
-   * No network call to Auth0 — the session token in sessionStorage is the source of truth.
+   * Restores the session on app start. First tries the in-memory access token
+   * (survives a same-session reload). If that's gone (a fresh launch — the token
+   * lives in sessionStorage) it falls back to a refresh token persisted in the
+   * OS keychain, silently exchanging it for a new access token (TD-009). Returns
+   * `null` (sign-in required) when neither path yields a valid session.
    */
   async bootstrap(): Promise<{ user: User; accessToken: string } | null> {
     const accessToken = tokenStorage.getAccessToken();
-    if (!accessToken) return null;
+    if (accessToken) {
+      try {
+        const user = await this.authRepository.me();
+        return { user, accessToken };
+      } catch {
+        tokenStorage.clearAll();
+        // Fall through to the refresh-token path below.
+      }
+    }
 
+    const refreshToken = await secureStore.getRefreshToken();
+    if (!refreshToken) return null;
     try {
+      const tokens = await this.authRepository.refresh(refreshToken);
+      await this.storeTokens(tokens);
       const user = await this.authRepository.me();
-      return { user, accessToken };
+      return { user, accessToken: tokens.accessToken };
     } catch {
+      // Refresh token rejected/expired — clear it so we don't retry every launch.
+      await secureStore.clearRefreshToken();
       tokenStorage.clearAll();
       return null;
     }
@@ -65,10 +83,14 @@ export class AuthService {
 
   logout(): void {
     tokenStorage.clearAll();
+    // Drop the persisted refresh token so a relaunch doesn't silently re-auth.
+    void secureStore.clearRefreshToken();
   }
 
-  private storeTokens(tokens: AuthTokens): void {
+  private async storeTokens(tokens: AuthTokens): Promise<void> {
     tokenStorage.setAccessToken(tokens.accessToken);
     if (tokens.idToken) tokenStorage.setIdToken(tokens.idToken);
+    // Persist the refresh token to the OS keychain for cross-restart sessions.
+    if (tokens.refreshToken) await secureStore.setRefreshToken(tokens.refreshToken);
   }
 }

@@ -12,7 +12,7 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 | [TD-002](#td-002--feature--technical-spec-docs-for-the-three-settings-pages) | Spec docs for Configuration / Connectors / Knowledge | Docs | P2 | ✅ done |
 | [TD-007](#td-007--backfill-spec-docs-for-login--providers) | Backfill spec docs for Login + Providers | Docs | P2 | ✅ done |
 | [TD-008](#td-008--providers-view-swallows-errors) | Providers view swallows several errors | Providers | P3 | ✅ done |
-| [TD-009](#td-009--auth-session-does-not-persist-across-restart) | Auth session does not persist across restart | Login | P3 | ⬜ open |
+| [TD-009](#td-009--auth-session-does-not-persist-across-restart) | Auth session does not persist across restart | Login | P3 | ✅ done |
 | [TD-010](#td-010--agent-tool-entry-autocomplete-against-apitools) | Agent tool entry: autocomplete against /api/tools | Agents | P3 | ✅ done |
 | [TD-011](#td-011--model--temperature-selection-on-standalone-agents) | Model / temperature selection on standalone agents | Agents | P3 | ⬜ open |
 | [TD-003](#td-003--unit-tests-for-the-three-new-features) | Unit tests for the three new features | Testing | P2 | ⬜ open |
@@ -115,17 +115,27 @@ provider falls through to the generic `PRV_003` instead of `PRV_002`.
 
 ## TD-009 — Auth session does not persist across restart
 
-**Area:** Login · **Priority:** P3 · **Status:** open
+**Area:** Login · **Priority:** P3 · **Status:** done (2026-06-09)
 
-**What:** Surfaced while writing the login spec. `offline_access` is requested but
-no refresh token is stored or used; the session lives only in `sessionStorage`, so
-it is cleared when the window closes — no cross-restart persistence and no silent
-refresh. Decide whether desktop should keep a long-lived session (secure token
-storage + refresh) or intentionally require sign-in each launch.
+**Decision:** keep a **long-lived session** via a refresh token in secure storage.
 
-**Where:** `src/presentation/store/authStore.ts`, `src/infrastructure/auth0/*`
+**Resolved (cross-platform):** the refresh token is captured from Auth0 token
+responses and stored in the **OS keychain** — macOS Keychain + Windows Credential
+Manager via the Rust `keyring` crate (`secure_store_set/get/delete` Tauri commands,
+wrapped by `src/infrastructure/storage/secureStore.ts`). `Auth0Repository.refresh()`
+exchanges it (`grant_type=refresh_token`, handles rotation); `AuthService.bootstrap()`
+falls back to it on a fresh launch; `logout()` clears it. Degrades gracefully to
+sign-in-each-launch when no refresh token is issued. Errors → `AUTH_011`.
 
-**Done when:** the persistence behavior is a deliberate, documented decision.
+**Caveats / live-verify (needs the real Auth0 tenant + a desktop run):**
+- Auth0 must be configured to issue refresh tokens — **Native** app type +
+  **Refresh Token** grant (+ rotation) + the API's **"Allow Offline Access"**.
+- **Startup** refresh only; a mid-session `401` still logs out (no transparent
+  refresh-and-retry in the axios interceptor — possible follow-up).
+
+**Where:** `src-tauri/src/lib.rs` (keychain commands), `src/infrastructure/storage/
+secureStore.ts`, `src/infrastructure/runtime.ts`, `Auth0Repository`, `AuthService`,
+`auth.types`, `IAuthRepository`. Specs: `docs/specs/{features,technical}/login.md`.
 
 ---
 

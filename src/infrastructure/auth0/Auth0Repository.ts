@@ -37,6 +37,7 @@ interface Auth0ClientConfig {
 interface Auth0TokenResponse {
   access_token: string;
   id_token?: string;
+  refresh_token?: string;
 }
 
 export class Auth0Repository implements IAuthRepository {
@@ -95,7 +96,35 @@ export class Auth0Repository implements IAuthRepository {
       throw new Error((b as { error_description?: string }).error_description ?? 'Login failed');
     }
     const data = (await res.json()) as Auth0TokenResponse;
-    return { accessToken: data.access_token, idToken: data.id_token };
+    return {
+      accessToken: data.access_token,
+      idToken: data.id_token,
+      refreshToken: data.refresh_token,
+    };
+  }
+
+  // ── Refresh — exchange a refresh token for a fresh access token ───────────
+  // Public-client refresh (no secret). With rotation on, Auth0 returns a NEW
+  // refresh token each time; we echo the old one back when it doesn't, so the
+  // caller always has a token to persist.
+
+  async refresh(refreshToken: string): Promise<AuthTokens> {
+    const res = await httpFetch(`https://${this.domain}/oauth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        grant_type: 'refresh_token',
+        client_id: this.clientId,
+        refresh_token: refreshToken,
+      }),
+    });
+    if (!res.ok) throw new PragnaError(ERRORS.AUTH_011);
+    const data = (await res.json()) as Auth0TokenResponse;
+    return {
+      accessToken: data.access_token,
+      idToken: data.id_token,
+      refreshToken: data.refresh_token ?? refreshToken,
+    };
   }
 
   // ── Social login — system browser + loopback redirect (RFC 8252) ──────────
@@ -157,7 +186,11 @@ export class Auth0Repository implements IAuthRepository {
     });
     if (!res.ok) throw new PragnaError(ERRORS.AUTH_010);
     const data = (await res.json()) as Auth0TokenResponse;
-    return { accessToken: data.access_token, idToken: data.id_token };
+    return {
+      accessToken: data.access_token,
+      idToken: data.id_token,
+      refreshToken: data.refresh_token,
+    };
   }
 
   // ── Social connections — JSONP (no CORS issues) ───────────────────────────

@@ -21,6 +21,7 @@ export const ERRORS = {
   AUTH_008: { code: 'AUTH_008', message: 'Registration failed. This email may already be in use.', severity: 'warn' },
   AUTH_009: { code: 'AUTH_009', message: 'Sign-in timed out. Please try again.', severity: 'warn' },
   AUTH_010: { code: 'AUTH_010', message: 'Token exchange failed. Please try again.', severity: 'error' },
+  AUTH_011: { code: 'AUTH_011', message: 'Your session expired. Please sign in again.', severity: 'warn' },
 
   // ── Providers ─────────────────────────────────────────────────────────────
   PRV_001: { code: 'PRV_001', message: 'Failed to load providers.', severity: 'error' },
