@@ -14,6 +14,10 @@ pnpm tauri dev        # run in dev mode with hot reload (opens desktop window)
 pnpm tauri build      # production build
 pnpm dev              # frontend only (no Tauri shell)
 
+pnpm test             # frontend unit tests (Vitest, watch)
+pnpm test:run         # frontend unit tests once (CI)
+pnpm test:coverage    # unit tests + istanbul coverage report (report-only, no gate)
+
 cargo test --manifest-path src-tauri/Cargo.toml          # run all Rust tests
 cargo test --manifest-path src-tauri/Cargo.toml <name>   # run a single test
 cargo clippy --manifest-path src-tauri/Cargo.toml        # lint Rust

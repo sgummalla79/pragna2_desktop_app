@@ -10,7 +10,7 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 |----|-------|------|----------|--------|
 | [TD-001](#td-001--desktop-oauth-connector-callback-round-trip) | Desktop OAuth connector callback round-trip | Connectors | P1 | ⬜ open |
 | [TD-002](#td-002--feature--technical-spec-docs-for-the-three-settings-pages) | Spec docs for Configuration / Connectors / Knowledge | Docs | P2 | ✅ done |
-| [TD-003](#td-003--unit-tests-for-the-three-new-features) | Unit tests for the three new features | Testing | P2 | ⬜ open |
+| [TD-003](#td-003--unit-tests-for-the-three-new-features) | Frontend unit-test suite (Vitest) | Testing | P2 | ✅ done |
 | [TD-004](#td-004--verify-multipart-knowledge-upload-against-the-live-backend) | Verify multipart Knowledge upload end-to-end | Knowledge | P2 | ⬜ open |
 | [TD-005](#td-005--client-side-file-validation-for-knowledge-upload) | Client-side file validation for Knowledge upload | Knowledge | P3 | ✅ done |
 | [TD-006](#td-006--chat-action-preferences-have-no-consumer-yet) | Chat-action preferences have no consumer yet | Configuration | P3 | ✅ done |
@@ -71,18 +71,43 @@ its tools appear automatically.
 
 ---
 
-## TD-003 — Unit tests for the three new features
+## TD-003 — Frontend unit-test suite (Vitest)
 
-**Area:** Testing · **Priority:** P2 · **Status:** open
+**Area:** Testing · **Priority:** P2 · **Status:** ✅ done (2026-06-10)
 
-**What:** The testing standard calls for tests with every feature. The ported
-repositories, mappers, services, and hooks shipped without tests.
+**What:** The frontend shipped without any tests. Now stood up the full suite,
+mirroring the web app's stack (Vitest + Testing Library + jsdom + MSW).
 
-**Scope:** repository HTTP contracts (mock network — incl. the multipart upload
-path), boundary mappers (snake_case ↔ camelCase), and react-query hook behavior
-(query keys + invalidation). Mirror the web app's existing test style where useful.
+**Resolved:** Vitest infra (`vitest.config.ts`, `src/__tests__/setup.ts`,
+`pnpm test`/`test:run`/`test:coverage`; tests excluded from the `tsc` build).
+**238 tests across 55 files**, all green, covering every testable layer:
+- **domain/utils** — `formatCost`, `slugify`, `parseJwt`.
+- **mappers** (all 11) — snake→camel + null-coalesce + payload serializers.
+- **repositories** (all 13, MSW) — request shapes, response mapping, 404 →
+  null/[]/zero-state, multipart endpoints.
+- **services** (all 14) — delegation + `AuthService` bootstrap/login/logout logic.
+- **chat utils** — `normalizeMathDelimiters`, `rehypeSketchon`.
+- **HITL validators**, **slash regex**, **`useSmoothStreamingText`**.
+- **flow editor** — `graphToYaml` serialization round-trip, `useFlowEditorStore`
+  actions (incl. `updateEdgeData` all-or-none strip), `connectionRules`, `editorTypes`.
+- **react-query hooks** — conversations (usage/mutations/`invalidateConversationListQueries`
+  predicate/delete-race), flows, tools, mcp-connectors, pragna slash, chat-models filter.
+- **components** — `MessageActions`, `AttachmentChip`, `ReasoningPanel`, `ModelBadge`,
+  `SketchonDiagram` (mocked sketchon/dompurify), `ConversationListItem` cost chip,
+  `EdgePanel` dynamic-dispatch UI (`TD-021`).
+- **desktop-only** — `isTauriRuntime`, `secureStore` (mocked Tauri `invoke`),
+  `tauriHttpAdapter` (mocked native fetch — text/json/blob/arraybuffer, multipart
+  Content-Type strip, error wrapping).
 
-**Done when:** `pnpm test` (frontend) covers the new repos/mappers/hooks and passes.
+**Coverage:** report-only (no threshold gate — chosen so the build never fails on
+an arbitrary bar). `pnpm test:coverage` reports ~24% global statements: the tested
+logic/data/hook layers are high; the large view/orchestration components
+(`ChatSessionView`, `FlowEditor`, `App`, routers, big views) are unit-untested —
+they're integration-test territory (heavy provider/reactflow/router wiring, mostly
+JSX + wiring) and out of scope for this unit pass.
+
+**Deferred (not unit tests):** end-to-end `useChatSession` SSE streaming, live
+Tauri/IPC, and visual/e2e — a separate integration effort.
 
 ---
 
