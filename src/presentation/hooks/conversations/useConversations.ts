@@ -1,9 +1,13 @@
 import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { useServices } from '@/presentation/providers/ServiceContext';
 import { DEFAULT_PAGE_SIZE } from '@/constants/pagination';
+import { USAGE_STALE_MS } from '@/constants/chat';
+import type { ConversationUsage } from '@/domain/types/conversation.types';
 
 const CONVERSATIONS_KEY = (page: number) => ['conversations', page] as const;
 const PINNED_KEY = ['conversations', 'pinned'] as const;
+/** Per-conversation usage aggregate (`…/usage`). */
+const USAGE_KEY = (id: string) => ['conversations', id, 'usage'] as const;
 
 /**
  * Invalidate ONLY the sidebar list queries (and optionally one specific
@@ -50,6 +54,24 @@ export function useConversations(page = 0) {
     // Mutations that change the list (auto-title, pin/unpin, delete, new turn)
     // invalidate this key explicitly; 30s matches the other list hooks.
     staleTime: 30_000,
+  });
+}
+
+/**
+ * Aggregated token usage + cost for one conversation, for the sidebar cost
+ * chip. The repository maps a 404 (deleted / not-owned race) to the zero-state
+ * aggregate, so this never errors on a still-mounted row. `USAGE_STALE_MS`
+ * keeps each row to one fetch per cache window; usage is intentionally NOT
+ * invalidated on run-finalize (matches the web app — the chip catches up within
+ * a window rather than firing a refetch per turn across every cached row).
+ */
+export function useConversationUsage(conversationId: string) {
+  const { conversationService } = useServices();
+  return useQuery<ConversationUsage>({
+    queryKey: USAGE_KEY(conversationId),
+    queryFn: () => conversationService.getUsage(conversationId),
+    staleTime: USAGE_STALE_MS,
+    enabled: Boolean(conversationId),
   });
 }
 

@@ -1,5 +1,6 @@
 import type {
   Conversation,
+  ConversationUsage,
   CreateConversationPayload,
   PersistedMessage,
   UpdateConversationPayload,
@@ -19,8 +20,8 @@ export interface ConversationListParams {
 /**
  * Port for conversation persistence (`/api/conversations/*`).
  *
- * Phase 1 surface: list / get / create / messages / update / delete. Usage,
- * branch, and truncate-from are deferred (see `docs/TODO.md`).
+ * Surface: list / get / create / messages / update / delete / truncate-from /
+ * branch (`TD-015`) / usage (`TD-016`).
  */
 export interface IConversationRepository {
   /** List the authenticated user's conversations (newest first). */
@@ -57,4 +58,10 @@ export interface IConversationRepository {
    * surface navigates to it and re-sends the branch-point user message.
    */
   branch(conversationId: string, messageId: string): Promise<Conversation>;
+  /**
+   * Aggregated token usage + cost for a conversation (per-call `records` +
+   * server-summed totals). Returns the zero-state aggregate for a 404 (deleted
+   * / not-owned) so callers render no-cost rather than an error.
+   */
+  getUsage(conversationId: string): Promise<ConversationUsage>;
 }

@@ -6,14 +6,17 @@ import type {
 } from '@/application/ports/IConversationRepository';
 import type {
   Conversation,
+  ConversationUsage,
   CreateConversationPayload,
   PersistedMessage,
   UpdateConversationPayload,
 } from '@/domain/types/conversation.types';
 import {
   mapConversation,
+  mapConversationUsage,
   mapMessage,
   type ApiConversationResponse,
+  type ApiConversationUsageResponse,
   type ApiMessageResponse,
 } from './mappers/mapConversation';
 
@@ -122,5 +125,29 @@ export class ConversationRepository implements IConversationRepository {
       { message_id: messageId },
     );
     return mapConversation(data);
+  }
+
+  async getUsage(conversationId: string): Promise<ConversationUsage> {
+    // Eager-create means the row exists before the chat surface mounts, so the
+    // remaining 404s are races (active-delete refetch, multi-tab / sidebar
+    // delete). "No conversation → no usage" is the correct zero-state, so we
+    // map 404 → an empty aggregate rather than surfacing an error on a chip.
+    try {
+      const { data } = await this.http.get<ApiConversationUsageResponse>(
+        `/conversations/${conversationId}/usage`,
+      );
+      return mapConversationUsage(data);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return {
+          conversationId,
+          records: [],
+          totalInputTokens: 0,
+          totalOutputTokens: 0,
+          totalCostUsd: '0',
+        };
+      }
+      throw error;
+    }
   }
 }

@@ -23,7 +23,7 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 | [TD-013](#td-013--chat-slash-commands--flow-dispatch) | Chat slash commands + flow dispatch | Chat | P3 | ✅ done |
 | [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals) | Chat HITL episodes (ask_user forms + flow proposals) | Chat | P2 | ✅ done |
 | [TD-015](#td-015--chat-message-actions-edit--branch--regenerate--continue) | Chat message actions (edit / branch / regenerate / continue) | Chat | P3 | ✅ done |
-| [TD-016](#td-016--chat-conversation-usage--cost-panel) | Chat conversation usage + cost panel | Chat | P3 | ⬜ open |
+| [TD-016](#td-016--chat-conversation-usage--cost-panel) | Chat conversation usage + cost panel | Chat | P3 | ✅ done |
 | [TD-017](#td-017--evaluate-streamdown-transitive-weight) | Evaluate Streamdown transitive weight | Chat | P3 | ✅ done |
 | [TD-018](#td-018--historical-tool-call-badges-not-rehydrated) | Historical tool-call badges not rehydrated | Chat | P3 | ✅ done |
 | [TD-019](#td-019--chat-markdown-katex-math--sketchon-diagrams) | Chat markdown: KaTeX math + sketchon diagrams | Chat | P3 | ✅ done |
@@ -352,16 +352,29 @@ re-send doesn't duplicate the branch-point turn (mirrors web-app behavior).
 
 ## TD-016 — Chat conversation usage + cost panel
 
-**Area:** Chat · **Priority:** P3 · **Status:** open
+**Area:** Chat · **Priority:** P3 · **Status:** ✅ done (2026-06-10)
 
 **What:** Surface per-conversation token usage + cost from
 `GET /api/conversations/{id}/usage` (a `useConversationUsage` hook + the
 `getUsage` repo method, both deferred from Phase 1).
 
-**Where (to add):** restore `getUsage` on the conversation port/service/repo +
-`ConversationUsage` / `UsageRecord` types; a usage panel/chip in the chat header.
+**Resolved — built to match the web app (a sidebar cost chip, not a header
+panel).** Verified the web app's only usage UI is the per-row total-cost chip in
+`ConversationListItem` (commit `541aa2a`); ported it faithfully rather than the
+header-panel wording above. Added `ConversationUsage`/`UsageRecord` types,
+`mapConversationUsage` (snake→camel; `cost_usd`/`total_cost_usd` kept as strings to
+preserve `Decimal` precision), `getUsage` on the port/service/repo (404 →
+zero-state aggregate, matching `get`/`getMessages`), and `useConversationUsage`
+(key `['conversations', id, 'usage']`, `USAGE_STALE_MS` 60s, `enabled` on id). The
+sidebar row shows a quiet running-total chip via the existing `formatUsd`, hidden at
+`$0` and faded on hover/focus so the row actions take the slot. Usage is **not**
+invalidated on run-finalize (matches the web app — the chip catches up within the
+staleness window). The per-call `records[]` / token splits are fetched but, like the
+web app, not displayed. Deviations (chip layout, 404-guard location, externalised
+staleTime) are no-impact — see `docs/web-app-parity.md` §4/§5.
 
-**Done when:** a conversation shows its running token + cost totals.
+**Live-verify:** needs `pnpm tauri dev` + backend with a cost-incurring
+conversation to confirm the chip renders the running total.
 
 ---
 
@@ -492,5 +505,6 @@ surfacing vs. leaving to YAML).
 > [TD-013](#td-013--chat-slash-commands--flow-dispatch) (chat slash dispatch) and
 > [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals) (chat HITL
 > episodes — ask_user pause/resume **and** flow proposals) are both **done**. The
-> chat ↔ flows integration is complete; remaining chat work is the unrelated
-> deferrals (attachments `TD-012`, message actions `TD-015`, usage `TD-016`).
+> chat ↔ flows integration is complete; the previously-deferred chat work
+> (attachments `TD-012`, message actions `TD-015`, usage `TD-016`, full markdown
+> renderer `TD-017`/`TD-019`) is now **all done**.

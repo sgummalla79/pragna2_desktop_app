@@ -9,6 +9,8 @@ import {
   useRenameConversation,
   useSetPinned,
 } from '@/presentation/hooks/conversations/useConversationMutations';
+import { useConversationUsage } from '@/presentation/hooks/conversations/useConversations';
+import { formatUsd } from '@/domain/utils/formatCost';
 import { logger } from '@/infrastructure/logging/logger';
 import type { Conversation } from '@/domain/types/conversation.types';
 
@@ -33,6 +35,13 @@ export function ConversationListItem({ conversation }: ConversationListItemProps
   const rename = useRenameConversation();
   const setPinned = useSetPinned();
   const remove = useDeleteConversation();
+
+  // Running total cost for this conversation. Shown as a quiet chip only when
+  // non-zero (a fresh conversation stays clean — no noisy "$0.00"); it fades
+  // out on hover/focus so the row actions take the same trailing slot.
+  const { data: usage } = useConversationUsage(conversation.id);
+  const totalCost = usage ? parseFloat(usage.totalCostUsd) : 0;
+  const showCost = totalCost > 0;
 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(conversation.title ?? '');
@@ -116,41 +125,52 @@ export function ConversationListItem({ conversation }: ConversationListItemProps
         {title}
       </button>
 
-      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-        <button
-          type="button"
-          onClick={togglePin}
-          aria-label={conversation.pinned ? 'Unpin' : 'Pin'}
-          title={conversation.pinned ? 'Unpin' : 'Pin'}
-          className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-        >
-          {conversation.pinned ? <PinOff size={14} /> : <Pin size={14} />}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setDraft(conversation.title ?? '');
-            setEditing(true);
-          }}
-          aria-label="Rename"
-          title="Rename"
-          className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-        >
-          <Pencil size={14} />
-        </button>
-        <ConfirmButton
-          variant="ghost"
-          size="icon-sm"
-          className="text-muted-foreground hover:text-destructive"
-          aria-label="Delete conversation"
-          title="Delete conversation"
-          confirmTitle="Delete conversation?"
-          confirmDescription="This permanently deletes the conversation and its messages. This can't be undone."
-          confirmLabel="Delete"
-          onConfirm={handleDelete}
-        >
-          <Trash2 size={14} />
-        </ConfirmButton>
+      <div className="relative flex shrink-0 items-center">
+        {showCost && (
+          <span
+            className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-[11px] tabular-nums text-muted-foreground opacity-70 transition-opacity group-hover:opacity-0 group-focus-within:opacity-0"
+            title={`Total cost so far: ${formatUsd(totalCost)}`}
+            aria-label={`Total cost ${formatUsd(totalCost)}`}
+          >
+            {formatUsd(totalCost)}
+          </span>
+        )}
+        <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+          <button
+            type="button"
+            onClick={togglePin}
+            aria-label={conversation.pinned ? 'Unpin' : 'Pin'}
+            title={conversation.pinned ? 'Unpin' : 'Pin'}
+            className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            {conversation.pinned ? <PinOff size={14} /> : <Pin size={14} />}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setDraft(conversation.title ?? '');
+              setEditing(true);
+            }}
+            aria-label="Rename"
+            title="Rename"
+            className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <Pencil size={14} />
+          </button>
+          <ConfirmButton
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground hover:text-destructive"
+            aria-label="Delete conversation"
+            title="Delete conversation"
+            confirmTitle="Delete conversation?"
+            confirmDescription="This permanently deletes the conversation and its messages. This can't be undone."
+            confirmLabel="Delete"
+            onConfirm={handleDelete}
+          >
+            <Trash2 size={14} />
+          </ConfirmButton>
+        </div>
       </div>
     </div>
   );

@@ -5,8 +5,8 @@
  * snake_case; mappers in `infrastructure/repositories/mappers/mapConversation.ts`
  * translate at the boundary. UI code only sees the camelCase shapes here.
  *
- * Usage/cost, branch and truncate are deferred — see `docs/TODO.md`. Message
- * attachments are mapped (TD-012).
+ * Message attachments are mapped (TD-012); per-conversation usage/cost is
+ * mapped (TD-016).
  */
 
 import type { Attachment } from '@/domain/types/attachment.types';
@@ -86,4 +86,39 @@ export interface UpdateConversationPayload {
   userModelId?: string;
   thinkingEnabled?: boolean;
   pinned?: boolean;
+}
+
+/**
+ * One LLM-call usage record under a conversation (a row of the aggregate from
+ * `GET /api/conversations/{id}/usage`).
+ *
+ * `costUsd` is kept as a **string** — the backend serialises the `Decimal` as a
+ * string to preserve precision (e.g. `"0.001050"`); parse to a number only at
+ * the display boundary (`formatUsd`).
+ */
+export interface UsageRecord {
+  id: string;
+  /** The `user_model` that produced this call. */
+  userModelId: string;
+  /** Flow node or skill that triggered the LLM call (e.g. `"chat"`). */
+  nodeId: string;
+  inputTokens: number;
+  outputTokens: number;
+  /** USD cost of this call, as a precision-preserving string. */
+  costUsd: string;
+  /** ISO-8601 UTC timestamp of the call. */
+  createdAt: string;
+}
+
+/**
+ * Aggregated token usage + cost for a conversation
+ * (`GET /api/conversations/{id}/usage`). `records` is the per-call breakdown;
+ * the totals are server-summed. `totalCostUsd` is a string (see {@link UsageRecord}).
+ */
+export interface ConversationUsage {
+  conversationId: string;
+  records: UsageRecord[];
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalCostUsd: string;
 }

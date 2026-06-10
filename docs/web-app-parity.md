@@ -119,13 +119,13 @@ These are genuine functional differences to close for full parity.
 |---|---|---|---|
 | **Cancel a paused episode** | `EpisodeRepository.cancel` + `useCancelEpisode` + a Cancel button on the form card (status → `cancelled`) | **Not implemented.** A user must complete the form (or navigate away); no in-UI cancel | `TD-014` (deferred note) |
 | **`file` ask_user field** | Uploads via the attachments system, stores the `attachment_id` as the field value | **Unsupported** — renders a "not supported yet" hint (attachments now exist (`TD-012`); wiring the form field to them is the remaining step) | `TD-014`/`TD-012` |
-| **Usage & cost panel** | Present | Deferred (pre-existing, from the chat port) | `TD-016` |
 
 > **Now shipped (were gaps):** attachments + viewer (`TD-012`, session view),
 > message actions — edit / branch / regenerate (+ with-model) / continue
-> (`TD-015`), and the **full markdown renderer** — KaTeX math + Mermaid/`sketchon`
-> diagrams + smooth-streaming reveal (`TD-019`); the renderer is now a faithful
-> port of the web app's `MarkdownMessage` (see §4 for the one adaptation).
+> (`TD-015`), the **full markdown renderer** — KaTeX math + Mermaid/`sketchon`
+> diagrams + smooth-streaming reveal (`TD-019`; faithful port of the web app's
+> `MarkdownMessage`, see §4 for the one adaptation), and the **per-conversation
+> usage + cost** sidebar chip (`TD-016`, see §4/§5).
 
 > **Not a gap (verified):** neither app re-attaches to a *live, in-flight* episode
 > stream on remount — there is no `/stream` re-attach endpoint in the web app. Both
@@ -163,8 +163,11 @@ The event-parsing + state machinery (`transformHttpEventStream`, `transformChunk
 | **Regen-with-model gating (`TD-015`)** | Gated on `agentName === DEFAULT_AGENT_NAME` | Gated on `!conversation.flowId` | Equivalent (desktop has no flow-agent resolution; `flowId` null = default chat) |
 | **Continue prompt (`TD-015`)** | Inline literal `'continue'` | `CONTINUE_PROMPT` constant (`constants/chat.ts`) | Same value; externalised per the no-hardcoding rule |
 | **Sketchon diagram theme signal (`TD-019`)** | `SketchonDiagram` reads light/dark from `<html data-theme>` | Reads the **`.dark` class** on the root element (`document.documentElement.classList.contains('dark')`), observed via a `class`-attribute `MutationObserver` | The desktop signals dark via the `.dark` class (`@custom-variant dark` in `index.css`), not a `data-theme` attribute. Same outcome — diagrams re-theme live on mode change |
-| **KaTeX CSS dependency (`TD-019`)** | `katex` resolves transitively (hoisted node_modules) | `katex` pinned as an **explicit dep** at Streamdown's version (`^0.16.22`) so `katex/dist/katex.min.css` resolves under pnpm's strict layout | Packaging only; same bundled KaTeX Streamdown already uses |
+| **KaTeX CSS dependency (`TD-019`)** | `katex` resolves transitively (hoisted node_modules) | `katex` pinned as an **explicit dep** (`^0.16.47`, the version Streamdown bundles) so `katex/dist/katex.min.css` resolves under pnpm's strict layout | Packaging only; same bundled KaTeX Streamdown already uses |
 | **Streamdown `@source` glob (`TD-019`)** | `dist/*.js` | `dist/*.js` (was `dist/index.js`) | Widened to scan all Streamdown dist files so mermaid/controls utility classes generate — matches the web app |
+| **Usage chip layout (`TD-016`)** | Chip `absolute right-2.5`, fades on hover so an absolutely-positioned kebab takes the slot | Chip `absolute` inside a `relative` trailing wrapper, fades on `group-hover`/`group-focus-within` so the desktop's **inline** action row takes the slot | Desktop sidebar rows reveal actions inline (no kebab); same "chip ↔ actions share the trailing slot, no layout shift" behaviour |
+| **Usage 404 guard location (`TD-016`)** | Zero-state mapped in the `useConversationUsage` **hook** | Zero-state mapped in the **repository** `getUsage` (matches the desktop's `get`→`null` / `getMessages`→`[]` convention) | Same outcome (a 404 row shows no cost, never an error); guard lives one layer lower |
+| **Usage staleTime (`TD-016`)** | Inline `staleTime: 60_000` | `USAGE_STALE_MS` constant (`constants/chat.ts`) | Same 60s; externalised per the no-hardcoding rule |
 | **Slash popover, form fields, cards** | web-app styling | theme tokens (tweakcn) + shadcn primitives | UI only, per the standing theme rule |
 
 ---
@@ -179,6 +182,12 @@ The event-parsing + state machinery (`transformHttpEventStream`, `transformChunk
   editor store / connection rules — ported faithfully; YAML stays the source of
   truth.
 - **HITL form validation logic** (`validators.ts`): ported field-for-field.
+- **Conversation usage + cost** (`TD-016`): same `GET …/usage` contract,
+  `ConversationUsage`/`UsageRecord` types, snake→camel mapper (cost kept as a
+  string), `getUsage` on port/service/repo, `useConversationUsage`
+  (`['conversations', id, 'usage']`, 60s stale), the `formatUsd` tiers, and a
+  total-cost sidebar chip hidden at `$0` — functionally identical to the web app
+  (deviations in §4 are layout/guard-location/constant only).
 - **Chat markdown renderer** (`TD-017`/`TD-019`): both apps use **Streamdown
   `^1.6.11`** — the same renderer (TD-017's "switch to react-markdown" was a
   hypothetical, never the web app's choice; react-markdown is only Streamdown's

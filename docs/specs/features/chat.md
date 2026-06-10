@@ -40,7 +40,7 @@ forms / flow proposals, message actions (edit/branch/regenerate/continue), usage
   (ask_user forms, flow proposals); edit / branch / regenerate / continue;
   conversation usage & cost; KaTeX math + diagram rendering.
 
-> All of the above except **usage & cost** (`TD-016`) have since shipped — see §7.
+> **All of the Phase-1 non-goals above have since shipped** — see §7.
 
 ## 3. User Flows
 
@@ -104,13 +104,16 @@ forms / flow proposals, message actions (edit/branch/regenerate/continue), usage
 
 ## 7. Deferred Scope (later phases)
 
-Still deferred: usage & cost (`TD-016`). **Shipped since Phase 1:** slash
-commands + flow dispatch (`TD-013`, see `slash-commands.md`), HITL `ask_user`
+Nothing from the Phase-1 non-goals remains deferred. **Shipped since Phase 1:**
+slash commands + flow dispatch (`TD-013`, see `slash-commands.md`), HITL `ask_user`
 pause/resume **and** flow proposals (`TD-014`, see `hitl-episodes.md`), historical
 tool-call rehydration (`TD-018`), **attachments + viewer** (`TD-012`, session
 view — see `attachments.md`), **message actions** edit/branch/regenerate/
 continue (`TD-015`, see `message-actions.md` — also wires the Configuration
-chat-action toggles, `TD-006`), and the **full markdown renderer** — KaTeX math,
+chat-action toggles, `TD-006`), the **full markdown renderer** — KaTeX math,
 Mermaid + `sketchon` diagrams, smooth-streaming reveal (`TD-019`), with the
-**keep-Streamdown** decision recorded (`TD-017`). The chat renderer is now at
-parity with the web app's `MarkdownMessage`.
+**keep-Streamdown** decision recorded (`TD-017`); now at parity with the web app's
+`MarkdownMessage` (see `chat-markdown.md`). Also **per-conversation usage + cost**
+(`TD-016`, see `conversation-usage.md`): each sidebar row shows a quiet
+running-total-cost chip (hidden at `$0`, fades on hover so the row actions take the
+slot) sourced from `GET /api/conversations/{id}/usage`.

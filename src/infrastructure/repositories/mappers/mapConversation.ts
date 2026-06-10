@@ -5,10 +5,12 @@
 
 import type {
   Conversation,
+  ConversationUsage,
   FinishReason,
   MessageRole,
   PersistedMessage,
   PersistedToolCall,
+  UsageRecord,
 } from '@/domain/types/conversation.types';
 import { mapAttachment, type ApiAttachmentResponse } from './mapAttachment';
 
@@ -55,6 +57,54 @@ export function mapConversation(raw: ApiConversationResponse): Conversation {
     pinned: raw.pinned ?? false,
     pinnedAt: raw.pinned_at ?? null,
     createdAt: raw.created_at,
+  };
+}
+
+/** Raw shape of one usage record (`…/usage` → `records[]`). */
+export interface ApiUsageRecordResponse {
+  id: string;
+  user_model_id: string;
+  node_id: string;
+  input_tokens: number;
+  output_tokens: number;
+  /** `Decimal` serialised as a string to preserve precision. */
+  cost_usd: string;
+  created_at: string;
+}
+
+/** Raw shape returned by `GET /api/conversations/{id}/usage`. */
+export interface ApiConversationUsageResponse {
+  conversation_id: string;
+  records: ApiUsageRecordResponse[];
+  total_input_tokens: number;
+  total_output_tokens: number;
+  /** `Decimal` serialised as a string. */
+  total_cost_usd: string;
+}
+
+/** Maps a raw usage record to the domain `UsageRecord`. */
+function mapUsageRecord(raw: ApiUsageRecordResponse): UsageRecord {
+  return {
+    id: raw.id,
+    userModelId: raw.user_model_id,
+    nodeId: raw.node_id,
+    inputTokens: raw.input_tokens,
+    outputTokens: raw.output_tokens,
+    costUsd: raw.cost_usd,
+    createdAt: raw.created_at,
+  };
+}
+
+/** Maps the raw usage aggregate to the domain `ConversationUsage`. */
+export function mapConversationUsage(
+  raw: ApiConversationUsageResponse,
+): ConversationUsage {
+  return {
+    conversationId: raw.conversation_id,
+    records: raw.records.map(mapUsageRecord),
+    totalInputTokens: raw.total_input_tokens,
+    totalOutputTokens: raw.total_output_tokens,
+    totalCostUsd: raw.total_cost_usd,
   };
 }
 

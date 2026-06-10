@@ -184,7 +184,17 @@ renderer** — `TD-019` KaTeX math + Mermaid/`sketchon` diagrams + smooth-stream
 reveal, with `TD-017` resolved as **keep Streamdown** (the heavy diagram/grammar
 chunks are code-split — verified: the eager `index` bundle is unaffected; mermaid,
 cytoscape, wasm, wardley, and language grammars each build as separate lazy
-chunks). **Still deferred:** `TD-016` usage (restores `getUsage`). Unit tests for
-the new repo/mappers/hooks fold into `TD-003`. Live end-to-end SSE verification
-requires the running backend + a valid Auth0 token (cannot be exercised from the
-dev box).
+chunks; see `chat-markdown.md`); and `TD-016` **usage + cost** (see
+`conversation-usage.md`) — `ConversationUsage`/`UsageRecord` types,
+`mapConversationUsage` (snake→camel; `cost_usd`/`total_cost_usd` kept as strings to
+preserve `Decimal` precision), `getUsage` on the port/service/repo (404 → zero-state
+aggregate, matching the repo's `get`/`getMessages` convention), and a
+`useConversationUsage` hook (key `['conversations', id, 'usage']`, `USAGE_STALE_MS`
+60s, `enabled` on id). The sidebar `ConversationListItem` renders a quiet
+running-total chip via `formatUsd` (already present), shown only when cost > 0 and
+faded on hover/focus. Usage is **not** invalidated on run-finalize (matches the web
+app — the chip catches up within the staleness window rather than refetching every
+cached row per turn). **Nothing from the Phase-1 chat non-goals remains deferred.**
+Unit tests for the new repo/mappers/hooks fold into `TD-003`. Live end-to-end SSE
+verification requires the running backend + a valid Auth0 token (cannot be exercised
+from the dev box).

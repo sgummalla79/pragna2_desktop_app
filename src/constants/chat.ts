@@ -7,3 +7,11 @@
  * no-hardcoding rule) rather than inlined in the chat surface.
  */
 export const CONTINUE_PROMPT = 'continue';
+
+/**
+ * How long a per-conversation usage aggregate (`…/usage`) stays fresh before
+ * the sidebar cost chip refetches. Bounds each row to one request per window
+ * (60s, matching the web app) so a long sidebar doesn't fan out a request per
+ * row on every render.
+ */
+export const USAGE_STALE_MS = 60_000;

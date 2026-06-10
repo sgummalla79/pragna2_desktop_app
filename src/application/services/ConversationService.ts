@@ -4,6 +4,7 @@ import type {
 } from '@/application/ports/IConversationRepository';
 import type {
   Conversation,
+  ConversationUsage,
   CreateConversationPayload,
   PersistedMessage,
   UpdateConversationPayload,
@@ -60,5 +61,10 @@ export class ConversationService {
   /** Fork a new conversation up to + including a message. */
   branch(conversationId: string, messageId: string): Promise<Conversation> {
     return this.conversationRepository.branch(conversationId, messageId);
+  }
+
+  /** Aggregated per-conversation token usage + cost (zero-state on 404). */
+  getUsage(conversationId: string): Promise<ConversationUsage> {
+    return this.conversationRepository.getUsage(conversationId);
   }
 }
