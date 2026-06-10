@@ -483,20 +483,37 @@ advanced sub-feature UIs are split out to [TD-021](#td-021--flow-editor-advanced
 
 **What:** The interactive editor (TD-020) omits the editing **UI** for the most
 advanced sub-features, though their data round-trips losslessly through
-`buildEditorGraph`/`graphToYaml`/the store:
+`buildEditorGraph`/`graphToYaml`/the store. **Classified against the web app
+(verified 2026-06-10)** — items 1–3 are genuine parity gaps (the web app has the
+editing UI; we don't), the rest are not:
+
+**Parity gaps — web app HAS the editor UI, desktop must build to match:**
 - **Dynamic-dispatch fan-out** (#35: `dispatch_mode`/`items_slot`/`item_slot`) —
-  shown as a read-only "per-item" edge chip; no editor in `EdgePanel`.
-- **Context slots** (#26: inputs/outputs/reducers) — carried; minimal/!no UI.
-- An editable **YAML/source view** (Phase 1 had a CodeMirror panel; the editor
-  superseded it — re-add as a toggle if users want raw editing).
-- **Connector inline-register** — the connector picker selects from already-
-  connected MCP connectors (`useMcpConnectors`); registering a new one inline
-  (as the web app's editor does) is deferred.
+  web app `EdgePanel.tsx` has a "Send per item" toggle + two slot dropdowns; desktop
+  shows only a read-only "per-item" edge chip. **Gap.**
+- **Context slots — inputs/outputs** (#26) — web app `NodePanel.tsx` has a "Context
+  variables (advanced)" section with two `ChipInput`s; desktop carries the data with
+  minimal/no UI. **Gap.**
+- **Connector inline-register** — web app `ConnectorPanel.tsx` opens a modal to
+  either pick an existing MCP connector OR register a new one inline; desktop only
+  picks from already-connected connectors (`useMcpConnectors`). **Gap.**
+
+**NOT parity (web app does not have these) — only justified as documented
+deviations, otherwise drop:**
+- **Context slots — reducers** — in the web app `reducers` only round-trips through
+  serialization (`editorTypes.ts`/`graphToYaml.ts`/`buildEditorGraph.ts`); there is
+  **no editor UI** for it. Same as desktop today → not a gap; leave to YAML.
+- **Editable YAML / source view** — the web app's "Flow YAML" modal is **read-only**
+  (`editable={false}`; copy / export / import-to-replace only). Desktop's Phase-1
+  editable CodeMirror panel was actually *ahead* of the web app; re-adding it would
+  be a **deliberate enhancement (deviation)**, to be recorded in
+  `docs/web-app-parity.md` if built — not a sync item.
 
 **Where:** `src/presentation/views/settings/FlowDetailView/{EdgePanel,NodePanel,ConnectorPanel,FlowEditor}.tsx`.
 
-**Done when:** these sub-features are editable in the UI (decide which are worth
-surfacing vs. leaving to YAML).
+**Done when:** the three parity-gap sub-features (fan-out, inputs/outputs slots,
+connector inline-register) are editable in the UI to match the web app; reducers +
+editable-YAML stay deferred unless explicitly chosen as documented enhancements.
 
 ---
 
