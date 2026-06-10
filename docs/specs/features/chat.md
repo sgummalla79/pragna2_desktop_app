@@ -40,6 +40,8 @@ forms / flow proposals, message actions (edit/branch/regenerate/continue), usage
   (ask_user forms, flow proposals); edit / branch / regenerate / continue;
   conversation usage & cost; KaTeX math + diagram rendering.
 
+> All of the above except **usage & cost** (`TD-016`) have since shipped — see §7.
+
 ## 3. User Flows
 
 **First message (from landing)**
@@ -93,17 +95,22 @@ forms / flow proposals, message actions (edit/branch/regenerate/continue), usage
 
 - Theme tokens only — no styles, fonts, or sizes imported from the web app.
 - Markdown is rendered with Streamdown (structure-only classes; colors resolve
-  through theme tokens). Icons are lucide, consistent with the rest of the app.
+  through theme tokens), including **GFM, Shiki code highlighting, KaTeX math,
+  Mermaid, and inline `sketchon` diagrams**. Assistant replies stream with a
+  smooth per-character reveal + per-block fade-in (claude.ai feel). Icons are
+  lucide, consistent with the rest of the app.
 - Responsive: a 260px sidebar rail at `md`+, collapsing to an overlay drawer
   (hamburger, clear of the macOS traffic lights) below `md`.
 
 ## 7. Deferred Scope (later phases)
 
-Still deferred: usage & cost (`TD-016`), Streamdown weight review (`TD-017`),
-KaTeX math + sketchon diagrams (`TD-019`). **Shipped since Phase 1:** slash
+Still deferred: usage & cost (`TD-016`). **Shipped since Phase 1:** slash
 commands + flow dispatch (`TD-013`, see `slash-commands.md`), HITL `ask_user`
 pause/resume **and** flow proposals (`TD-014`, see `hitl-episodes.md`), historical
 tool-call rehydration (`TD-018`), **attachments + viewer** (`TD-012`, session
-view — see `attachments.md`), and **message actions** edit/branch/regenerate/
+view — see `attachments.md`), **message actions** edit/branch/regenerate/
 continue (`TD-015`, see `message-actions.md` — also wires the Configuration
-chat-action toggles, `TD-006`).
+chat-action toggles, `TD-006`), and the **full markdown renderer** — KaTeX math,
+Mermaid + `sketchon` diagrams, smooth-streaming reveal (`TD-019`), with the
+**keep-Streamdown** decision recorded (`TD-017`). The chat renderer is now at
+parity with the web app's `MarkdownMessage`.

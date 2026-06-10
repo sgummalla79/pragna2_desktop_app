@@ -24,9 +24,9 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 | [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals) | Chat HITL episodes (ask_user forms + flow proposals) | Chat | P2 | ✅ done |
 | [TD-015](#td-015--chat-message-actions-edit--branch--regenerate--continue) | Chat message actions (edit / branch / regenerate / continue) | Chat | P3 | ✅ done |
 | [TD-016](#td-016--chat-conversation-usage--cost-panel) | Chat conversation usage + cost panel | Chat | P3 | ⬜ open |
-| [TD-017](#td-017--evaluate-streamdown-transitive-weight) | Evaluate Streamdown transitive weight | Chat | P3 | ⬜ open |
+| [TD-017](#td-017--evaluate-streamdown-transitive-weight) | Evaluate Streamdown transitive weight | Chat | P3 | ✅ done |
 | [TD-018](#td-018--historical-tool-call-badges-not-rehydrated) | Historical tool-call badges not rehydrated | Chat | P3 | ✅ done |
-| [TD-019](#td-019--chat-markdown-katex-math--sketchon-diagrams) | Chat markdown: KaTeX math + sketchon diagrams | Chat | P3 | ⬜ open |
+| [TD-019](#td-019--chat-markdown-katex-math--sketchon-diagrams) | Chat markdown: KaTeX math + sketchon diagrams | Chat | P3 | ✅ done |
 | [TD-020](#td-020--agent-flows-phase-2-interactive-editor) | Agent Flows Phase 2: interactive editor | Flows | P2 | ✅ done |
 | [TD-021](#td-021--flow-editor-advanced-sub-features) | Flow editor: advanced sub-features | Flows | P3 | ⬜ open |
 
@@ -367,7 +367,7 @@ re-send doesn't duplicate the branch-point turn (mirrors web-app behavior).
 
 ## TD-017 — Evaluate Streamdown transitive weight
 
-**Area:** Chat · **Priority:** P3 · **Status:** open
+**Area:** Chat · **Priority:** P3 · **Status:** ✅ done (2026-06-10)
 
 **What:** `streamdown` (the chat markdown renderer) pulls in heavy **lazy** chunks
 — mermaid (~885 kB), cytoscape (~443 kB), a wasm blob (~622 kB), wardley, and the
@@ -378,12 +378,16 @@ large for "core chat."
 **Where:** `src/presentation/views/chat/components/MarkdownMessage.tsx`; bundler
 config.
 
-**Approach:** Decide between (a) keeping Streamdown but trimming/disabling the
-diagram (mermaid/cytoscape/wardley) support, or (b) switching to
-`react-markdown` + `shiki` with a curated grammar set. Measure first.
-
-**Done when:** the chat markdown dependency footprint is a deliberate, documented
-choice.
+**Resolved — decision: keep Streamdown.** The "switch to react-markdown" option
+was moot: the **web app already uses Streamdown `^1.6.11`** (the same version), so
+switching would *create* drift against the parity rule, not reduce footprint
+(react-markdown is only Streamdown's transitive dep). The heavy chunks are
+confirmed **code-split** — a production `pnpm build` emits mermaid (2.96 MB),
+cytoscape (443 kB), wasm (622 kB), wardley (612 kB), and each Shiki grammar as
+**separate lazy chunks**; the eager `index` bundle (~398 kB) is unaffected and
+only loads a diagram/grammar chunk when such a block actually renders. The
+footprint is therefore an accepted, documented cost of matching the web app's
+renderer (see `docs/web-app-parity.md` §5). Closed together with `TD-019`.
 
 ---
 
@@ -404,7 +408,7 @@ shape, so historical badges show name + args but not the result string.
 
 ## TD-019 — Chat markdown: KaTeX math + sketchon diagrams
 
-**Area:** Chat · **Priority:** P3 · **Status:** open
+**Area:** Chat · **Priority:** P3 · **Status:** ✅ done (2026-06-10)
 
 **What:** Phase 1's `MarkdownMessage` renders standard markdown + code
 highlighting but omits the web app's KaTeX math pass and the custom `rehypeSketchon`
@@ -412,9 +416,17 @@ diagram plugin (`<sketchon-diagram>`).
 
 **Where:** `src/presentation/views/chat/components/MarkdownMessage.tsx`.
 
-**Done when:** math and sketchon diagrams render (decide alongside
-[TD-017](#td-017--evaluate-streamdown-transitive-weight), since they affect the
-renderer choice).
+**Resolved:** `MarkdownMessage` is now a faithful port of the web app's renderer.
+Added: `katex/dist/katex.min.css` + `normalizeMathDelimiters` (`\(…\)`/`\[…\]` →
+`$…$`/`$$…$$`) for KaTeX math; `rehypeSketchon` (appended after
+`defaultRehypePlugins`, past rehype-harden) + `SketchonDiagram`
+(`@sgummalla-works/sketchon`, DOMPurify-sanitized SVG, Copy-PNG/Download-SVG) for
+inline diagrams; `shikiTheme`/`controls` config, a mermaid wheel-zoom throttle, and
+`useSmoothStreamingText` + a per-block fade-in for the smooth streaming reveal
+(`isStreaming` threaded from `ChatMessage`). New constants in `constants/markdown.ts`;
+`katex` pinned as an explicit dep (pnpm strict layout). One porting adaptation:
+`SketchonDiagram` reads light/dark from the **`.dark` class** (desktop signal) vs the
+web app's `data-theme` — see `docs/web-app-parity.md` §4. Closed with `TD-017`.
 
 ---
 

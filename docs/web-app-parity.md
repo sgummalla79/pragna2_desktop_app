@@ -4,7 +4,7 @@
 > (`pragna2_desktop_app`) **deviates** from the web app
 > (`pragna2_sgummalla_works`) it is ported from.
 >
-> **Last Updated**: 2026-06-09
+> **Last Updated**: 2026-06-10
 
 ---
 
@@ -119,10 +119,13 @@ These are genuine functional differences to close for full parity.
 |---|---|---|---|
 | **Cancel a paused episode** | `EpisodeRepository.cancel` + `useCancelEpisode` + a Cancel button on the form card (status → `cancelled`) | **Not implemented.** A user must complete the form (or navigate away); no in-UI cancel | `TD-014` (deferred note) |
 | **`file` ask_user field** | Uploads via the attachments system, stores the `attachment_id` as the field value | **Unsupported** — renders a "not supported yet" hint (attachments now exist (`TD-012`); wiring the form field to them is the remaining step) | `TD-014`/`TD-012` |
-| **Usage & cost panel, KaTeX math + diagrams** | Present | Deferred (pre-existing, from the chat port) | `TD-016`, `TD-019` |
+| **Usage & cost panel** | Present | Deferred (pre-existing, from the chat port) | `TD-016` |
 
-> **Now shipped (were gaps):** attachments + viewer (`TD-012`, session view) and
-> message actions — edit / branch / regenerate (+ with-model) / continue (`TD-015`).
+> **Now shipped (were gaps):** attachments + viewer (`TD-012`, session view),
+> message actions — edit / branch / regenerate (+ with-model) / continue
+> (`TD-015`), and the **full markdown renderer** — KaTeX math + Mermaid/`sketchon`
+> diagrams + smooth-streaming reveal (`TD-019`); the renderer is now a faithful
+> port of the web app's `MarkdownMessage` (see §4 for the one adaptation).
 
 > **Not a gap (verified):** neither app re-attaches to a *live, in-flight* episode
 > stream on remount — there is no `/stream` re-attach endpoint in the web app. Both
@@ -159,6 +162,9 @@ The event-parsing + state machinery (`transformHttpEventStream`, `transformChunk
 | **`sendWithModel` (`TD-015`)** | Standalone hook method | Thin wrapper over `sendWithOverrides(text, { userModelId })` — same `?user_model_id` query param | Identical behavior |
 | **Regen-with-model gating (`TD-015`)** | Gated on `agentName === DEFAULT_AGENT_NAME` | Gated on `!conversation.flowId` | Equivalent (desktop has no flow-agent resolution; `flowId` null = default chat) |
 | **Continue prompt (`TD-015`)** | Inline literal `'continue'` | `CONTINUE_PROMPT` constant (`constants/chat.ts`) | Same value; externalised per the no-hardcoding rule |
+| **Sketchon diagram theme signal (`TD-019`)** | `SketchonDiagram` reads light/dark from `<html data-theme>` | Reads the **`.dark` class** on the root element (`document.documentElement.classList.contains('dark')`), observed via a `class`-attribute `MutationObserver` | The desktop signals dark via the `.dark` class (`@custom-variant dark` in `index.css`), not a `data-theme` attribute. Same outcome — diagrams re-theme live on mode change |
+| **KaTeX CSS dependency (`TD-019`)** | `katex` resolves transitively (hoisted node_modules) | `katex` pinned as an **explicit dep** at Streamdown's version (`^0.16.22`) so `katex/dist/katex.min.css` resolves under pnpm's strict layout | Packaging only; same bundled KaTeX Streamdown already uses |
+| **Streamdown `@source` glob (`TD-019`)** | `dist/*.js` | `dist/*.js` (was `dist/index.js`) | Widened to scan all Streamdown dist files so mermaid/controls utility classes generate — matches the web app |
 | **Slash popover, form fields, cards** | web-app styling | theme tokens (tweakcn) + shadcn primitives | UI only, per the standing theme rule |
 
 ---
@@ -173,6 +179,12 @@ The event-parsing + state machinery (`transformHttpEventStream`, `transformChunk
   editor store / connection rules — ported faithfully; YAML stays the source of
   truth.
 - **HITL form validation logic** (`validators.ts`): ported field-for-field.
+- **Chat markdown renderer** (`TD-017`/`TD-019`): both apps use **Streamdown
+  `^1.6.11`** — the same renderer (TD-017's "switch to react-markdown" was a
+  hypothetical, never the web app's choice; react-markdown is only Streamdown's
+  transitive dep). `MarkdownMessage`, `normalizeMathDelimiters`, `rehypeSketchon`,
+  and `SketchonDiagram` are ported faithfully; the diagram theme-signal read is the
+  only adaptation (§4).
 - **Settings** (providers, configuration, connectors, knowledge, agents): faithful.
 
 ---

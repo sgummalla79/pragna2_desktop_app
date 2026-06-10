@@ -186,7 +186,9 @@ export function ChatMessage({
       {message.reasoning && (
         <ReasoningPanel reasoning={message.reasoning} defaultOpen={streaming} />
       )}
-      {message.content && <MarkdownMessage content={message.content} />}
+      {message.content && (
+        <MarkdownMessage content={message.content} isStreaming={streaming} />
+      )}
       {message.toolCalls?.map((call) => {
         const proposed = proposalFlowByToolName.get(call.name);
         if (proposed && onAcceptProposal) {

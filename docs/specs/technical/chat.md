@@ -109,6 +109,32 @@ change.
   `ConversationList`, `ConversationListItem`, `ChatInput`, `ModelPicker` (shadcn
   `Select`), `ThinkingToggle`, `ChatMessage`, `MarkdownMessage` (Streamdown),
   `ReasoningPanel`, `ToolCallBadge`, `ModelBadge`, `ThinkingStrip`, `SetupBanner`.
+- **Markdown renderer** (`MarkdownMessage`, ported faithfully from the web app):
+  Streamdown owns GFM + Shiki + KaTeX + Mermaid; we add two things and configure
+  three:
+  - `normalizeMathDelimiters` (`utils/markdownStreaming.ts`) rewrites `\(…\)`/`\[…\]`
+    → `$…$`/`$$…$$` so remark-math/KaTeX render math from any provider; code spans
+    are masked first so literals aren't rewritten.
+  - `rehypeSketchon` (`utils/rehypeSketchon.ts`) is appended **after**
+    `defaultRehypePlugins` (so it runs past rehype-harden) and swaps a
+    ```` ```sketchon ```` block for a `<sketchon-diagram spec="…">` element, rendered
+    by `SketchonDiagram` via Streamdown's `components` map. `SketchonDiagram`
+    parses/validates the spec (`@sgummalla-works/sketchon`), renders to SVG,
+    **DOMPurify-sanitizes** it (SVG profile) before injection, and offers Copy-PNG /
+    Download-SVG. It reads light/dark from the **`.dark` class** on the root element
+    (the desktop's theme signal) — the web app reads `data-theme` (the one porting
+    adaptation; see `web-app-parity.md`).
+  - Config: `shikiTheme={SHIKI_THEMES}`, `controls={STREAMDOWN_CONTROLS}` (table/code
+    + mermaid pan-zoom/fullscreen/copy/download), and a capture-phase wheel throttle
+    (`MERMAID_ZOOM_WHEEL_THROTTLE`) so mermaid zoom is gradual. All literals live in
+    `constants/markdown.ts`.
+  - Streaming: `useSmoothStreamingText` reveals a growing prefix at a steady cadence
+    (`STREAM_REVEAL_BASE_CPS`, bounded by `STREAM_REVEAL_MAX_LAG_SECONDS`) while
+    `isStreaming` (threaded from `ChatMessage.streaming`); `mode='streaming'` +
+    `parseIncompleteMarkdown` repair partial fences; a `.chat-markdown--animate`
+    per-block fade-in completes the reveal. `katex/dist/katex.min.css` is imported in
+    the component; `katex` is pinned as an explicit dep (Streamdown bundles it but
+    pnpm's strict layout doesn't hoist the CSS path).
 - **Handoff** (`hooks/initialMessageHandoff.ts`): the landing's first message is
   written to `sessionStorage` under the new id; `ChatConversation` reads it once,
   clears it, and fires `sendWithOverrides`.
@@ -153,7 +179,12 @@ chips + an authed-blob image/PDF viewer; needed a `blob` `responseType` in the
 native adapter — see `attachments.md`; landing-composer uploads deferred).
 and `TD-015` **message actions** (edit/branch/regenerate/continue — `truncateFrom`
 + `branch` conversation methods, `sendWithModel`, `MessageActions`; also wires the
-`TD-006` chat-action prefs — see `message-actions.md`). **Still deferred:** `TD-016`
-usage (restores `getUsage`), `TD-017` Streamdown weight, `TD-019` KaTeX/sketchon. Unit tests for the new
-repo/mappers/hooks fold into `TD-003`. Live end-to-end SSE verification requires the running backend
-+ a valid Auth0 token (cannot be exercised from the dev box).
+`TD-006` chat-action prefs — see `message-actions.md`); and the **full markdown
+renderer** — `TD-019` KaTeX math + Mermaid/`sketchon` diagrams + smooth-streaming
+reveal, with `TD-017` resolved as **keep Streamdown** (the heavy diagram/grammar
+chunks are code-split — verified: the eager `index` bundle is unaffected; mermaid,
+cytoscape, wasm, wardley, and language grammars each build as separate lazy
+chunks). **Still deferred:** `TD-016` usage (restores `getUsage`). Unit tests for
+the new repo/mappers/hooks fold into `TD-003`. Live end-to-end SSE verification
+requires the running backend + a valid Auth0 token (cannot be exercised from the
+dev box).
