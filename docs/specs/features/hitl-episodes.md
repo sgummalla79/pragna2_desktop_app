@@ -1,6 +1,6 @@
 # Feature Spec: HITL Episodes (human-in-the-loop forms)
 
-> **Status**: Implemented (Phase A — ask_user pause/resume). Flow proposals deferred.
+> **Status**: Implemented — ask_user pause/resume (Phase A) + flow proposals (Phase B).
 > **Author**: Suman Gummalla
 > **Created**: 2026-06-09
 > **Last Updated**: 2026-06-09
@@ -16,9 +16,11 @@ The reply streams in live, and if the resumed run pauses again, a new form
 appears. This is the chat half of HITL; it pairs with Agent Flows + slash
 dispatch (a flow reached via `/slash` can pause exactly the same way).
 
-**Phase A (this spec)** covers the `ask_user` pause → form → resume loop for any
-flow that interrupts. **Flow proposals** (the LLM suggesting a flow via a
-`propose_flow_*` tool call, accepted into an episode) are deferred — see §7.
+**Phase A** covers the `ask_user` pause → form → resume loop for any flow that
+interrupts. **Phase B (flow proposals)** lets the agent suggest one of the user's
+flows via a `propose_flow_<api_name>` tool call, which renders an inline proposal
+card; accepting it starts that flow as an episode (which may itself pause into a
+form). Both are now implemented.
 
 ## 2. Goals & Non-Goals
 
@@ -32,9 +34,10 @@ flow that interrupts. **Flow proposals** (the LLM suggesting a flow via a
 - [ ] Resume the paused run on submit and **stream the continuation live**; a
       second pause re-shows a form.
 - [ ] Re-show the form when the user reopens a conversation that's paused.
+- [ ] Render a proposal card for `propose_flow_<api_name>` tool calls; accepting
+      starts that flow as an episode (Phase B).
 
-**Non-Goals (Phase A)**
-- Flow proposals + the proposal card (`TD-014` Phase B).
+**Non-Goals**
 - File-upload fields (depends on attachments, `TD-012`).
 - Cancelling a paused episode from the UI (`TD-014` follow-up).
 
@@ -51,6 +54,13 @@ flow that interrupts. **Flow proposals** (the LLM suggesting a flow via a
 
 **Reopen a paused conversation**
 - Opening a conversation that's `awaiting_user` re-renders its pending form.
+
+**Accept a flow proposal (Phase B)**
+1. The agent suggests a flow via a `propose_flow_<api_name>` tool call; an inline
+   proposal card renders (flow name + summary + description + optional context box).
+2. The user clicks **Run flow** (gated until the tool args finish streaming). The
+   flow starts as an episode and its run streams in — possibly pausing into a form.
+3. **Skip** dismisses the suggestion.
 
 ## 4. Acceptance Criteria
 
@@ -90,12 +100,13 @@ flow that interrupts. **Flow proposals** (the LLM suggesting a flow via a
 
 ## 7. Deferred Scope
 
-- **Flow proposals (`TD-014` Phase B):** detect `propose_flow_<api_name>` tool
-  calls, render a proposal card, and on accept start an episode (the
-  `startEpisode` plumbing already exists). Deferred pending verification of the
-  `flow_api_name` the create endpoint expects (the web app's reference is
-  ambiguous about the `propose_flow_` prefix).
-- **Episode cancel from the UI;** **file-upload fields** (`TD-012`).
+- **Episode cancel from the UI** (`TD-014` follow-up — the web app has it).
+- **File-upload fields** (`TD-012` attachments).
 - **Live-verification items** (need a running backend): that the resume SSE
   opens with `RUN_STARTED` (the stream parser expects the standard envelope),
   and how the user's form-submission turn is echoed in the resumed stream.
+
+> **Note (flow proposals):** desktop sends the matched flow's **bare `api_name`**
+> to the create endpoint (which looks up by `api_name`). The web app sends the
+> *prefixed* tool name and so appears to 404 on accept — a web-app bug to fix; see
+> `docs/web-app-parity.md` §1b.

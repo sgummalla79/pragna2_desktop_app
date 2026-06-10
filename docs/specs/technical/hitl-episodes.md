@@ -116,16 +116,28 @@ transcript; disables the composer (`disabled={Boolean(pendingInterrupt)}`) with 
   `HITL_003` start. AbortError on a raw run is a silent unwind (Stop/navigation),
   matching the chat path.
 
-## 8. Deferred / live-verification
+## 8. Phase B — flow proposals (shipped)
 
-- **Phase B — flow proposals**: detect `propose_flow_<api_name>` tool calls in
-  `ChatMessage`, render a proposal card, accept → `startEpisode`. **Blocked on**
-  confirming the `flow_api_name` the create endpoint expects: the web app's
-  `FlowProposalCard` matches `f.apiName === call.name` (bare) yet the detection
-  uses a `propose_flow_` prefix — contradictory, so resolve against the live
-  contract before wiring.
+- **Detection** (`ChatMessage`): builds a `propose_flow_<apiName> → Flow` map from
+  `useFlows`; a tool call matching a key renders `<FlowProposalCard flow call
+  busy onAccept/>` instead of a `ToolCallBadge`.
+- **`FlowProposalCard`**: shows the flow name + the call's `summary` arg + the
+  flow description + an optional extra-context box; **Run flow** is gated on
+  `call.complete` (args fully streamed); **Skip** dismisses locally.
+- **Accept → start**: `ChatSessionView` passes `onAcceptProposal(flowApiName,
+  summary, ctx)` that calls `startEpisode({ flowApiName, seedSummary, seedUserInput })`.
+  Crucially it sends the **matched flow's bare `apiName`** — NOT the prefixed tool
+  name — because the create endpoint resolves by `api_name`
+  (`get_by_user_and_api_name`). (The web app sends the prefixed name and so
+  appears to 404; see `docs/web-app-parity.md` §1b. This is a deliberate
+  correctness deviation.)
+
+## 9. Deferred / live-verification
+
 - **Runtime unknowns** (need a backend): the resume SSE must open with
   `RUN_STARTED` (else relax `verifyEvents`), and how the form-submission user
   turn is echoed in the resumed stream (the post-run message-log invalidation is
   the safety net).
-- **File-upload fields** (`TD-012`); **episode cancel** from the UI.
+- **File-upload fields** (`TD-012`); **episode cancel** from the UI;
+  historical proposal-card rehydration on reload (tool-call badges aren't
+  rehydrated — `TD-018`).

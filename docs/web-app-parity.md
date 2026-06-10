@@ -86,13 +86,37 @@ See: `docs/specs/technical/hitl-episodes.md`.
 
 ---
 
+## 1b. ⭐ Flow proposals send the correct `api_name` (web-app bug fixed)
+
+Flow proposals are now implemented on desktop (a `propose_flow_<api_name>` tool
+call renders a `FlowProposalCard`; accept starts an episode). In porting it, a
+**latent web-app bug** surfaced:
+
+- The propose-flow **tool name** is `propose_flow_<api_name>` (prefix is
+  load-bearing). The backend create endpoint
+  (`create_episode.py` → `get_by_user_and_api_name(user_id, flow_api_name)`)
+  looks the flow up by the **bare `api_name`**.
+- The **web app** passes `call.name` (the *prefixed* tool name) straight through
+  as `flow_api_name` (`FlowProposalCard` → `EpisodeService.create` →
+  `EpisodeRepository.create`, no strip anywhere). That value can't match a flow's
+  bare `api_name`, so the create lookup should 404 — i.e. accepting a proposal
+  appears broken in the web app.
+- **Desktop** detects the call by matching it to a known flow and then sends that
+  **matched flow's bare `apiName`** to `startEpisode` — correct by construction,
+  no string-slicing.
+
+**Action for parity:** fix the web app to send the bare `api_name` (strip the
+`propose_flow_` prefix or map back to the flow). Until then, desktop is the
+correct reference for this path.
+
+---
+
 ## 2. ❌ Functional gaps — web app has it, desktop does not yet (NOT at parity)
 
 These are genuine functional differences to close for full parity.
 
 | Capability | Web app | Desktop | Tracking |
 |---|---|---|---|
-| **Flow proposals** | LLM emits a `propose_flow_<api_name>` tool call → `FlowProposalCard` → accept starts an episode | **Not implemented.** `startEpisode` plumbing exists; detection + card do not. Blocked on confirming the `flow_api_name` the create endpoint expects (web-app reference is contradictory re. the `propose_flow_` prefix) | `TD-014` Phase B |
 | **Cancel a paused episode** | `EpisodeRepository.cancel` + `useCancelEpisode` + a Cancel button on the form card (status → `cancelled`) | **Not implemented.** A user must complete the form (or navigate away); no in-UI cancel | `TD-014` (deferred note) |
 | **`file` ask_user field** | Uploads via the attachments system, stores the `attachment_id` as the field value | **Unsupported** — renders a "not supported yet" hint; a *required* file field blocks submit | `TD-012` (attachments) |
 | **Attachments + PDF, message actions (edit/branch/regenerate/continue), usage & cost, KaTeX/diagrams** | Present | Deferred (pre-existing, from the chat port) | `TD-012`, `TD-015`, `TD-016`, `TD-019` |

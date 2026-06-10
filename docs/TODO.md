@@ -21,7 +21,7 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 | [TD-006](#td-006--chat-action-preferences-have-no-consumer-yet) | Chat-action preferences have no consumer yet | Configuration | P3 | open |
 | [TD-012](#td-012--chat-attachments--pdf-viewer) | Chat attachments + PDF viewer | Chat | P2 | open |
 | [TD-013](#td-013--chat-slash-commands--flow-dispatch) | Chat slash commands + flow dispatch | Chat | P3 | done |
-| [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals) | Chat HITL episodes (ask_user forms + flow proposals) | Chat | P2 | Phase A done; Phase B open |
+| [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals) | Chat HITL episodes (ask_user forms + flow proposals) | Chat | P2 | done |
 | [TD-015](#td-015--chat-message-actions-edit--branch--regenerate--continue) | Chat message actions (edit / branch / regenerate / continue) | Chat | P3 | open |
 | [TD-016](#td-016--chat-conversation-usage--cost-panel) | Chat conversation usage + cost panel | Chat | P3 | open |
 | [TD-017](#td-017--evaluate-streamdown-transitive-weight) | Evaluate Streamdown transitive weight | Chat | P3 | open |
@@ -262,7 +262,7 @@ Flows, then in chat type `/<name> …` and confirm the popover + flow dispatch.
 
 ## TD-014 — Chat HITL episodes (ask_user forms + flow proposals)
 
-**Area:** Chat · **Priority:** P2 · **Status:** Phase A done (2026-06-09); Phase B open
+**Area:** Chat · **Priority:** P2 · **Status:** done (2026-06-09) — Phase A + Phase B
 
 **What:** When a flow run calls `ask_user` it pauses (`awaiting_user`); the UI
 renders an interactive form and resumes via
@@ -282,12 +282,14 @@ construction). `useChatSession` gains `on_interrupt` detection +
 unsupported pending TD-012). Wired into `ChatSessionView`. Errors `HITL_001..003`.
 Specs: `docs/specs/{features,technical}/hitl-episodes.md`.
 
-**Phase B — open (flow proposals):** detect `propose_flow_<api_name>` tool calls
-in `ChatMessage`, render a proposal card, accept → `startEpisode` (plumbing
-already exists). **Blocked on** confirming the `flow_api_name` the create endpoint
-expects — the web-app reference is contradictory about the `propose_flow_` prefix
-(`FlowProposalCard` matches `f.apiName === call.name` (bare) but detection uses the
-prefix). Resolve against the live contract before wiring.
+**Phase B — shipped (flow proposals):** `ChatMessage` maps
+`propose_flow_<apiName>` tool calls to the matching flow and renders
+`FlowProposalCard` (summary + description + extra-context box; Run gated on args
+complete); accept → `startEpisode` with the matched flow's **bare `apiName`**.
+Resolved the contract: the create endpoint resolves by `api_name`
+(`get_by_user_and_api_name`), so desktop sends the bare name — the web app sends
+the *prefixed* tool name and so appears to 404 (web-app bug; see
+`docs/web-app-parity.md` §1b).
 
 **Live-verify (needs a backend):** resume SSE opens with `RUN_STARTED` (else relax
 `verifyEvents`); how the form-submission user turn is echoed in the resumed stream.
@@ -448,7 +450,8 @@ surfacing vs. leaving to YAML).
 
 > **Cross-link:** the chat ↔ flows integration was unblocked by the Agent Flows
 > flow layer (`useFlows`, `FlowService`, `flow.types`).
-> [TD-013](#td-013--chat-slash-commands--flow-dispatch) (chat slash dispatch) is
-> **done**; [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals)
-> (chat HITL episodes) is **Phase A done** (ask_user pause/resume, fully native via
-> `TauriHttpAgent.runRaw`) with **Phase B** (flow proposals) the remaining half.
+> [TD-013](#td-013--chat-slash-commands--flow-dispatch) (chat slash dispatch) and
+> [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals) (chat HITL
+> episodes — ask_user pause/resume **and** flow proposals) are both **done**. The
+> chat ↔ flows integration is complete; remaining chat work is the unrelated
+> deferrals (attachments `TD-012`, message actions `TD-015`, usage `TD-016`).

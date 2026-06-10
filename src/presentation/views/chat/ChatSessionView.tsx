@@ -8,6 +8,7 @@ import {
   useSetThinkingEnabled,
 } from '@/presentation/hooks/conversations/useConversationMutations';
 import { usePragnaSlashFlows } from '@/presentation/hooks/flows/usePragnaSlashFlows';
+import { useFlows } from '@/presentation/hooks/flows/useFlows';
 import { logger } from '@/infrastructure/logging/logger';
 import type {
   Conversation,
@@ -118,7 +119,11 @@ function ChatConversation({
     streamingModelByMessageId,
     pendingInterrupt,
     submitInterrupt,
+    startEpisode,
   } = useChatSession({ threadId: conversationId, initialMessages, slashFlowNames });
+
+  // Flows for detecting `propose_flow_*` tool calls → proposal cards.
+  const { data: proposalFlows } = useFlows();
 
   const [draft, setDraft] = useState('');
 
@@ -184,6 +189,15 @@ function ChatConversation({
                 streamingModelByMessageId.get(m.id) ??
                 persistedModelById.get(m.id) ??
                 activeModelId
+              }
+              proposalFlows={proposalFlows}
+              proposalBusy={status === 'running'}
+              onAcceptProposal={(flowApiName, summary, additionalContext) =>
+                startEpisode({
+                  flowApiName,
+                  seedSummary: summary || null,
+                  seedUserInput: additionalContext || null,
+                })
               }
             />
           ))}
