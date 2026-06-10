@@ -7,11 +7,14 @@
  * subset. Each is stored as a frozen snapshot of the server's identity
  * (`sourceServerId` + `url` + `displayName`; never the secret).
  *
- * Ported from the web app's ConnectorPanel. The inline "register a new
- * connector" form (web-app RegisterConnectorForm) is omitted from this port —
- * the add dialog picks one of the user's already-registered connectors;
- * new ones are created under Settings → Connectors. The per-connector tool
- * selection (`selectedTools`) is preserved and round-trips through the store.
+ * Ported from the web app's ConnectorPanel. The add dialog picks one of the
+ * user's already-registered connectors OR registers a NEW one inline (without
+ * leaving the editor): the web app uses a single inline RegisterConnectorForm,
+ * while the desktop reuses its richer `AddConnectorWizard` (gallery → details →
+ * tools/OAuth) — the same register flow as Settings → Connectors — so there is
+ * one connector-create path across the app. On successful registration the new
+ * connector is attached to the node. The per-connector tool selection
+ * (`selectedTools`) is preserved and round-trips through the store.
  *
  * Edits write to the Zustand store only; nothing persists until Save.
  */
@@ -29,9 +32,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { AddConnectorWizard } from '@/presentation/views/settings/ConnectorsView/AddConnectorWizard';
 import { useMcpConnectors } from '@/presentation/hooks/mcp-connectors/useMcpConnectors';
 import { useTools } from '@/presentation/hooks/tools/useTools';
-import type { McpConnector } from '@/domain/types/mcp.types';
+import type { McpConnector, RegisteredMcpConnector } from '@/domain/types/mcp.types';
 import type { Tool } from '@/domain/types/tool.types';
 import { type ConnectorNodeData, type EditorConnector, NODE_TYPE_CONNECTOR } from './editorTypes';
 import { useFlowEditorStore } from './useFlowEditorStore';
@@ -52,6 +56,7 @@ export function ConnectorPanel() {
   const { data: allTools = [] } = useTools();
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [registerOpen, setRegisterOpen] = useState(false);
 
   const data = node?.data as ConnectorNodeData | undefined;
   const connectors = data?.connectors ?? [];
@@ -76,6 +81,16 @@ export function ConnectorPanel() {
       displayName: connector.displayName,
     });
     setAddOpen(false);
+  }
+
+  // A freshly-registered connector (via the wizard) is attached to the node
+  // immediately; the wizard stays open for tool-enabling / OAuth.
+  function onRegistered(result: RegisteredMcpConnector) {
+    appendConnector({
+      sourceServerId: result.id,
+      url: urlOf(result.config),
+      displayName: result.displayName,
+    });
   }
 
   function removeConnector(serverId: string) {
@@ -156,14 +171,14 @@ export function ConnectorPanel() {
         </div>
       </aside>
 
-      {/* Add-connector modal — pick one of your registered connectors. Create
-          new ones under Settings → Connectors. */}
+      {/* Add-connector modal — pick one of your registered connectors OR
+          register a new one inline (opens the shared AddConnectorWizard). */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
             <DialogTitle>Add MCP connector</DialogTitle>
             <DialogDescription>
-              Pick one of your registered connectors. Create new ones under Settings → Connectors.
+              Pick one of your registered connectors, or register a new one.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -172,7 +187,7 @@ export function ConnectorPanel() {
               <p className="text-[12px] text-muted-foreground">Loading…</p>
             ) : addable.length === 0 ? (
               <p className="text-[12px] text-muted-foreground">
-                No connectors to add. Register one under Settings → Connectors.
+                No connectors to add. Register a new one below.
               </p>
             ) : (
               <ul className="space-y-1.5">
@@ -198,8 +213,30 @@ export function ConnectorPanel() {
               </ul>
             )}
           </div>
+          <DialogFooter className="sm:justify-start">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // Hand off to the full register flow; it reports back via
+                // onRegistered and attaches the new connector to this node.
+                setAddOpen(false);
+                setRegisterOpen(true);
+              }}
+            >
+              <Plus size={14} aria-hidden="true" />
+              Register a new connector
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Inline register — reuses the same wizard as Settings → Connectors. */}
+      <AddConnectorWizard
+        open={registerOpen}
+        onOpenChange={setRegisterOpen}
+        onRegistered={onRegistered}
+      />
 
       <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
         <DialogContent className="sm:max-w-[440px]">

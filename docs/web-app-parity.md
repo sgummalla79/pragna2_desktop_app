@@ -168,6 +168,8 @@ The event-parsing + state machinery (`transformHttpEventStream`, `transformChunk
 | **Usage chip layout (`TD-016`)** | Chip `absolute right-2.5`, fades on hover so an absolutely-positioned kebab takes the slot | Chip `absolute` inside a `relative` trailing wrapper, fades on `group-hover`/`group-focus-within` so the desktop's **inline** action row takes the slot | Desktop sidebar rows reveal actions inline (no kebab); same "chip ↔ actions share the trailing slot, no layout shift" behaviour |
 | **Usage 404 guard location (`TD-016`)** | Zero-state mapped in the `useConversationUsage` **hook** | Zero-state mapped in the **repository** `getUsage` (matches the desktop's `get`→`null` / `getMessages`→`[]` convention) | Same outcome (a 404 row shows no cost, never an error); guard lives one layer lower |
 | **Usage staleTime (`TD-016`)** | Inline `staleTime: 60_000` | `USAGE_STALE_MS` constant (`constants/chat.ts`) | Same 60s; externalised per the no-hardcoding rule |
+| **Connector inline-register (`TD-021`)** | A single inline `RegisterConnectorForm` (wraps `ConnectorDetailsForm`) inside the ConnectorPanel's add modal | The add dialog's "Register a new connector" opens the shared `AddConnectorWizard` (gallery → details → tools/OAuth) — the **same** create flow as Settings → Connectors — with a new `onRegistered` callback that attaches the result to the node | Both register a connector without leaving the editor; desktop reuses its richer wizard so there's one connector-create path app-wide (no second divergent form). Functionally equivalent |
+| **Dispatch "blocked" note styling (`TD-021`)** | amber hard-coded note (`amber-300/50/900`) | theme-token note (`border-border bg-muted/50 text-muted-foreground` + `Info` icon) | UI only, per the theme-tokens rule; same copy/behaviour |
 | **Slash popover, form fields, cards** | web-app styling | theme tokens (tweakcn) + shadcn primitives | UI only, per the standing theme rule |
 
 ---
@@ -181,6 +183,11 @@ The event-parsing + state machinery (`transformHttpEventStream`, `transformChunk
 - **Agent Flows editor core**: `buildEditorGraph` / `graphToYaml` / the zustand
   editor store / connection rules — ported faithfully; YAML stays the source of
   truth.
+- **Flow editor advanced sub-features** (`TD-021`): the EdgePanel **dynamic
+  fan-out** editor (toggle + items-slot/item-slot dropdowns + the
+  source/target validity gates) and the NodePanel **inputs/outputs** context
+  slots are ported field-for-field; the only deviation is the connector
+  inline-register UI host (§4).
 - **HITL form validation logic** (`validators.ts`): ported field-for-field.
 - **Conversation usage + cost** (`TD-016`): same `GET …/usage` contract,
   `ConversationUsage`/`UsageRecord` types, snake→camel mapper (cost kept as a

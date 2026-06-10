@@ -28,7 +28,7 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 | [TD-018](#td-018--historical-tool-call-badges-not-rehydrated) | Historical tool-call badges not rehydrated | Chat | P3 | ✅ done |
 | [TD-019](#td-019--chat-markdown-katex-math--sketchon-diagrams) | Chat markdown: KaTeX math + sketchon diagrams | Chat | P3 | ✅ done |
 | [TD-020](#td-020--agent-flows-phase-2-interactive-editor) | Agent Flows Phase 2: interactive editor | Flows | P2 | ✅ done |
-| [TD-021](#td-021--flow-editor-advanced-sub-features) | Flow editor: advanced sub-features | Flows | P3 | ⬜ open |
+| [TD-021](#td-021--flow-editor-advanced-sub-features) | Flow editor: advanced sub-features | Flows | P3 | ✅ done (parity) |
 
 ---
 
@@ -479,24 +479,39 @@ advanced sub-feature UIs are split out to [TD-021](#td-021--flow-editor-advanced
 
 ## TD-021 — Flow editor: advanced sub-features
 
-**Area:** Flows · **Priority:** P3 · **Status:** open
+**Area:** Flows · **Priority:** P3 · **Status:** ✅ done for parity (2026-06-10);
+non-parity items (reducers UI, editable YAML view) intentionally deferred.
 
-**What:** The interactive editor (TD-020) omits the editing **UI** for the most
-advanced sub-features, though their data round-trips losslessly through
+**Resolved:** the two parity gaps shipped — **dynamic-dispatch fan-out** editing in
+`EdgePanel` (a "Send per item" toggle + items-slot/item-slot dropdowns, gated by the
+same source/target rules as the web app, written all-or-none via `updateEdgeData`)
+and **connector inline-register** in `ConnectorPanel` (an add-dialog "Register a new
+connector" button opens the shared `AddConnectorWizard`, whose new `onRegistered`
+callback attaches the result to the node). Context-slot **inputs/outputs** editing
+was already present in `NodePanel`. See `agent-flows.md` (feature + technical) and
+`docs/web-app-parity.md` (connector-register UI deviation). **Live-verify** on a
+`pnpm tauri dev` + backend pass.
+
+**What (original):** The interactive editor (TD-020) omitted the editing **UI** for
+the most advanced sub-features, though their data round-trips losslessly through
 `buildEditorGraph`/`graphToYaml`/the store. **Classified against the web app
-(verified 2026-06-10)** — items 1–3 are genuine parity gaps (the web app has the
-editing UI; we don't), the rest are not:
+(verified 2026-06-10)** — items 1–3 were assessed as genuine parity gaps (the web
+app has the editing UI; we don't), the rest are not:
 
 **Parity gaps — web app HAS the editor UI, desktop must build to match:**
 - **Dynamic-dispatch fan-out** (#35: `dispatch_mode`/`items_slot`/`item_slot`) —
   web app `EdgePanel.tsx` has a "Send per item" toggle + two slot dropdowns; desktop
-  shows only a read-only "per-item" edge chip. **Gap.**
-- **Context slots — inputs/outputs** (#26) — web app `NodePanel.tsx` has a "Context
-  variables (advanced)" section with two `ChipInput`s; desktop carries the data with
-  minimal/no UI. **Gap.**
+  `EdgePanel` shows only the routing-condition select (the fields round-trip via the
+  store but have no editor). **Gap.**
 - **Connector inline-register** — web app `ConnectorPanel.tsx` opens a modal to
   either pick an existing MCP connector OR register a new one inline; desktop only
   picks from already-connected connectors (`useMcpConnectors`). **Gap.**
+
+**Already at parity (verified 2026-06-10) — no work needed:**
+- **Context slots — inputs/outputs** (#26) — the desktop `NodePanel.tsx` **already**
+  has the "Context variables (advanced)" section with the two `ChipInput`s wired to
+  `updateNode(nodeId, { inputs/outputs })`, identical to the web app. Not a gap (the
+  earlier draft of this entry was wrong).
 
 **NOT parity (web app does not have these) — only justified as documented
 deviations, otherwise drop:**
@@ -509,10 +524,10 @@ deviations, otherwise drop:**
   be a **deliberate enhancement (deviation)**, to be recorded in
   `docs/web-app-parity.md` if built — not a sync item.
 
-**Where:** `src/presentation/views/settings/FlowDetailView/{EdgePanel,NodePanel,ConnectorPanel,FlowEditor}.tsx`.
+**Where:** `src/presentation/views/settings/FlowDetailView/{EdgePanel,ConnectorPanel}.tsx`.
 
-**Done when:** the three parity-gap sub-features (fan-out, inputs/outputs slots,
-connector inline-register) are editable in the UI to match the web app; reducers +
+**Done when:** the two parity-gap sub-features (dispatch fan-out, connector
+inline-register) are editable in the UI to match the web app; reducers +
 editable-YAML stay deferred unless explicitly chosen as documented enhancements.
 
 ---

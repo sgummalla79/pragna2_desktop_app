@@ -35,10 +35,14 @@ Shipped in two phases on one branch:
       persist by flow id; node positions + all fields round-trip through the YAML.
 
 **Non-Goals (deferred — see §6)**
-- UI for the most advanced sub-features: dynamic-dispatch fan-out (`dispatch_mode`/`items_slot`/
-  `item_slot`) and context slots (inputs/outputs/reducers) — their **data still round-trips**, only
-  the editing UI is omitted.
+- A standalone **editable YAML / source** view (the web app's is read-only too — not a parity
+  item), and a UI for node **reducers** (web app has no UI for these either; data round-trips).
 - Running a flow / slash dispatch / HITL forms in chat (deferred — `TD-013`, `TD-014`).
+
+> **Now shipped (`TD-021`, 2026-06-10):** dynamic-dispatch fan-out editing
+> (`dispatch_mode`/`items_slot`/`item_slot`) in the EdgePanel and connector
+> **inline-register** in the ConnectorPanel. Context-slot inputs/outputs editing
+> was already present. See §3/§6.
 
 ## 3. User Flows
 
@@ -78,7 +82,15 @@ Shipped in two phases on one branch:
 
 ## 6. Deferred Scope
 
-Editing UI for the most advanced sub-features remains deferred (data round-trips regardless):
-dynamic-dispatch fan-out and context slots (`TD-021`); a standalone editable YAML/source view; and
-the connector inline-register form (the picker selects from already-connected MCP connectors). Chat
-coupling — **slash dispatch** (`TD-013`) and **HITL episodes** (`TD-014`) — reuses this flow layer.
+**Shipped (`TD-021`, 2026-06-10):** dynamic-dispatch fan-out editing (a "Send per item" toggle +
+items-slot / item-slot dropdowns in the EdgePanel, gated by the same source-must-be-agent /
+not-already-branching / concrete-target rules as the web app) and connector **inline-register**
+(the add-connector dialog now offers "Register a new connector", which opens the shared
+`AddConnectorWizard` and attaches the result to the node). Context-slot **inputs/outputs** editing
+was already present in the NodePanel.
+
+**Still deferred (not parity gaps — the web app has no UI for these either):** a standalone editable
+YAML/source view (the web app's YAML view is read-only) and a node **reducers** editor; both only
+round-trip through YAML. Chat coupling — **slash dispatch** (`TD-013`) and **HITL episodes**
+(`TD-014`) — reuses this flow layer. See `docs/web-app-parity.md` for the connector-register UI
+deviation (desktop reuses its wizard vs. the web app's inline form).

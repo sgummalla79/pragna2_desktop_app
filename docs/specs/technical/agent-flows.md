@@ -66,14 +66,21 @@ primitives. Files:
 - **Rendering:** `canvasNodes.tsx` (`FLOW_NODE_TYPES`: agent/decision/connector/knowledge/boundary,
   off the `*NodeData` shapes; decision exposes one `port:<condition>` source per row + `else`),
   `ConditionEdge.tsx` (`FLOW_EDGE_TYPES.condition`: selectable bezier, condition label/color, a
-  read-only per-item chip when dynamic dispatch is set).
+  per-item chip when dynamic dispatch is set — now editable from the EdgePanel, see below).
 - **Panels:** `PalettePanel` (add nodes), `NodePanel` (agent fields; model select from `useModels`
   filtered `availableForFlows && enabled && !archived`, storing `model.modelName`; emits via the
   reused `AgentsView/ChipInput`; the **tools** chip passes `suggestions` from `useTools()` enabled
   `api_name`s → autocomplete dropdown + an "not in your tools" flag on unknown chips, free-form
   still allowed — TD-010), `DecisionPanel` (conditions), `ConnectorPanel`
-  (`useMcpConnectors` + per-tool subset via `useTools`), `KnowledgePanel` (`useKnowledgeLibraries`),
-  `EdgePanel` (condition select + delete).
+  (`useMcpConnectors` + per-tool subset via `useTools`; the add dialog also offers **inline
+  register** — "Register a new connector" opens the shared `ConnectorsView/AddConnectorWizard`,
+  whose new `onRegistered(connector)` callback fires on successful create and the panel attaches it
+  to the node — `TD-021`), `KnowledgePanel` (`useKnowledgeLibraries`),
+  `EdgePanel` (condition select + **dynamic fan-out**: a "Send per item" toggle writing
+  `dispatchMode`/`itemsSlot`/`itemSlot` via `updateEdgeData` all-or-none, items-slot options =
+  source `outputs` + `SLOT_USER_QUERY`, item-slot options = target `inputs`, gated when the source
+  isn't an agent / already branches via `emits` / the target is a boundary or `__end__` — `TD-021`;
+  + delete).
 - **`FlowEditor.tsx`** — `FlowEditor({ flow })`: hydrates the store from `buildEditorGraph(
   flow.definition)` (or `newFlowGraph()` + meta from the flow when empty) on mount and `reset()`s on
   unmount; renders `ReactFlow` (`ReactFlowProvider`, `ConnectionMode.Loose`) wired to the store
@@ -108,8 +115,11 @@ log via `logger.fromError` on failure.
 
 ## 8. Deferred / known gaps (docs/TODO.md)
 
-`TD-020` (interactive editor) — **done** here. `TD-021` — editing UI for dynamic-dispatch fan-out +
-context slots (data already round-trips), an editable YAML/source view, and connector inline-register.
+`TD-020` (interactive editor) — **done** here. `TD-021` — **done** for the parity gaps:
+dynamic-dispatch fan-out editing (EdgePanel) and connector inline-register (ConnectorPanel reusing
+`AddConnectorWizard`); context-slot inputs/outputs editing was already present (NodePanel). **Still
+deferred (not parity gaps):** a standalone editable YAML/source view and a node `reducers` editor —
+the web app has no UI for either; both round-trip through YAML.
 `TD-013`/`TD-014` (chat slash dispatch + HITL episodes) are unblocked by this flow layer. Unit tests
 for the new repo/mappers/hooks/store/serialization fold into `TD-003`. Live end-to-end requires the
 running backend + a valid Auth0 token.

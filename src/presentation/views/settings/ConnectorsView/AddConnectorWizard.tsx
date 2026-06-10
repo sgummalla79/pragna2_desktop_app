@@ -46,6 +46,13 @@ type Step = 'gallery' | 'details' | 'tools';
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * Called once, as soon as a connector is successfully registered (before the
+   * tools/OAuth step). Lets a caller (e.g. the flow editor's ConnectorPanel)
+   * attach the new connector to a node inline while the wizard stays open for
+   * tool-enabling. Omitted on the standalone Settings → Connectors usage.
+   */
+  onRegistered?: (connector: RegisteredMcpConnector) => void;
 }
 
 /** Brand icon for a preset tile: the service favicon, monogram on load error. */
@@ -82,7 +89,7 @@ function PresetIcon({ preset }: { preset: ConnectorPreset }) {
 }
 
 /** Three-step modal that creates a connector and opts its tools in. */
-export function AddConnectorWizard({ open, onOpenChange }: Props) {
+export function AddConnectorWizard({ open, onOpenChange, onRegistered }: Props) {
   const [step, setStep] = useState<Step>('gallery');
   const [preset, setPreset] = useState<ConnectorPreset | null>(null);
   const [created, setCreated] = useState<RegisteredMcpConnector | null>(null);
@@ -148,6 +155,9 @@ export function AddConnectorWizard({ open, onOpenChange }: Props) {
       });
       setCreated(result);
       setDetailsDirty(false);
+      // Let an inline caller (flow editor) attach the new connector immediately;
+      // the wizard stays open for tool-enabling / OAuth.
+      onRegistered?.(result);
       setStep('tools');
     } catch (err) {
       const detail =
