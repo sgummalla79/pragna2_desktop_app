@@ -31,6 +31,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EntityIcon } from '@/presentation/components/icons/EntityIcon';
 import { ERRORS } from '@/constants/errors';
+import { detailOr } from '@/lib/httpError';
 import {
   useArchiveMcpConnector,
   useRefreshMcpConnectorTools,
@@ -44,13 +45,6 @@ import type { McpConnector } from '@/domain/types/mcp.types';
 
 interface Props {
   connector: McpConnector;
-}
-
-/** Reads `err.response.data.detail` if present, else the catalog fallback. */
-function detailOr(err: unknown, fallback: string): string {
-  const detail = (err as { response?: { data?: { detail?: string } } })
-    ?.response?.data?.detail;
-  return String(detail ?? fallback);
 }
 
 /** Expandable card for a single connector with inline manage actions. */

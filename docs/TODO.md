@@ -3,32 +3,32 @@
 Single source of truth for deferred work. Code must **not** carry free-floating
 `TODO` notes — instead reference an ID here (e.g. `// see docs/TODO.md TD-001`).
 
-Status: `open` · `in-progress` · `done` · `wontfix`
+Status: ⬜ `open` · 🟡 `in-progress` · ✅ `done` · `wontfix`
 Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have)
 
 | ID | Title | Area | Priority | Status |
 |----|-------|------|----------|--------|
-| [TD-001](#td-001--desktop-oauth-connector-callback-round-trip) | Desktop OAuth connector callback round-trip | Connectors | P1 | open |
-| [TD-002](#td-002--feature--technical-spec-docs-for-the-three-settings-pages) | Spec docs for Configuration / Connectors / Knowledge | Docs | P2 | done |
-| [TD-007](#td-007--backfill-spec-docs-for-login--providers) | Backfill spec docs for Login + Providers | Docs | P2 | done |
-| [TD-008](#td-008--providers-view-swallows-errors) | Providers view swallows several errors | Providers | P3 | open |
-| [TD-009](#td-009--auth-session-does-not-persist-across-restart) | Auth session does not persist across restart | Login | P3 | open |
-| [TD-010](#td-010--agent-tool-entry-autocomplete-against-apitools) | Agent tool entry: autocomplete against /api/tools | Agents | P3 | open |
-| [TD-011](#td-011--model--temperature-selection-on-standalone-agents) | Model / temperature selection on standalone agents | Agents | P3 | open |
-| [TD-003](#td-003--unit-tests-for-the-three-new-features) | Unit tests for the three new features | Testing | P2 | open |
-| [TD-004](#td-004--verify-multipart-knowledge-upload-against-the-live-backend) | Verify multipart Knowledge upload end-to-end | Knowledge | P2 | open |
-| [TD-005](#td-005--client-side-file-validation-for-knowledge-upload) | Client-side file validation for Knowledge upload | Knowledge | P3 | open |
-| [TD-006](#td-006--chat-action-preferences-have-no-consumer-yet) | Chat-action preferences have no consumer yet | Configuration | P3 | open |
-| [TD-012](#td-012--chat-attachments--pdf-viewer) | Chat attachments + PDF viewer | Chat | P2 | open |
-| [TD-013](#td-013--chat-slash-commands--flow-dispatch) | Chat slash commands + flow dispatch | Chat | P3 | done |
-| [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals) | Chat HITL episodes (ask_user forms + flow proposals) | Chat | P2 | done |
-| [TD-015](#td-015--chat-message-actions-edit--branch--regenerate--continue) | Chat message actions (edit / branch / regenerate / continue) | Chat | P3 | open |
-| [TD-016](#td-016--chat-conversation-usage--cost-panel) | Chat conversation usage + cost panel | Chat | P3 | open |
-| [TD-017](#td-017--evaluate-streamdown-transitive-weight) | Evaluate Streamdown transitive weight | Chat | P3 | open |
-| [TD-018](#td-018--historical-tool-call-badges-not-rehydrated) | Historical tool-call badges not rehydrated | Chat | P3 | open |
-| [TD-019](#td-019--chat-markdown-katex-math--sketchon-diagrams) | Chat markdown: KaTeX math + sketchon diagrams | Chat | P3 | open |
-| [TD-020](#td-020--agent-flows-phase-2-interactive-editor) | Agent Flows Phase 2: interactive editor | Flows | P2 | done |
-| [TD-021](#td-021--flow-editor-advanced-sub-features) | Flow editor: advanced sub-features | Flows | P3 | open |
+| [TD-001](#td-001--desktop-oauth-connector-callback-round-trip) | Desktop OAuth connector callback round-trip | Connectors | P1 | ⬜ open |
+| [TD-002](#td-002--feature--technical-spec-docs-for-the-three-settings-pages) | Spec docs for Configuration / Connectors / Knowledge | Docs | P2 | ✅ done |
+| [TD-007](#td-007--backfill-spec-docs-for-login--providers) | Backfill spec docs for Login + Providers | Docs | P2 | ✅ done |
+| [TD-008](#td-008--providers-view-swallows-errors) | Providers view swallows several errors | Providers | P3 | ✅ done |
+| [TD-009](#td-009--auth-session-does-not-persist-across-restart) | Auth session does not persist across restart | Login | P3 | ⬜ open |
+| [TD-010](#td-010--agent-tool-entry-autocomplete-against-apitools) | Agent tool entry: autocomplete against /api/tools | Agents | P3 | ✅ done |
+| [TD-011](#td-011--model--temperature-selection-on-standalone-agents) | Model / temperature selection on standalone agents | Agents | P3 | ⬜ open |
+| [TD-003](#td-003--unit-tests-for-the-three-new-features) | Unit tests for the three new features | Testing | P2 | ⬜ open |
+| [TD-004](#td-004--verify-multipart-knowledge-upload-against-the-live-backend) | Verify multipart Knowledge upload end-to-end | Knowledge | P2 | ⬜ open |
+| [TD-005](#td-005--client-side-file-validation-for-knowledge-upload) | Client-side file validation for Knowledge upload | Knowledge | P3 | ✅ done |
+| [TD-006](#td-006--chat-action-preferences-have-no-consumer-yet) | Chat-action preferences have no consumer yet | Configuration | P3 | ⬜ open |
+| [TD-012](#td-012--chat-attachments--pdf-viewer) | Chat attachments + PDF viewer | Chat | P2 | ⬜ open |
+| [TD-013](#td-013--chat-slash-commands--flow-dispatch) | Chat slash commands + flow dispatch | Chat | P3 | ✅ done |
+| [TD-014](#td-014--chat-hitl-episodes-ask_user-forms--flow-proposals) | Chat HITL episodes (ask_user forms + flow proposals) | Chat | P2 | ✅ done |
+| [TD-015](#td-015--chat-message-actions-edit--branch--regenerate--continue) | Chat message actions (edit / branch / regenerate / continue) | Chat | P3 | ⬜ open |
+| [TD-016](#td-016--chat-conversation-usage--cost-panel) | Chat conversation usage + cost panel | Chat | P3 | ⬜ open |
+| [TD-017](#td-017--evaluate-streamdown-transitive-weight) | Evaluate Streamdown transitive weight | Chat | P3 | ⬜ open |
+| [TD-018](#td-018--historical-tool-call-badges-not-rehydrated) | Historical tool-call badges not rehydrated | Chat | P3 | ✅ done |
+| [TD-019](#td-019--chat-markdown-katex-math--sketchon-diagrams) | Chat markdown: KaTeX math + sketchon diagrams | Chat | P3 | ⬜ open |
+| [TD-020](#td-020--agent-flows-phase-2-interactive-editor) | Agent Flows Phase 2: interactive editor | Flows | P2 | ✅ done |
+| [TD-021](#td-021--flow-editor-advanced-sub-features) | Flow editor: advanced sub-features | Flows | P3 | ⬜ open |
 
 ---
 
@@ -73,7 +73,7 @@ its tools appear automatically.
 
 ## TD-007 — Backfill spec docs for Login + Providers
 
-**Area:** Docs · **Priority:** P2 · **Status:** open
+**Area:** Docs · **Priority:** P2 · **Status:** done (2026-06-09)
 
 **What:** The `login` and `providers` features were merged earlier without the two
 required spec docs (only `boilerplate-setup` and the three settings pages have them).
@@ -90,7 +90,14 @@ both spec docs.
 
 ## TD-008 — Providers view swallows several errors
 
-**Area:** Providers · **Priority:** P3 · **Status:** open
+**Area:** Providers · **Priority:** P3 · **Status:** done (2026-06-09)
+
+**Resolved:** added shared `src/lib/httpError.ts` (`detailOr`/`statusOf`); connect
+now maps 409 → `PRV_002` and prefers backend `detail` (else `PRV_003`); refresh
+catches errors (`PRV_006`) and shows a diff summary ("N added · N archived · N
+restored"); the enable/disable toggle surfaces failures (`PRV_007`); model
+bulk-save catches + shows `MDL_004` while keeping the edit buffer. `ConnectorCard`
+refactored onto the shared `detailOr`.
 
 **What:** Surfaced while writing the providers spec. Unlike Connectors, the
 Providers view does not surface backend `detail`, and several failures are silent:
@@ -124,7 +131,16 @@ storage + refresh) or intentionally require sign-in each launch.
 
 ## TD-010 — Agent tool entry: autocomplete against /api/tools
 
-**Area:** Agents · **Priority:** P3 · **Status:** open
+**Area:** Agents · **Priority:** P3 · **Status:** done (2026-06-09)
+
+**Resolved:** `ChipInput` gained an optional `suggestions` prop — an autocomplete
+dropdown (↑/↓/Enter/Tab/Esc, free-form still allowed) plus an amber "not in your
+tools" flag on unknown chips. Wired in the flow editor's **`NodePanel`** agent-node
+Tools field, sourced from `useTools()` filtered to enabled `api_name`s.
+
+**Note:** the actual free-form tool chip lives in `NodePanel.tsx` (flow agent
+nodes), not `AgentFormModal.tsx` — standalone agents have no tools field. The
+emit/context-slot chip inputs pass no `suggestions` and are unchanged.
 
 **What:** In the agent editor, tools are entered as a free-form chip input of tool
 handles (matching the web app) — no validation or autocomplete against the actual
@@ -188,13 +204,14 @@ packaged macOS build and the source appears in the library.
 
 ## TD-005 — Client-side file validation for Knowledge upload
 
-**Area:** Knowledge · **Priority:** P3 · **Status:** open
+**Area:** Knowledge · **Priority:** P3 · **Status:** done (2026-06-09)
 
-**What:** The upload form relies on the `accept` filter and server-side validation;
-there is no client-side file-size guard. Large files fail only after the round-trip.
-
-**Done when:** oversized/unsupported files are rejected client-side with a clear
-message before upload (limit sourced from config, not hardcoded inline).
+**Resolved:** `LibraryDocumentsManager.handleFilePick` now runs
+`validateKnowledgeFile` (extension against the accept list + size vs
+`KNOWLEDGE_MAX_FILE_BYTES` = 25 MB) on both the picker and drag-drop paths;
+a rejected file isn't accepted and shows an inline message. The size cap is a
+named constant with a comment (the API exposes no limit; the backend remains the
+real gate at 413/415).
 
 ---
 
@@ -360,18 +377,16 @@ choice.
 
 ## TD-018 — Historical tool-call badges not rehydrated
 
-**Area:** Chat · **Priority:** P3 · **Status:** open
+**Area:** Chat · **Priority:** P3 · **Status:** done (2026-06-09)
 
-**What:** On resume, `persistedToAGUIMessage` seeds assistant turns with content +
-reasoning only; the persisted `tool_calls` array is not re-rendered as
-`ToolCallBadge`s (live tool calls during the active run do render). So a reopened
-conversation shows the assistant prose but not the tool calls it made.
+**Resolved:** `persistedToAGUIMessage` now carries `tool_calls` into the AG-UI
+seed (as `{ id, type, function:{ name, arguments } }`), and `toChatMessage` falls
+back to `aguiToolCallToChatToolCall(tc)` when the live accumulator ref has no
+entry — so a reopened conversation renders its historical tool-call badges
+(name + args). Live turns are unaffected (the ref still wins).
 
-**Where:** `src/presentation/views/chat/ChatSessionView.tsx`
-(`persistedToAGUIMessage`) + `useChatSession`'s `toChatMessage` / tool-call ref
-seeding.
-
-**Done when:** reopened conversations render their historical tool calls.
+**Minor follow-up:** the persisted tool **result** isn't on the AG-UI tool-call
+shape, so historical badges show name + args but not the result string.
 
 ---
 

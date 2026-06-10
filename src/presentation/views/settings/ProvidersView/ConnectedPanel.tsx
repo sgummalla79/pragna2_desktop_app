@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ConfirmButton } from '@/components/ui/confirm-button';
 import { useBulkUpdateModels } from '@/presentation/hooks/models/useModels';
+import { ERRORS } from '@/constants/errors';
+import { detailOr } from '@/lib/httpError';
 import { ModelGrid } from './ModelGrid';
 import type { Model, UpdateModelPayload } from '@/domain/types/model.types';
 
@@ -21,6 +23,7 @@ interface ConnectedPanelProps {
 export function ConnectedPanel({ models, error, onDirtyChange }: ConnectedPanelProps) {
   const [pendingChanges, setPendingChanges] = useState<Record<string, UpdateModelPayload>>({});
   const [resetKey, setResetKey] = useState(0);
+  const [saveError, setSaveError] = useState('');
 
   const bulkUpdate = useBulkUpdateModels();
 
@@ -61,15 +64,22 @@ export function ConnectedPanel({ models, error, onDirtyChange }: ConnectedPanelP
 
   async function handleSave() {
     if (!isDirty || saving) return;
+    setSaveError('');
     const updates = Object.entries(pendingChanges).map(([id, payload]) => ({ id, ...payload }));
-    await bulkUpdate.mutateAsync(updates);
-    setPendingChanges({});
-    setResetKey((v) => v + 1);
+    try {
+      await bulkUpdate.mutateAsync(updates);
+      setPendingChanges({});
+      setResetKey((v) => v + 1);
+    } catch (err) {
+      // Keep the buffer so the user can retry, but surface the failure.
+      setSaveError(detailOr(err, ERRORS.MDL_004.message));
+    }
   }
 
   return (
     <div className="flex flex-col gap-5 flex-1 min-h-0">
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
 
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-0.5">

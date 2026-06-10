@@ -28,11 +28,14 @@ export const ERRORS = {
   PRV_003: { code: 'PRV_003', message: 'Failed to add provider. Check your API key and try again.', severity: 'error' },
   PRV_004: { code: 'PRV_004', message: 'Failed to remove provider.', severity: 'error' },
   PRV_005: { code: 'PRV_005', message: 'Failed to load provider catalogue.', severity: 'error' },
+  PRV_006: { code: 'PRV_006', message: 'Failed to refresh models.', severity: 'error' },
+  PRV_007: { code: 'PRV_007', message: 'Failed to update the provider.', severity: 'error' },
 
   // ── Models ────────────────────────────────────────────────────────────────
   MDL_001: { code: 'MDL_001', message: 'Failed to load models.', severity: 'error' },
   MDL_002: { code: 'MDL_002', message: 'Failed to register model.', severity: 'error' },
   MDL_003: { code: 'MDL_003', message: 'Failed to remove model.', severity: 'error' },
+  MDL_004: { code: 'MDL_004', message: 'Failed to save model changes. Please try again.', severity: 'error' },
 
   // ── Configuration (embedding key) ───────────────────────────────────────────
   CFG_001: { code: 'CFG_001', message: 'Failed to load your embedding key status.', severity: 'error' },

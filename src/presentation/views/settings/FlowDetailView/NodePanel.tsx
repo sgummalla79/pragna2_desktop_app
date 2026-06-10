@@ -36,6 +36,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useModels } from '@/presentation/hooks/models/useModels';
+import { useTools } from '@/presentation/hooks/tools/useTools';
 import { ChipInput } from '@/presentation/views/settings/AgentsView/ChipInput';
 import { type AgentNodeData, NODE_END, NODE_START, NODE_TYPE_AGENT } from './editorTypes';
 import { useFlowEditorStore } from './useFlowEditorStore';
@@ -49,6 +50,13 @@ export function NodePanel() {
   );
   const updateNode = useFlowEditorStore((s) => s.updateNode);
   const updateAgent = useFlowEditorStore((s) => s.updateAgent);
+
+  // Enabled tools (by api_name) power the agent-tools autocomplete (TD-010).
+  const { data: tools } = useTools();
+  const toolSuggestions = useMemo(
+    () => (tools ?? []).filter((t) => t.enabled).map((t) => t.apiName),
+    [tools],
+  );
   const deleteNode = useFlowEditorStore((s) => s.deleteNode);
   const selectNode = useFlowEditorStore((s) => s.selectNode);
   const allNodes = useFlowEditorStore((s) => s.nodes);
@@ -220,6 +228,7 @@ export function NodePanel() {
               label="tool"
               values={agent.tools}
               onChange={(tools) => updateAgent(nodeId, { tools })}
+              suggestions={toolSuggestions}
               placeholder="Type a tool api_name (Enter to add)"
             />
           </div>

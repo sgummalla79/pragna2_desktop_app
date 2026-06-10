@@ -29,6 +29,10 @@ interface ProviderModalProps {
 
   refreshing: boolean;
   onRefresh: () => void;
+  /** Error from the last refresh, if any (rendered under the refresh action). */
+  refreshError?: string;
+  /** Success summary from the last refresh (e.g. "2 added · 1 archived"). */
+  refreshInfo?: string;
 
   modelEditsDirty: boolean;
   onModelEditsDirtyChange: (dirty: boolean) => void;
@@ -54,6 +58,8 @@ export function ProviderModal({
   onConnect,
   refreshing,
   onRefresh,
+  refreshError,
+  refreshInfo,
   modelEditsDirty,
   onModelEditsDirtyChange,
 }: ProviderModalProps) {
@@ -134,6 +140,12 @@ export function ProviderModal({
                     {refreshing ? 'Refreshing…' : 'Refresh'}
                   </Button>
                 </div>
+              )}
+              {userProvider && refreshError && (
+                <p role="alert" className="mt-1 text-xs text-destructive">{refreshError}</p>
+              )}
+              {userProvider && !refreshError && refreshInfo && (
+                <p className="mt-1 text-xs text-muted-foreground" aria-live="polite">{refreshInfo}</p>
               )}
             </div>
 

@@ -653,8 +653,11 @@ function toChatMessage(
   reasoningByMessageId?: Map<string, string>,
 ): ChatMessage {
   if (m.role === 'assistant') {
+    // Prefer the live-accumulated call (carries streamed args + result); fall
+    // back to building from the message's own tool calls so a hydrated/resumed
+    // turn still renders its historical badges (TD-018).
     const calls = m.toolCalls
-      ?.map((tc) => toolCalls.get(tc.id))
+      ?.map((tc) => toolCalls.get(tc.id) ?? aguiToolCallToChatToolCall(tc))
       .filter((tc): tc is ChatToolCall => Boolean(tc));
     const reasoning =
       reasoningByMessageId?.get(m.id) ??
@@ -680,6 +683,30 @@ function toChatMessage(
     role: 'user',
     content: typeof m.content === 'string' ? m.content : '',
   };
+}
+
+/**
+ * Build a {@link ChatToolCall} from an AG-UI message tool call (the shape
+ * `{ id, function: { name, arguments } }`). Used to rehydrate historical
+ * tool-call badges on resume, when the live accumulator ref is empty. The
+ * persisted result isn't carried on the AG-UI shape, so it's omitted.
+ */
+function aguiToolCallToChatToolCall(tc: unknown): ChatToolCall | null {
+  const call = tc as {
+    id?: string;
+    function?: { name?: string; arguments?: string };
+  };
+  const id = call?.id;
+  const name = call?.function?.name;
+  if (!id || !name) return null;
+  const argsBuffer = call.function?.arguments ?? '';
+  let args: Record<string, unknown> | undefined;
+  try {
+    args = argsBuffer ? (JSON.parse(argsBuffer) as Record<string, unknown>) : undefined;
+  } catch {
+    args = undefined; // malformed JSON — show the raw buffer, not a crash.
+  }
+  return { id, name, argsBuffer, args, complete: true };
 }
 
 function randomId(): string {

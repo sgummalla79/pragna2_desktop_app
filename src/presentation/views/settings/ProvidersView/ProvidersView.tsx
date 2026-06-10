@@ -8,6 +8,8 @@ import {
 } from '@/presentation/hooks/providers/useProviders';
 import { serializeCredentials } from '@/constants/providers';
 import { ERRORS } from '@/constants/errors';
+import { detailOr, statusOf } from '@/lib/httpError';
+import type { RefreshModelsResult } from '@/domain/types/model.types';
 import { EntityIcon } from '@/presentation/components/icons/EntityIcon';
 import { ProviderTile } from './ProviderTile';
 import { ProviderModal } from './ProviderModal';
@@ -34,6 +36,9 @@ export default function ProvidersView() {
   const [disconnectError, setDisconnectError] = useState('');
   const [disconnecting, setDisconnecting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState('');
+  const [refreshInfo, setRefreshInfo] = useState('');
+  const [toggleError, setToggleError] = useState('');
   const [modelEditsDirty, setModelEditsDirty] = useState(false);
 
   const selected = selectedId ? (providers.find((p) => p.id === selectedId) ?? null) : null;
@@ -43,6 +48,8 @@ export default function ProvidersView() {
     setCredentialValues({});
     setConnectError('');
     setDisconnectError('');
+    setRefreshError('');
+    setRefreshInfo('');
   }
 
   function closeModal() {
@@ -50,6 +57,8 @@ export default function ProvidersView() {
     setCredentialValues({});
     setConnectError('');
     setDisconnectError('');
+    setRefreshError('');
+    setRefreshInfo('');
   }
 
   async function handleConnect() {
@@ -60,8 +69,14 @@ export default function ProvidersView() {
       const apiKey = serializeCredentials(selected.credentialKind, credentialValues);
       await registerProvider.mutateAsync({ llmProviderId: selected.id, apiKey });
       setCredentialValues({});
-    } catch {
-      setConnectError(ERRORS.PRV_003.message);
+    } catch (err) {
+      // A 409 means the provider is already registered — use the specific code;
+      // otherwise prefer the backend's reason over the generic catalog message.
+      setConnectError(
+        statusOf(err) === 409
+          ? ERRORS.PRV_002.message
+          : detailOr(err, ERRORS.PRV_003.message),
+      );
     } finally {
       setConnecting(false);
     }
@@ -86,11 +101,24 @@ export default function ProvidersView() {
     const userProvider = selected?.userProviders[0];
     if (!userProvider) return;
     setRefreshing(true);
+    setRefreshError('');
+    setRefreshInfo('');
     try {
-      await refreshModels.mutateAsync(userProvider.id);
+      const result = await refreshModels.mutateAsync(userProvider.id);
+      setRefreshInfo(summarizeRefresh(result));
+    } catch (err) {
+      setRefreshError(detailOr(err, ERRORS.PRV_006.message));
     } finally {
       setRefreshing(false);
     }
+  }
+
+  function handleToggle(id: string, enabled: boolean) {
+    setToggleError('');
+    toggleProvider.mutate(
+      { id, enabled },
+      { onError: (err) => setToggleError(detailOr(err, ERRORS.PRV_007.message)) },
+    );
   }
 
   const activeUserProvider = selected?.userProviders[0] ?? null;
@@ -115,6 +143,10 @@ export default function ProvidersView() {
         <p role="alert" className="text-sm text-destructive">{ERRORS.PRV_005.message}</p>
       )}
 
+      {toggleError && (
+        <p role="alert" className="text-sm text-destructive">{toggleError}</p>
+      )}
+
       {!isLoading && !isError && providers.length > 0 && (
         <div className="flex flex-wrap gap-3.5">
           {providers.map((item) => {
@@ -125,7 +157,7 @@ export default function ProvidersView() {
                 llmProvider={item}
                 connected={!!up}
                 providerEnabled={up?.enabled}
-                onToggleEnabled={up ? () => toggleProvider.mutate({ id: up.id, enabled: !up.enabled }) : undefined}
+                onToggleEnabled={up ? () => handleToggle(up.id, !up.enabled) : undefined}
                 onClick={() => openModal(item.id)}
               />
             );
@@ -156,9 +188,20 @@ export default function ProvidersView() {
         onDisconnect={handleDisconnect}
         refreshing={refreshing}
         onRefresh={handleRefresh}
+        refreshError={refreshError}
+        refreshInfo={refreshInfo}
         modelEditsDirty={modelEditsDirty}
         onModelEditsDirtyChange={setModelEditsDirty}
       />
     </div>
   );
+}
+
+/** One-line summary of a model refresh ("2 added · 1 archived · 1 restored"). */
+function summarizeRefresh(result: RefreshModelsResult): string {
+  const parts: string[] = [];
+  if (result.created.length) parts.push(`${result.created.length} added`);
+  if (result.archived.length) parts.push(`${result.archived.length} archived`);
+  if (result.unarchived.length) parts.push(`${result.unarchived.length} restored`);
+  return parts.length ? parts.join(' · ') : 'No changes — models are up to date.';
 }

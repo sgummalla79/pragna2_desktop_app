@@ -29,7 +29,9 @@ import {
 /** Placeholder header title before the auto-title lands. */
 const UNTITLED = 'New chat';
 
-/** Map a persisted message to the AG-UI seed shape (content + reasoning). */
+/** Map a persisted message to the AG-UI seed shape (content + reasoning +
+ *  tool calls). Carrying `tool_calls` lets the chat surface rehydrate historical
+ *  tool-call badges on resume (TD-018). */
 function persistedToAGUIMessage(m: PersistedMessage): Message {
   const base: Record<string, unknown> = {
     id: m.id,
@@ -37,6 +39,13 @@ function persistedToAGUIMessage(m: PersistedMessage): Message {
     content: m.content,
   };
   if (m.role === 'assistant' && m.reasoning) base.reasoning = m.reasoning;
+  if (m.role === 'assistant' && m.toolCalls && m.toolCalls.length > 0) {
+    base.toolCalls = m.toolCalls.map((tc) => ({
+      id: tc.id,
+      type: 'function',
+      function: { name: tc.name, arguments: JSON.stringify(tc.args ?? {}) },
+    }));
+  }
   return base as unknown as Message;
 }
 

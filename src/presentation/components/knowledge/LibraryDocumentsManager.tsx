@@ -28,6 +28,36 @@ import {
  *  native file-picker hint only. */
 const KNOWLEDGE_FILE_ACCEPT = '.pdf,.txt,.md,.markdown,.csv,.docx,.xlsx';
 
+/** Accepted extensions, derived from the accept hint (lowercased, with dot). */
+const KNOWLEDGE_ACCEPTED_EXTENSIONS = KNOWLEDGE_FILE_ACCEPT.split(',');
+
+/** Client-side upload size pre-check. The backend enforces the real cap (413);
+ *  this only spares the user a large failed upload. Cannot be sourced from the
+ *  API (no limit is exposed), so it lives here as a named constant. */
+const KNOWLEDGE_MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
+
+/** Human-readable size in MB (one decimal). */
+function formatMb(bytes: number): string {
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * Validate a picked file's extension + size before upload. Returns an error
+ * message, or `null` when the file is acceptable. Runs for both the picker and
+ * drag-drop paths (the `accept` attribute alone doesn't gate drag-drop).
+ */
+function validateKnowledgeFile(file: File): string | null {
+  const dot = file.name.lastIndexOf('.');
+  const ext = dot >= 0 ? file.name.slice(dot).toLowerCase() : '';
+  if (!KNOWLEDGE_ACCEPTED_EXTENSIONS.includes(ext)) {
+    return `Unsupported file type ${ext ? `"${ext}"` : ''}. Allowed: ${KNOWLEDGE_FILE_ACCEPT}.`;
+  }
+  if (file.size > KNOWLEDGE_MAX_FILE_BYTES) {
+    return `File is too large (${formatMb(file.size)}). Max ${formatMb(KNOWLEDGE_MAX_FILE_BYTES)}.`;
+  }
+  return null;
+}
+
 /** Lists and manages the documents inside a single knowledge library. */
 export function LibraryDocumentsManager({ libraryId }: { libraryId: string }) {
   const { data: sources = [], isLoading, isError } =
@@ -142,11 +172,22 @@ function AddDocumentForm({ libraryId }: { libraryId: string }) {
     setFile(null);
   }
 
-  /** When a file is chosen, pre-fill slug + title from its name (still
-   *  editable) so the common case is one click + Add. */
+  /** When a file is chosen, validate it (type + size), then pre-fill slug +
+   *  title from its name (still editable) so the common case is one click + Add.
+   *  A rejected file is not accepted and surfaces an inline error. */
   function handleFilePick(picked: File | null) {
+    if (!picked) {
+      setFile(null);
+      return;
+    }
+    const validationError = validateKnowledgeFile(picked);
+    if (validationError) {
+      setError(validationError);
+      setFile(null);
+      return;
+    }
+    setError(null);
     setFile(picked);
-    if (!picked) return;
     const base = picked.name.replace(/\.[^.]+$/, '');
     if (slug.trim() === '') setSlug(slugify(base));
     if (displayName.trim() === '') setDisplayName(base);
