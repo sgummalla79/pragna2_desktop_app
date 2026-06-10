@@ -4,10 +4,9 @@
  * Frontend shapes for `/api/flows/*`. The backend serialises in snake_case;
  * `infrastructure/repositories/mappers/mapFlow.ts` translates at the boundary.
  *
- * Phase 1 (list + CRUD + YAML authoring + read-only canvas): the graph is
- * authored as YAML and rendered read-only from the server-parsed `nodes`/`edges`.
- * Interactive editing (graph→YAML, side panels, positions) is Phase 2 — see
- * `docs/TODO.md` TD-020.
+ * Shipped: list + CRUD + slash exposure, plus the interactive visual editor
+ * (graph⇄YAML round-trip, side panels, node positions). YAML remains the source
+ * of truth; the editor serialises the canvas back to YAML on save.
  */
 
 import type { EdgeConditionValue } from '@/constants/edgeConditions';

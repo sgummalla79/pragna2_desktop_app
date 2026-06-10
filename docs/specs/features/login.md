@@ -9,7 +9,7 @@
 
 ## 1. Overview
 
-The Login / Authentication feature lets a user sign in to the Pragna desktop app and obtain a session that gates access to the rest of the application. It supports two sign-in methods backed by Auth0: email/password (Auth0 Resource Owner Password Grant, ROPG) and social/enterprise sign-in conducted in the user's **system browser** with the redirect captured on a temporary **localhost loopback** server (RFC 8252 native-app flow). It also covers self-service registration, automatic session bootstrap/persistence across reloads, route gating (protected vs guest-only), and sign-out. On successful authentication the user lands on `/settings` (the current post-login landing; chat becomes the landing later).
+The Login / Authentication feature lets a user sign in to the Pragna desktop app and obtain a session that gates access to the rest of the application. It supports two sign-in methods backed by Auth0: email/password (Auth0 Resource Owner Password Grant, ROPG) and social/enterprise sign-in conducted in the user's **system browser** with the redirect captured on a temporary **localhost loopback** server (RFC 8252 native-app flow). It also covers self-service registration, automatic session bootstrap/persistence across reloads, route gating (protected vs guest-only), and sign-out. On successful authentication the user lands on `/chat` (the post-login landing).
 
 ## 2. Goals & Non-Goals
 
@@ -19,7 +19,7 @@ The Login / Authentication feature lets a user sign in to the Pragna desktop app
 - [x] Dynamic discovery of which social connections are enabled on the tenant (no hardcoded provider list in UI).
 - [x] Self-service registration (Auth0 database connection signup), followed by an automatic sign-in.
 - [x] Session bootstrap on app start and persistence across in-tab reloads.
-- [x] Protected routes (require auth) and guest-only routes (redirect away when authed); post-login landing is `/settings`.
+- [x] Protected routes (require auth) and guest-only routes (redirect away when authed); post-login landing is `/chat`.
 - [x] Sign-out that clears the session locally.
 - [x] Typed, catalogued error handling (`AUTH_001`..`AUTH_010`).
 
@@ -38,13 +38,13 @@ The Login / Authentication feature lets a user sign in to the Pragna desktop app
 | user | sign in with Google / GitHub / Microsoft / etc. in my normal browser | my existing SSO sessions and account chooser are available |
 | new user | create an account with email + password | I can start using the app |
 | returning user | stay signed in after reloading the window | I don't have to log in on every refresh |
-| signed-in user | be sent straight to `/settings` instead of the login page | I don't see the login screen when I'm already authenticated |
+| signed-in user | be sent straight to `/chat` instead of the login page | I don't see the login screen when I'm already authenticated |
 | signed-out user | be redirected to `/login` when I open a protected page | I can't reach app screens without a session |
 | user | sign out | I can end my session on a shared machine |
 
 ## 4. Acceptance Criteria
 
-- [x] Given valid credentials on `/login`, when the user submits, then ROPG returns tokens, the profile is resolved, the auth store flips to authenticated, and the guard redirects to `/settings`.
+- [x] Given valid credentials on `/login`, when the user submits, then ROPG returns tokens, the profile is resolved, the auth store flips to authenticated, and the guard redirects to `/chat`.
 - [x] Given invalid credentials, when the user submits, then the form shows the `AUTH_007` message ("Invalid email or password.") and remains on `/login`.
 - [x] Given the tenant has social connections enabled, when `/login` (or `/register`) loads, then one "Continue with <Provider>" button is rendered per enabled connection (discovered at runtime via the Auth0 client config script).
 - [x] Given the user clicks a social button, when the flow starts, then the system browser opens Auth0's `/authorize` and a loopback server listens on a registered port; on redirect the branded success page is shown and the app exchanges the code (PKCE) for tokens.
@@ -52,7 +52,7 @@ The Login / Authentication feature lets a user sign in to the Pragna desktop app
 - [x] Given a new user on `/register` with email + password (≥ 8 chars), when they submit, then the account is created in the Auth0 database connection and they are immediately signed in via ROPG.
 - [x] Given a stored access token exists, when the app starts, then `bootstrap()` resolves the profile and the user is treated as authenticated without re-entering credentials.
 - [x] Given no stored token, when the app starts, then `bootstrap()` resolves to "not authenticated" and protected routes redirect to `/login`.
-- [x] Given an authenticated user, when they visit `/login` or `/register`, then they are redirected to `/settings` (guest-only guard).
+- [x] Given an authenticated user, when they visit `/login` or `/register`, then they are redirected to `/chat` (guest-only guard).
 - [x] Given any authenticated backend call returns `401`, when the response interceptor sees it, then the session is cleared and the user is sent back to `/login`.
 - [x] Given a signed-in user, when they sign out, then the access + ID tokens are cleared from storage and the auth store resets to unauthenticated.
 

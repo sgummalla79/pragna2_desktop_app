@@ -15,9 +15,10 @@ export interface SaveFromYamlResult {
 /**
  * Port for flow persistence (`/api/flows/*`).
  *
- * Phase 1 surface: CRUD, slash-exposure toggle, and YAML authoring
- * (validate / from-yaml). Position persistence (`PATCH metadata.positions`) is
- * deferred to the Phase 2 interactive editor (see `docs/TODO.md` TD-020).
+ * Surface: CRUD, slash-exposure toggle, and YAML authoring (validate /
+ * from-yaml). The interactive editor persists node positions as part of the
+ * YAML save — `graphToYaml` embeds them under `metadata.positions`, written via
+ * `saveFromYamlById` — so there's no separate positions endpoint.
  */
 export interface IFlowRepository {
   list(): Promise<Flow[]>;

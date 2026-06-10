@@ -307,7 +307,7 @@ src-tauri/
 | Guard | Detail |
 |-------|--------|
 | `ProtectedRoute` | Renders `null` until `bootstrapped`; redirects to `ROUTES.LOGIN` when `!isAuthenticated`; else renders children. |
-| `GuestOnlyRoute` | Renders `null` until `bootstrapped`; redirects to `ROUTES.SETTINGS` (post-login landing) when `isAuthenticated`; else renders children. |
+| `GuestOnlyRoute` | Renders `null` until `bootstrapped`; redirects to `ROUTES.CHAT` (post-login landing) when `isAuthenticated`; else renders children. |
 
 ### HTTP interceptors & adapter
 
@@ -350,7 +350,7 @@ All Auth0 env reads are centralised in `src/constants/auth0.ts` (no other file t
 | `SOCIAL_STRATEGIES` / `SOCIAL_DISPLAY_NAMES` | code constants | Strategy allow-list + human labels for connection discovery. |
 | `API_BASE_URL` | `VITE_API_BASE_URL` (default `http://localhost:8000/api`) | Backend root for `/auth/*` calls. |
 | `ERRORS.AUTH_001..AUTH_010` | `src/constants/errors.ts` | Auth error catalog (code/message/severity). |
-| `ROUTES.LOGIN/REGISTER/SETTINGS` | `src/constants/routes.ts` | Route paths; post-login landing is `/settings`. |
+| `ROUTES.LOGIN/REGISTER/SETTINGS/CHAT` | `src/constants/routes.ts` | Route paths; post-login landing is `/chat`. |
 
 ## 8. Testing Plan
 
