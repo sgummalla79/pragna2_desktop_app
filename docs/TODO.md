@@ -36,6 +36,7 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 | [TD-026](#td-026--appearance-full-tweakcn-palette-parity) | Appearance: full TweakCN palette parity | Settings | P3 | ⬜ open |
 | [TD-027](#td-027--integration--e2e-test-suite-tiers-1--2--manual-doc) | Integration + E2E test suite (Tiers 1 & 2 + manual doc) | Testing | P2 | ✅ done |
 | [TD-028](#td-028--true-tauri-window-e2e-deferred-to-windows) | True Tauri-window e2e (native seam) — deferred to Windows | Testing | P3 | ⬜ open |
+| [TD-029](#td-029--load--scaling-test-for-concurrent-users) | Load / scaling test for concurrent users | Testing | P3 | ⬜ open |
 
 ---
 
@@ -664,6 +665,34 @@ real local stack), plus a desktop-owned manual-testing doc. Plan:
   CF-003). To run the keyed tier: put keys in `/tmp/e2e-keys.env`, `npm run
   setup`, `set -a; . /tmp/e2e-keys.env; set +a; npm test`.
 - **Deferred:** the native Tauri-window seam is TD-028.
+
+---
+
+## TD-029 — Load / scaling test for concurrent users
+
+**Area:** Testing · **Priority:** P3 · **Status:** ⬜ open
+
+**What:** The integration/e2e suite (TD-027) runs strictly **serially** (`workers: 1`,
+one shared DB, a single seeded user) — it verifies *correctness*, not *scale*. It
+therefore says **nothing** about how the app/backend behave under **many
+concurrent users / streams** (chat SSE fan-out, connection limits, DB pool
+saturation, LLM-provider rate limits, memory under load).
+
+**When taken up:** build a dedicated **load test** (separate from the Playwright
+suite) — e.g. k6 / Locust / Artillery driving N concurrent chat + flow sessions
+against the local (or a staging) stack — and measure p50/p95/p99 latency, error
+rate, and saturation points. Decide pass/fail SLOs first. This is its own effort;
+say the word to scope it. Unrelated to the live-LLM **latency** observed in
+TD-027 (that is single-request model generation time, not contention).
+
+**Measured (2026-06-11) — the TD-027 live-LLM latency is model-bound, not an app
+issue.** Phase timings for one chat turn (serial, single request): app "accept"
+overhead 15–16 ms; **model+stream 1.3 s (one-sentence reply) vs 13.9 s
+(four-paragraph essay)**; **FE render-settle 2–5 ms**. The `/pragna/chat` network
+duration ≈ the model+stream time. So the latency is the LLM generating tokens,
+proportional to output length — the app adds single-digit-ms overhead. There is
+**no app-side latency/scaling defect**; the only e2e consequence is that a long
+generation can exceed a spec's timeout (timeout-tuning, not a code fix).
 
 ---
 
