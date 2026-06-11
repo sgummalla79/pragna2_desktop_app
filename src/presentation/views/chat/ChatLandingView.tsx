@@ -111,6 +111,10 @@ export default function ChatLandingView() {
             disabled={!ready || creating}
             autoFocus
             slashFlows={slashFlows}
+            // Enable attachments on the landing: pass the pre-generated id so the
+            // paperclip shows and uploads target the conversation that `handleSend`
+            // eager-creates with this same id (the BE lazy-creates on upload too).
+            conversationId={pendingConvId}
             placeholder={
               ready ? `Ask ${APP_NAME} anything…` : 'Connect a model to start chatting…'
             }

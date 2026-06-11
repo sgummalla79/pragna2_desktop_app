@@ -283,7 +283,7 @@ export function ChatInput({
   };
 
   return (
-    <div className="relative flex flex-col gap-2 rounded-2xl border border-border bg-card p-2.5 shadow-sm focus-within:border-ring">
+    <div className="relative flex flex-col gap-2 rounded-3xl bg-muted p-2.5 shadow-sm transition-colors">
       {slashActive && (
         <SlashCommandPopover
           items={filteredSlashFlows}
@@ -320,7 +320,7 @@ export function ChatInput({
         autoFocus={autoFocus}
         disabled={disabled}
         className={cn(
-          'max-h-48 w-full resize-none overflow-y-auto bg-transparent px-1.5 py-1 text-[15px] leading-relaxed',
+          'max-h-48 min-h-11 w-full resize-none overflow-y-auto bg-transparent px-1.5 py-1.5 text-[15px] leading-relaxed',
           'text-foreground placeholder:text-muted-foreground outline-none',
           'field-sizing-content disabled:opacity-60',
         )}
@@ -352,9 +352,11 @@ export function ChatInput({
               </button>
             </>
           )}
-          {controls}
         </div>
-        {running ? (
+        {/* Right cluster — model/thinking controls blended next to send. */}
+        <div className="flex shrink-0 items-center gap-2">
+          {controls}
+          {running ? (
           <button
             type="button"
             onClick={onStop}
@@ -380,7 +382,8 @@ export function ChatInput({
           >
             <ArrowUp size={16} aria-hidden />
           </button>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
