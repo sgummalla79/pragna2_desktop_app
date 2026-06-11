@@ -21,6 +21,7 @@
  * not a `navigation` landmark of links).
  */
 import { test, expect } from '../fixtures';
+import { unexposeSlashFlows } from '../helpers/db';
 
 const HAS_REAL_KEY = Boolean(process.env.E2E_ANTHROPIC_API_KEY);
 const LONG_PROMPT = `Write a 4-paragraph essay on the history of the printing press, covering its origins, Gutenberg's contribution, the social impact in Europe, and a comparison to digital publishing today.`;
@@ -32,6 +33,12 @@ test.describe('Scenario 11 — Navigate away mid-response', () => {
     !HAS_REAL_KEY,
     'requires E2E_ANTHROPIC_API_KEY — live streaming run needed (no in-flight run on a seeded conversation)',
   );
+
+  test.beforeEach(() => {
+    // Isolation: un-expose leftover slash flows so the agent answers the prompt
+    // directly instead of proposing a flow (see helpers/db.ts unexposeSlashFlows).
+    unexposeSlashFlows();
+  });
 
   test('submit → navigate to new chat → come back → see persisted reply', async ({
     page,
@@ -52,8 +59,10 @@ test.describe('Scenario 11 — Navigate away mid-response', () => {
     await expect(page).toHaveURL(/\/chat\/[0-9a-f-]{36}/, { timeout: 10_000 });
     const originalUrl = page.url();
 
-    // Navigate away — click "New chat" in the sidebar.
-    await page.getByRole('button', { name: /new chat/i }).click();
+    // Navigate away — click the sidebar's "New chat" button. Use .first(): the
+    // sidebar's conversation list shows untitled chats as "New chat" too, so the
+    // name is ambiguous once the DB has history; the real button is first in DOM.
+    await page.getByRole('button', { name: /new chat/i }).first().click();
     await expect(page).toHaveURL(/\/chat$/, { timeout: 5_000 });
     // Sanity: the new chat landing has no assistant bubble yet.
     expect(await page.locator('[data-role="assistant"]').count()).toBe(0);

@@ -124,7 +124,12 @@ pkill -f "vite" 2>/dev/null || true
 sleep 1
 (
   cd "$FE_REPO"
+  # VITE_E2E_NO_STRICT_MODE: run the e2e FE without React StrictMode so its
+  # dev-only effect double-invoke doesn't abort+re-dispatch the first streaming
+  # chat turn (StrictMode is off in production anyway — this keeps e2e
+  # prod-faithful). Normal `pnpm dev`/`tauri dev` keep StrictMode on.
   VITE_API_BASE_URL="http://localhost:$BE_PORT/api" \
+  VITE_E2E_NO_STRICT_MODE=1 \
     nohup pnpm dev > /tmp/e2e_desktop_fe.log 2>&1 & disown
 )
 for i in $(seq 1 20); do

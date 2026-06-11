@@ -59,3 +59,52 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
   `vite.config.ts` already carries this exact `processEnvShim` (same comment) — the **desktop was
   missing the web app's fix**. No web-app action needed; this entry records that the desktop has now
   caught up. Keep the two shims in sync if satori's env usage changes.
+
+---
+
+## CF-003 — create_pdf_long crashes on large tables (BACKEND PDF renderer LayoutError) [OPEN — backend]
+
+- **Date:** 2026-06-10
+- **Area / file:** **`pragna2-api`** (backend) — `src/infrastructure/pdf/renderer.py` `render_pdf`
+  (via `src/infrastructure/agents/assemble_pdf_node.py`). NOT a desktop-app file.
+- **Found by:** Tier-2 live-LLM e2e specs `scenario-21-create-pdf-long` (both the
+  `architecture_guidance` and `technical_requirements` cases). The doc card never appears.
+- **Bug:** `create_pdf_long` (the fan-out long-document path) raises
+  `reportlab.platypus.doctemplate.LayoutError: Flowable <Table …> too large on page N` — a generated
+  table is a single cell taller than the page frame (e.g. 680–1148pt tall in a ~650pt frame), and
+  reportlab cannot split a single oversized table cell across pages, so `doc.build(story)` aborts and
+  no PDF/attachment is produced.
+- **Root cause (backend):** the long-doc assembler emits markdown that renders to an un-splittable,
+  over-tall table flowable; the renderer doesn't cap/split/scale large tables to fit the frame.
+- **Status / fix:** **OPEN — must be fixed in `pragna2-api`'s PDF renderer** (split or scale tall
+  tables, or chunk cell content), which is outside this repo. The two e2e specs are marked
+  `test.fixme` referencing this entry so the desktop suite isn't red on an external backend defect;
+  un-fixme them once the backend renderer handles large tables.
+- **Web-app applicability:** **AFFECTS BOTH APPS (shared backend).** The web app uses the same
+  `pragna2-api` renderer, so its `create_pdf_long` has the identical failure. The single fix in the
+  backend renderer resolves it for both the desktop and the web app.
+
+---
+
+## CF-004 — first chat turn aborted by React StrictMode double-invoke (e2e accommodation)
+
+- **Date:** 2026-06-10
+- **Area / file:** `src/main.tsx` (+ `e2e/scripts/setup-stack.sh` sets the flag)
+- **Found by:** Tier-2 live-LLM chat specs — the first streaming turn logged
+  `Agent execution failed: AbortError: signal is aborted without reason` and never produced a reply
+  in browser mode.
+- **Bug (DEV/TEST-ONLY — not a production defect):** React `StrictMode` double-invokes effects in
+  development (mount → cleanup → mount). The chat session hook's unmount cleanup calls
+  `agent.abortRun()` (`useChatSession.ts`), so StrictMode's synthetic unmount aborts the first
+  streaming turn before its POST fires; it is then re-dispatched on the second mount. This is purely a
+  dev aid — **StrictMode is a no-op in production builds**, so the real Tauri app never hits it — but
+  it makes live-chat e2e (run against `pnpm dev`) racy.
+- **Fix:** Gate `StrictMode` off when `import.meta.env.VITE_E2E_NO_STRICT_MODE` is set; the e2e
+  `setup-stack.sh` boots the FE with that flag. Normal `pnpm dev` / `tauri dev` keep StrictMode ON.
+  Running e2e without StrictMode is *more* prod-faithful (prod has it off), so no coverage is lost.
+- **Note:** This is **not** an app-logic fix and changes no production behaviour (the flag is unset in
+  every real build) — recorded here only because it is an app-code change made in response to a test
+  failure, per the "Document Every Bug Fix" rule.
+- **Web-app applicability:** **CHECK.** If the web app runs live-chat e2e against its dev server and
+  also wraps the app in `StrictMode`, it will hit the same first-turn abort race; the same env-gated
+  StrictMode toggle (or removing the abort-on-unmount during the eager-create handoff) applies.

@@ -644,14 +644,26 @@ real local stack), plus a desktop-owned manual-testing doc. Plan:
   11 skipped (LLM-gated), 0 failed.** The Tier-1 jsdom limits (ReactFlow canvas,
   Radix Select open-menu) are now covered here in a real browser.
 - **Bugs found + fixed by the Tier-2 suite** (see `docs/CODE_FIXES.md`): CF-001
-  (Radix Select dropdowns behind `z-[700]` modal overlays → unclickable) and
-  CF-002 (missing Vite `process.env` shim → "process is not defined" crash on the
-  chat view). Both flagged for web-app cross-check.
+  (Radix Select dropdowns behind `z-[700]` modal overlays → unclickable), CF-002
+  (missing Vite `process.env` shim → "process is not defined" crash on the chat
+  view), CF-003 (**backend** `create_pdf_long` reportlab `LayoutError` on large
+  tables — OPEN, in `pragna2-api`), CF-004 (StrictMode dev double-invoke aborted
+  the first chat turn → e2e runs without StrictMode). All flagged for web-app /
+  backend cross-check.
 - **Manual doc (Phase 4):** `docs/MANUAL_TEST_SCENARIOS.md` (M1–M9) covers the
   un-automatable residue (streaming feel, reduced-motion, PDF fidelity, MCP
   OAuth consent, native keychain/social-login/file-dialogs).
-- **Deferred:** real-LLM chat scenarios run only with provider keys present
-  (self-skip otherwise); the native Tauri-window seam is TD-028.
+- **Live-LLM keyed tier (best-effort, NOT the CI gate):** the real-LLM chat
+  scenarios self-skip without `E2E_ANTHROPIC_API_KEY`; with a key they exercise
+  the real path and pass individually, but are **non-deterministic in aggregate**
+  (model latency/tool-choice under the serial single-DB suite), so they are a
+  keyed best-effort tier, not part of the deterministic gate. The **deterministic
+  gate is the keyless suite: 29 passed / 0 failed.** `fixme` specs: scenario-14
+  (known lost-reply bug), scenario-19 (model tool-choice non-deterministic;
+  render path covered by the seeded scenario-20), scenario-21 ×2 (blocked on
+  CF-003). To run the keyed tier: put keys in `/tmp/e2e-keys.env`, `npm run
+  setup`, `set -a; . /tmp/e2e-keys.env; set +a; npm test`.
+- **Deferred:** the native Tauri-window seam is TD-028.
 
 ---
 

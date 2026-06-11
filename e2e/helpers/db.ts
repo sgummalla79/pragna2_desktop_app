@@ -45,3 +45,12 @@ export const db = {
        ORDER BY api_name;`,
     ),
 };
+
+/** Un-expose every slash flow so the default chat agent answers a plain prompt
+ *  (or calls a tool) directly instead of PROPOSING a leftover flow ("Suggested
+ *  flow: …"). The flow specs leave slash-exposed flows in the shared serial DB;
+ *  plain-chat / document specs call this in `beforeEach` for isolation. Slash
+ *  specs re-expose their own flow, so this is safe to run before them. */
+export function unexposeSlashFlows(): void {
+  psql('UPDATE flows SET exposed_as_slash = false WHERE exposed_as_slash = true;');
+}
