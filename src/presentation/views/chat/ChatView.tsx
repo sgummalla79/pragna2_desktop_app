@@ -130,7 +130,7 @@ export function ChatView() {
             marginLeft: SIDEBAR_BOX_INSET_PX,
             marginRight: SIDEBAR_BOX_GAP_PX,
             height: `calc(100vh - ${SIDEBAR_BOX_INSET_PX * 2}px)`,
-            paddingTop: 16,
+            paddingTop: 32,
           }}
         >
           {/* Expand icon */}
