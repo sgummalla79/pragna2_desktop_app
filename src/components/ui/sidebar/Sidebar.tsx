@@ -53,6 +53,11 @@ interface Props {
  * theme tokens only.
  */
 export function Sidebar({ items, width = 240, label = 'Navigation', className }: Props) {
+  // 'back' items are pinned to the bottom of the rail — mirroring the chat
+  // sidebar's avatar footer — so the scrollable nav fills the space above them.
+  const bodyItems = items.filter((item) => item.type !== 'back');
+  const footerItems = items.filter((item) => item.type === 'back');
+
   return (
     <aside
       aria-label={label}
@@ -76,8 +81,15 @@ export function Sidebar({ items, width = 240, label = 'Navigation', className }:
         // Push the nav below the title row (traffic lights + collapse toggle).
         style={{ paddingTop: SIDEBAR_TITLE_ROW_PX }}
       >
-        <ItemList items={items} expanded />
+        <ItemList items={bodyItems} expanded />
       </div>
+
+      {footerItems.length > 0 && (
+        // Same placement as the chat sidebar's avatar footer (px-3 py-1).
+        <div className="flex flex-col gap-0.5 px-3 py-1">
+          <ItemList items={footerItems} expanded />
+        </div>
+      )}
     </aside>
   );
 }

@@ -23,7 +23,7 @@ import {
   SIDEBAR_BOX_GAP_PX,
   SIDEBAR_TITLE_ROW_PX,
   CHAT_SIDEBAR_WIDTH_PX,
-  TITLEBAR_TOGGLE_LEFT_PX,
+  TITLEBAR_SEARCH_LEFT_PX,
   TOGGLE_BUTTON_PX,
   TITLE_GAP_PX,
   TRAFFIC_LIGHT_Y,
@@ -350,10 +350,11 @@ function ChatConversation({
 
   // Left offset for the title in the window title-bar strip. Left-aligned: it
   // starts after the sidebar box when expanded, and after the traffic lights +
-  // collapse toggle when collapsed (so it never overlaps the window controls).
+  // collapse toggle + search button when collapsed (so it never overlaps the
+  // window controls or the title-bar actions).
   const chatCollapsed = useUiStore((s) => s.chatPaneCollapsed);
   const titleLeftPx = chatCollapsed
-    ? TITLEBAR_TOGGLE_LEFT_PX + TOGGLE_BUTTON_PX + TITLE_GAP_PX
+    ? TITLEBAR_SEARCH_LEFT_PX + TOGGLE_BUTTON_PX + TITLE_GAP_PX
     : SIDEBAR_BOX_INSET_PX + CHAT_SIDEBAR_WIDTH_PX + SIDEBAR_BOX_GAP_PX + TITLE_GAP_PX;
 
   return (

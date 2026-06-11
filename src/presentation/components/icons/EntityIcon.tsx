@@ -55,7 +55,7 @@ type EntitySize = 'sm' | 'md' | 'lg';
 /** Tile dimensions + base glyph size per visual size. */
 const SIZES: Record<EntitySize, { tile: string; icon: number }> = {
   sm: { tile: 'h-6 w-6 rounded-md', icon: 14 }, // section headers
-  md: { tile: 'h-7 w-7 rounded-lg', icon: 16 }, // sidebar nav
+  md: { tile: 'h-5 w-5 rounded-md', icon: 13 }, // sidebar nav — compact, fits the New Chat row height
   lg: { tile: 'h-9 w-9 rounded-lg', icon: 20 }, // page headers
 };
 

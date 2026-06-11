@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { PanelLeft, X } from 'lucide-react';
+import { PanelLeft, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   SIDEBAR_BOX_INSET_PX,
@@ -8,13 +8,14 @@ import {
   SIDEBAR_TITLE_ROW_PX,
   CHAT_SIDEBAR_WIDTH_PX,
   TITLEBAR_TOGGLE_LEFT_PX,
-  TITLEBAR_TOGGLE_Y_NUDGE_PX,
+  TITLEBAR_SEARCH_LEFT_PX,
+  TITLEBAR_ACTION_TOP_PX,
   TOGGLE_ICON_PX,
-  TRAFFIC_LIGHT_Y,
 } from '@/constants/windowChrome';
 import { TitlebarCollapseToggle } from '@/components/ui/sidebar/TitlebarCollapseToggle';
 import { useUiStore } from '@/presentation/store/uiStore';
 import { ChatSidebar } from './components/ChatSidebar';
+import { ChatsSearchModal } from './components/ChatsSearchModal';
 
 /**
  * Chat shell: a conversation sidebar + the active conversation (`<Outlet/>`).
@@ -32,6 +33,7 @@ import { ChatSidebar } from './components/ChatSidebar';
  */
 export function ChatView() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const collapsed = useUiStore((s) => s.chatPaneCollapsed);
   const toggleCollapsed = useUiStore((s) => s.toggleChatPane);
 
@@ -55,6 +57,26 @@ export function ChatView() {
           }
         />
       </div>
+
+      {/* Search button — sits just right of the collapse/drawer toggle in the
+          title-bar strip (both desktop and mobile). Opens the "all chats" search
+          modal. */}
+      <button
+        type="button"
+        onClick={() => setSearchOpen(true)}
+        aria-label="Search chats"
+        title="Search chats"
+        className="fixed z-[70] flex h-6 w-6 items-center justify-center rounded text-foreground/70 hover:bg-accent hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        style={{
+          left: TITLEBAR_SEARCH_LEFT_PX,
+          top: TITLEBAR_ACTION_TOP_PX,
+          transform: 'translateY(-50%)',
+        }}
+      >
+        <Search size={TOGGLE_ICON_PX} aria-hidden />
+      </button>
+
+      <ChatsSearchModal open={searchOpen} onOpenChange={setSearchOpen} />
 
       {/* Desktop rail, as an inset rounded box. Hidden when collapsed. */}
       {!collapsed && (
@@ -87,7 +109,7 @@ export function ChatView() {
         // Centered on the (inset) traffic lights' vertical center, with a fine nudge.
         style={{
           left: TITLEBAR_TOGGLE_LEFT_PX,
-          top: TRAFFIC_LIGHT_Y + TITLEBAR_TOGGLE_Y_NUDGE_PX,
+          top: TITLEBAR_ACTION_TOP_PX,
           transform: 'translateY(-50%)',
         }}
       >

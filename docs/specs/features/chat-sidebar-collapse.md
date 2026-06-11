@@ -58,7 +58,8 @@ consumes transcript height and never overlaps the window controls.
       collapsed (persisted).
 - [x] Given any conversation, the title appears in the title-bar strip,
       left-aligned: after the sidebar box when expanded, after the traffic
-      lights + toggle when collapsed — never overlapping the controls.
+      lights + collapse toggle + search button when collapsed — never
+      overlapping the controls or the title-bar actions.
 - [x] Given a very long title, it truncates before the right window edge.
 
 ## 5. Edge Cases & Error Scenarios

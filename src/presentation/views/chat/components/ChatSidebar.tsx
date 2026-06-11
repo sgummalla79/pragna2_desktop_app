@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Plus, History } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
 import { ConversationList } from './ConversationList';
 import { AvatarMenu } from './AvatarMenu';
@@ -25,22 +25,14 @@ export function ChatSidebar({ onNavigate }: ChatSidebarProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex flex-col gap-1 px-3 pb-2">
+      <div className="flex flex-col gap-1 px-3 pb-5">
         <button
           type="button"
           onClick={() => go(ROUTES.CHAT)}
-          className="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+          className="flex w-full items-center gap-2 rounded-lg px-1 h-8 text-[13px] text-foreground transition-colors hover:bg-sidebar-hover"
         >
           <Plus size={16} aria-hidden />
           New chat
-        </button>
-        <button
-          type="button"
-          onClick={() => go(ROUTES.CHAT_HISTORY)}
-          className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        >
-          <History size={16} aria-hidden />
-          All chats
         </button>
       </div>
 
@@ -48,7 +40,7 @@ export function ChatSidebar({ onNavigate }: ChatSidebarProps) {
         <ConversationList />
       </div>
 
-      <div className="border-t border-border px-3 py-2">
+      <div className="px-3 py-1">
         <AvatarMenu onNavigate={onNavigate} />
       </div>
     </div>

@@ -24,13 +24,16 @@ export function SidebarNavItem({ to, icon, label, collapsed = false }: Props) {
       aria-label={collapsed ? label : undefined}
       className={({ isActive }) =>
         cn(
-          'flex items-center rounded-lg text-sm no-underline',
+          // Fixed h-8 + text-[13px] matches every other sidebar/menu row so all
+          // hover boxes are the same size regardless of icon/content height.
+          'flex items-center rounded-lg text-[13px] no-underline',
           'transition-colors duration-150',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-sidebar-ring)]',
-          collapsed ? 'h-10 w-10 justify-center mx-auto' : 'gap-3 px-3 py-1.5 min-h-9',
+          collapsed ? 'h-10 w-10 justify-center mx-auto' : 'gap-3 px-3 h-8',
           isActive
             ? 'font-semibold text-sidebar-primary-foreground bg-sidebar-primary'
-            : 'font-medium text-sidebar-foreground/70 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent',
+            // Shared darker hover (see --sidebar-hover in index.css).
+            : 'font-medium text-sidebar-foreground/70 hover:text-sidebar-accent-foreground hover:bg-sidebar-hover',
         )
       }
     >

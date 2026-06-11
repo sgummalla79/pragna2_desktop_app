@@ -21,12 +21,12 @@ export function ConversationList() {
   );
 
   if (pinnedLoading && recentLoading) {
-    return <p className="px-2 py-4 text-sm text-muted-foreground">Loading…</p>;
+    return <p className="px-2 py-4 text-[13px] text-muted-foreground">Loading…</p>;
   }
 
   if (pinned.length === 0 && recentUnpinned.length === 0) {
     return (
-      <p className="px-2 py-4 text-sm text-muted-foreground">
+      <p className="px-2 py-4 text-[13px] text-muted-foreground">
         No conversations yet. Start a new chat.
       </p>
     );
@@ -36,7 +36,7 @@ export function ConversationList() {
     <div className="flex flex-col gap-3">
       {pinned.length > 0 && (
         <div className="flex flex-col gap-0.5">
-          <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             Pinned
           </p>
           {pinned.map((c) => (
@@ -47,7 +47,7 @@ export function ConversationList() {
       {recentUnpinned.length > 0 && (
         <div className="flex flex-col gap-0.5">
           {pinned.length > 0 && (
-            <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
               Recent
             </p>
           )}

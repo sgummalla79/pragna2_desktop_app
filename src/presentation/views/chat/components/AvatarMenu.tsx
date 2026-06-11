@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 const MENU_ITEM_CLASS = cn(
   'flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm',
   'text-foreground outline-none',
-  'data-[highlighted]:bg-accent',
+  'data-[highlighted]:bg-sidebar-hover',
 );
 
 /**
@@ -64,21 +64,25 @@ export function AvatarMenu({ onNavigate }: AvatarMenuProps) {
           type="button"
           aria-label="Account menu"
           className={cn(
-            'group flex w-full items-center gap-2 rounded-md px-2 py-1.5 font-medium',
-            'text-foreground transition-colors hover:bg-accent',
+            'group flex w-full items-center gap-2 rounded-lg px-2 h-8 font-medium',
+            'text-foreground transition-colors hover:bg-sidebar-hover',
+            // While the menu is open, show the selected-menu-item style.
+            'data-[state=open]:bg-sidebar-primary data-[state=open]:text-sidebar-primary-foreground',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           )}
         >
           <span
             aria-hidden="true"
             className={cn(
-              'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full',
-              'bg-primary/10 text-primary text-xs font-semibold',
+              'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full leading-none',
+              'bg-primary/10 text-primary text-[10px] font-semibold',
+              // Keep the badge legible on the primary fill when the menu is open.
+              'group-data-[state=open]:bg-sidebar-primary-foreground/20 group-data-[state=open]:text-sidebar-primary-foreground',
             )}
           >
             {initial}
           </span>
-          <span className="min-w-0 flex-1 truncate text-left text-sm">{displayName}</span>
+          <span className="min-w-0 flex-1 truncate text-left text-[13px]">{displayName}</span>
           {/* Chevron marks this as a dropdown; rotates 180° while open, driven
               purely by Radix's data-state on the trigger — no extra state. */}
           <ChevronDown
@@ -86,7 +90,7 @@ export function AvatarMenu({ onNavigate }: AvatarMenuProps) {
             aria-hidden="true"
             className={cn(
               'flex-shrink-0 text-muted-foreground transition-transform',
-              'group-data-[state=open]:rotate-180',
+              'group-data-[state=open]:rotate-180 group-data-[state=open]:text-sidebar-primary-foreground',
             )}
           />
         </button>
@@ -111,14 +115,10 @@ export function AvatarMenu({ onNavigate }: AvatarMenuProps) {
             {user?.email ?? 'Signed in'}
           </DropdownMenu.Label>
 
-          <DropdownMenu.Separator className="my-1 h-px bg-accent" />
-
           <DropdownMenu.Item onSelect={goSettings} className={MENU_ITEM_CLASS}>
             <SettingsIcon size={16} aria-hidden="true" />
             Settings
           </DropdownMenu.Item>
-
-          <DropdownMenu.Separator className="my-1 h-px bg-accent" />
 
           <DropdownMenu.Item onSelect={handleSignOut} className={MENU_ITEM_CLASS}>
             <LogOut size={16} aria-hidden="true" />

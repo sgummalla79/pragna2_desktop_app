@@ -26,13 +26,16 @@ export function SidebarBackItem({ to, label, collapsed = false }: Props) {
       title={collapsed ? label : undefined}
       aria-label={collapsed ? label : undefined}
       className={cn(
-        'flex items-center rounded-lg text-sm font-medium text-sidebar-foreground no-underline',
-        'transition-colors duration-150 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-        collapsed ? 'h-10 w-10 justify-center mx-auto' : 'gap-2.5 px-3.5 py-2.5 min-h-11',
+        // Mirror the chat sidebar's avatar footer button (see AvatarMenu):
+        // same size, padding, weight, text color, hover and focus treatment.
+        'group flex items-center gap-2 rounded-lg font-medium no-underline',
+        'text-foreground transition-colors hover:bg-sidebar-hover',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        collapsed ? 'h-10 w-10 justify-center mx-auto' : 'w-full px-2 h-8',
       )}
     >
       <MessagesSquare size={collapsed ? 18 : 16} className="flex-shrink-0" aria-hidden="true" />
-      {!collapsed && label}
+      {!collapsed && <span className="min-w-0 flex-1 truncate text-left text-[13px]">{label}</span>}
     </Link>
   );
 }

@@ -112,8 +112,12 @@ export function ConversationListItem({ conversation }: ConversationListItemProps
   return (
     <div
       className={cn(
-        'group flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm transition-colors',
-        isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-sidebar-accent/60',
+        'group flex items-center gap-1 rounded-lg px-2 h-8 text-[13px] transition-colors',
+        // Selected row matches the settings menu's active style; hover uses the
+        // shared --sidebar-hover fill.
+        isActive
+          ? 'font-semibold bg-sidebar-primary text-sidebar-primary-foreground'
+          : 'hover:bg-sidebar-hover',
       )}
     >
       <button

@@ -7,7 +7,6 @@ import type { SidebarItemConfig } from '@/components/ui/sidebar/types';
 
 /** Settings navigation config — add/remove items here; styling never changes. */
 const SETTINGS_NAV: SidebarItemConfig[] = [
-  { type: 'back', to: ROUTES.CHAT, label: 'Back to Chat' },
   { type: 'section', label: 'AI Setup' },
   { type: 'nav', to: ROUTES.SETTINGS_CONFIGURATION, icon: <EntityIcon entity="configuration" />, label: 'Configuration' },
   { type: 'nav', to: ROUTES.SETTINGS_PROVIDERS, icon: <EntityIcon entity="providers" />, label: 'Providers' },
@@ -19,6 +18,8 @@ const SETTINGS_NAV: SidebarItemConfig[] = [
   { type: 'section', label: 'Account' },
   { type: 'nav', to: ROUTES.SETTINGS_APPEARANCE, icon: <EntityIcon entity="appearance" />, label: 'Appearance' },
   { type: 'nav', to: ROUTES.SETTINGS_PROFILE, icon: <EntityIcon entity="profile" />, label: 'Profile' },
+  // Pinned to the bottom of the rail by Sidebar (mirrors the chat avatar footer).
+  { type: 'back', to: ROUTES.CHAT, label: 'Back to Chat' },
 ];
 
 /**
