@@ -90,21 +90,22 @@ export function ChatView() {
         </>
       )}
 
-      {/* Desktop rail, as an inset rounded box. Hidden when collapsed. */}
+      {/* Desktop rail. macOS: inset rounded box. Windows: flush to top-left edge. */}
       {!collapsed && (
         <aside
           className={cn(
-            'hidden md:flex flex-shrink-0 flex-col overflow-hidden rounded-md',
-            'border border-border bg-sidebar text-sidebar-foreground shadow-sm',
+            'hidden md:flex flex-shrink-0 flex-col overflow-hidden',
+            'border-r border-border bg-sidebar text-sidebar-foreground shadow-sm',
+            isWindows ? 'rounded-none' : 'rounded-md border',
           )}
           style={{
             width: CHAT_SIDEBAR_WIDTH_PX,
             minWidth: CHAT_SIDEBAR_WIDTH_PX,
-            marginTop: SIDEBAR_BOX_INSET_PX,
-            marginBottom: SIDEBAR_BOX_INSET_PX,
-            marginLeft: SIDEBAR_BOX_INSET_PX,
-            marginRight: SIDEBAR_BOX_GAP_PX,
-            height: `calc(100vh - ${SIDEBAR_BOX_INSET_PX * 2}px)`,
+            marginTop: isWindows ? 0 : SIDEBAR_BOX_INSET_PX,
+            marginBottom: isWindows ? 0 : SIDEBAR_BOX_INSET_PX,
+            marginLeft: isWindows ? 0 : SIDEBAR_BOX_INSET_PX,
+            marginRight: isWindows ? 0 : SIDEBAR_BOX_GAP_PX,
+            height: isWindows ? '100vh' : `calc(100vh - ${SIDEBAR_BOX_INSET_PX * 2}px)`,
             paddingTop: isWindows ? 0 : SIDEBAR_TITLE_ROW_PX,
           }}
         >
@@ -115,21 +116,14 @@ export function ChatView() {
         </aside>
       )}
 
-      {/* Windows collapsed state: narrow icon-only rail with expand + action icons. */}
+      {/* Windows collapsed state: narrow icon-only rail, flush to top-left. */}
       {isWindows && collapsed && (
         <aside
-          className={cn(
-            'hidden md:flex flex-shrink-0 flex-col items-center overflow-hidden rounded-md',
-            'border border-border bg-sidebar text-sidebar-foreground shadow-sm',
-          )}
+          className="hidden md:flex flex-shrink-0 flex-col items-center overflow-hidden border-r border-border bg-sidebar text-sidebar-foreground shadow-sm"
           style={{
             width: 48,
             minWidth: 48,
-            marginTop: SIDEBAR_BOX_INSET_PX,
-            marginBottom: SIDEBAR_BOX_INSET_PX,
-            marginLeft: SIDEBAR_BOX_INSET_PX,
-            marginRight: SIDEBAR_BOX_GAP_PX,
-            height: `calc(100vh - ${SIDEBAR_BOX_INSET_PX * 2}px)`,
+            height: '100vh',
             paddingTop: 32,
           }}
         >

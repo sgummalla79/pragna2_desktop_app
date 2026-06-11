@@ -56,6 +56,7 @@ export function SettingsSidebar() {
         <Sidebar
           items={SETTINGS_NAV}
           label="Settings navigation"
+          flushEdge={isWindows}
           headerContent={
             isWindows ? (
               <>
@@ -103,13 +104,11 @@ function CollapsedSettingsRail({
   return (
     <aside
       aria-label="Settings navigation (collapsed)"
-      className="flex flex-shrink-0 flex-col items-center overflow-hidden rounded-md border border-border bg-sidebar text-sidebar-foreground shadow-sm"
+      className="flex flex-shrink-0 flex-col items-center overflow-hidden border-r border-border bg-sidebar text-sidebar-foreground shadow-sm"
       style={{
         width: 48,
         minWidth: 48,
-        margin: 10,
-        marginRight: 8,
-        height: 'calc(100vh - 20px)',
+        height: '100vh',
         paddingTop: 32,
       }}
     >

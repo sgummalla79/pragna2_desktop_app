@@ -47,6 +47,11 @@ interface Props {
    * removed — the header is responsible for its own top spacing.
    */
   headerContent?: ReactNode;
+  /**
+   * When true (Windows), the panel flushes to the top-left window edge:
+   * no inset margins, full 100vh height, no rounded corners, right border only.
+   */
+  flushEdge?: boolean;
 }
 
 /**
@@ -59,7 +64,7 @@ interface Props {
  * SettingsSidebar), not here. Geometry comes from `@/constants/windowChrome`;
  * theme tokens only.
  */
-export function Sidebar({ items, width = 240, label = 'Navigation', className, headerContent }: Props) {
+export function Sidebar({ items, width = 240, label = 'Navigation', className, headerContent, flushEdge = false }: Props) {
   // 'back' items are pinned to the bottom of the rail — mirroring the chat
   // sidebar's avatar footer — so the scrollable nav fills the space above them.
   const bodyItems = items.filter((item) => item.type !== 'back');
@@ -69,18 +74,19 @@ export function Sidebar({ items, width = 240, label = 'Navigation', className, h
     <aside
       aria-label={label}
       className={cn(
-        'flex flex-shrink-0 flex-col overflow-hidden rounded-md',
-        'bg-sidebar text-sidebar-foreground border border-border shadow-sm',
+        'flex flex-shrink-0 flex-col overflow-hidden',
+        'bg-sidebar text-sidebar-foreground shadow-sm',
+        flushEdge ? 'border-r border-border rounded-none' : 'rounded-md border border-border',
         className,
       )}
       style={{
         width,
         minWidth: width,
-        marginTop: SIDEBAR_BOX_INSET_PX,
-        marginBottom: SIDEBAR_BOX_INSET_PX,
-        marginLeft: SIDEBAR_BOX_INSET_PX,
-        marginRight: SIDEBAR_BOX_GAP_PX,
-        height: `calc(100vh - ${SIDEBAR_BOX_INSET_PX * 2}px)`,
+        marginTop: flushEdge ? 0 : SIDEBAR_BOX_INSET_PX,
+        marginBottom: flushEdge ? 0 : SIDEBAR_BOX_INSET_PX,
+        marginLeft: flushEdge ? 0 : SIDEBAR_BOX_INSET_PX,
+        marginRight: flushEdge ? 0 : SIDEBAR_BOX_GAP_PX,
+        height: flushEdge ? '100vh' : `calc(100vh - ${SIDEBAR_BOX_INSET_PX * 2}px)`,
       }}
     >
       {/* Windows inline header (gear + title + toggle). Replaces the default
