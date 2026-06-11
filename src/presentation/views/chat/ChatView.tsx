@@ -18,6 +18,7 @@ import { useUiStore } from '@/presentation/store/uiStore';
 import { ROUTES } from '@/constants/routes';
 import { ChatSidebar } from './components/ChatSidebar';
 import { ChatsSearchModal } from './components/ChatsSearchModal';
+import { AvatarMenu } from './components/AvatarMenu';
 
 /**
  * Chat shell: a conversation sidebar + the active conversation (`<Outlet/>`).
@@ -164,6 +165,11 @@ export function ChatView() {
           >
             <MessagesSquare size={16} aria-hidden />
           </button>
+
+          {/* Avatar — pinned to the bottom */}
+          <div className="mt-auto pb-2">
+            <AvatarMenu />
+          </div>
         </aside>
       )}
 
