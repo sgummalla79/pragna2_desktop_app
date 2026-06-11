@@ -1,8 +1,10 @@
+import { Settings as SettingsIcon, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { EntityIcon } from '@/presentation/components/icons/EntityIcon';
 import { Sidebar, ItemList } from '@/components/ui/sidebar/Sidebar';
 import { TitlebarCollapseToggle } from '@/components/ui/sidebar/TitlebarCollapseToggle';
 import { ROUTES } from '@/constants/routes';
 import { useUiStore } from '@/presentation/store/uiStore';
+import { isWindowsPlatform } from '@/infrastructure/platform';
 import type { SidebarItemConfig } from '@/components/ui/sidebar/types';
 
 /** Settings navigation config — add/remove items here; styling never changes. */
@@ -23,29 +25,109 @@ const SETTINGS_NAV: SidebarItemConfig[] = [
 ];
 
 /**
- * Settings navigation, macOS-style:
- *  - A collapse/expand toggle ({@link TitlebarCollapseToggle}) lives next to the
- *    traffic lights.
- *  - Expanded: the full static sidebar panel shows; the toggle collapses it.
- *  - Collapsed: the panel is hidden; clicking the toggle pins it open, and
- *    HOVERING the toggle reveals the nav as a floating flyout menu.
+ * Settings navigation sidebar.
+ *
+ * Platform differences (governed by {@link isWindowsPlatform}):
+ *  - **macOS**: floating {@link TitlebarCollapseToggle} next to the traffic lights.
+ *  - **Windows**: inline gear-icon header row (16px top spacer, gear + "Settings"
+ *    label left-aligned, collapse/expand toggle right-aligned); no overlay chrome.
+ *    When collapsed a narrow icon-only rail is rendered by {@link SettingsLayout}.
  */
 export function SettingsSidebar() {
   const collapsed = useUiStore((s) => s.settingsPaneCollapsed);
   const toggle = useUiStore((s) => s.toggleSettingsPane);
+  const isWindows = isWindowsPlatform();
 
   return (
     <>
-      <TitlebarCollapseToggle
-        collapsed={collapsed}
-        onToggle={toggle}
-        openLabel="Open sidebar"
-        collapseLabel="Collapse sidebar"
-        flyout={<ItemList items={SETTINGS_NAV} expanded />}
-      />
+      {/* macOS: overlay toggle next to traffic lights. */}
+      {!isWindows && (
+        <TitlebarCollapseToggle
+          collapsed={collapsed}
+          onToggle={toggle}
+          openLabel="Open sidebar"
+          collapseLabel="Collapse sidebar"
+          flyout={<ItemList items={SETTINGS_NAV} expanded />}
+        />
+      )}
 
       {/* Expanded panel (static rail). Hidden when collapsed. */}
-      {!collapsed && <Sidebar items={SETTINGS_NAV} label="Settings navigation" />}
+      {!collapsed && (
+        <Sidebar
+          items={SETTINGS_NAV}
+          label="Settings navigation"
+          headerContent={
+            isWindows ? (
+              <>
+                {/* Row 1: empty spacer — clears the Windows title-bar drag region (16px). */}
+                <div className="h-4 shrink-0" aria-hidden />
+
+                {/* Row 2: gear icon + "Settings" label left, collapse toggle right. */}
+                <div className="flex items-center px-3 pb-3">
+                  <SettingsIcon size={20} className="shrink-0 text-foreground" aria-hidden />
+                  <span className="ml-2 text-[15px] font-semibold tracking-tight text-foreground">
+                    Settings
+                  </span>
+                  <button
+                    type="button"
+                    onClick={toggle}
+                    aria-label="Collapse sidebar"
+                    title="Collapse sidebar"
+                    className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded text-foreground/60 hover:bg-accent hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <PanelLeftClose size={14} aria-hidden />
+                  </button>
+                </div>
+              </>
+            ) : undefined
+          }
+        />
+      )}
+
+      {/* Windows collapsed rail: narrow icon-only panel with expand + nav icons. */}
+      {isWindows && collapsed && (
+        <CollapsedSettingsRail onExpand={toggle} items={SETTINGS_NAV} />
+      )}
     </>
+  );
+}
+
+/** Narrow 48px icon-only rail shown on Windows when the settings sidebar is collapsed. */
+function CollapsedSettingsRail({
+  onExpand,
+  items,
+}: {
+  onExpand: () => void;
+  items: SidebarItemConfig[];
+}) {
+  return (
+    <aside
+      aria-label="Settings navigation (collapsed)"
+      className="flex flex-shrink-0 flex-col items-center overflow-hidden rounded-md border border-border bg-sidebar text-sidebar-foreground shadow-sm"
+      style={{
+        width: 48,
+        minWidth: 48,
+        margin: 10,
+        marginRight: 8,
+        height: 'calc(100vh - 20px)',
+        paddingTop: 16,
+      }}
+    >
+      {/* Expand icon */}
+      <button
+        type="button"
+        onClick={onExpand}
+        aria-label="Expand sidebar"
+        title="Expand sidebar"
+        className="mb-2 flex h-8 w-8 items-center justify-center rounded text-foreground/60 hover:bg-accent hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <PanelLeftOpen size={16} aria-hidden />
+      </button>
+
+      {/* Nav icons only (skip section headers and dividers) */}
+      <div className="flex flex-col items-center gap-0.5 w-full">
+        <ItemList items={items.filter((i) => i.type === 'nav' || i.type === 'back')} expanded={false} />
+      </div>
+    </aside>
   );
 }

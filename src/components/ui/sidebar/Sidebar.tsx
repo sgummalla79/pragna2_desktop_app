@@ -1,3 +1,4 @@
+import { type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import {
   SIDEBAR_BOX_INSET_PX,
@@ -40,6 +41,12 @@ interface Props {
   /** ARIA label for the aside element. */
   label?: string;
   className?: string;
+  /**
+   * Optional header rendered above the nav list (Windows inline header).
+   * When provided, the default `paddingTop` (macOS title-row clearance) is
+   * removed — the header is responsible for its own top spacing.
+   */
+  headerContent?: ReactNode;
 }
 
 /**
@@ -52,7 +59,7 @@ interface Props {
  * SettingsSidebar), not here. Geometry comes from `@/constants/windowChrome`;
  * theme tokens only.
  */
-export function Sidebar({ items, width = 240, label = 'Navigation', className }: Props) {
+export function Sidebar({ items, width = 240, label = 'Navigation', className, headerContent }: Props) {
   // 'back' items are pinned to the bottom of the rail — mirroring the chat
   // sidebar's avatar footer — so the scrollable nav fills the space above them.
   const bodyItems = items.filter((item) => item.type !== 'back');
@@ -76,10 +83,15 @@ export function Sidebar({ items, width = 240, label = 'Navigation', className }:
         height: `calc(100vh - ${SIDEBAR_BOX_INSET_PX * 2}px)`,
       }}
     >
+      {/* Windows inline header (gear + title + toggle). Replaces the default
+          paddingTop that clears the macOS traffic-light row. */}
+      {headerContent}
+
       <div
         className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5 px-3 pb-4"
-        // Push the nav below the title row (traffic lights + collapse toggle).
-        style={{ paddingTop: SIDEBAR_TITLE_ROW_PX }}
+        // When a custom header is present it manages its own top spacing;
+        // otherwise push the nav below the macOS title row.
+        style={{ paddingTop: headerContent ? 0 : SIDEBAR_TITLE_ROW_PX }}
       >
         <ItemList items={bodyItems} expanded />
       </div>
