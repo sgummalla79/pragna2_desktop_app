@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
-import { PanelLeft, Search, X } from 'lucide-react';
+import { Outlet, useNavigate } from 'react-router-dom';
+import { PanelLeft, PanelLeftOpen, Plus, MessagesSquare, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   SIDEBAR_BOX_INSET_PX,
@@ -15,6 +15,7 @@ import {
 import { TitlebarCollapseToggle } from '@/components/ui/sidebar/TitlebarCollapseToggle';
 import { isWindowsPlatform } from '@/infrastructure/platform';
 import { useUiStore } from '@/presentation/store/uiStore';
+import { ROUTES } from '@/constants/routes';
 import { ChatSidebar } from './components/ChatSidebar';
 import { ChatsSearchModal } from './components/ChatsSearchModal';
 
@@ -42,6 +43,7 @@ export function ChatView() {
   const collapsed = useUiStore((s) => s.chatPaneCollapsed);
   const toggleCollapsed = useUiStore((s) => s.toggleChatPane);
   const isWindows = isWindowsPlatform();
+  const navigate = useNavigate();
 
   return (
     <div className="flex h-screen bg-background text-foreground">
@@ -112,8 +114,7 @@ export function ChatView() {
         </aside>
       )}
 
-      {/* Windows collapsed state: show a narrow icon-only rail so the inline
-          toggle stays reachable without floating chrome. */}
+      {/* Windows collapsed state: narrow icon-only rail with expand + action icons. */}
       {isWindows && collapsed && (
         <aside
           className={cn(
@@ -128,17 +129,40 @@ export function ChatView() {
             marginLeft: SIDEBAR_BOX_INSET_PX,
             marginRight: SIDEBAR_BOX_GAP_PX,
             height: `calc(100vh - ${SIDEBAR_BOX_INSET_PX * 2}px)`,
-            paddingTop: 12,
+            paddingTop: 16,
           }}
         >
+          {/* Expand icon */}
           <button
             type="button"
             onClick={toggleCollapsed}
             aria-label="Expand conversations"
             title="Expand conversations"
+            className="mb-2 flex h-8 w-8 items-center justify-center rounded text-foreground/60 hover:bg-accent hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <PanelLeftOpen size={16} aria-hidden />
+          </button>
+
+          {/* New Chat */}
+          <button
+            type="button"
+            onClick={() => navigate(ROUTES.CHAT)}
+            aria-label="New Chat"
+            title="New Chat"
+            className="mb-1 flex h-8 w-8 items-center justify-center rounded text-foreground/60 hover:bg-accent hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Plus size={16} aria-hidden />
+          </button>
+
+          {/* Chats */}
+          <button
+            type="button"
+            onClick={() => navigate(ROUTES.CHAT_HISTORY)}
+            aria-label="Chats"
+            title="Chats"
             className="flex h-8 w-8 items-center justify-center rounded text-foreground/60 hover:bg-accent hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <PanelLeft size={16} aria-hidden />
+            <MessagesSquare size={16} aria-hidden />
           </button>
         </aside>
       )}
