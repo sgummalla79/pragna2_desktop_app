@@ -94,7 +94,7 @@ export function ChatSidebar({ onNavigate, collapsed, onToggleCollapsed }: ChatSi
             type="button"
             onClick={() => go(ROUTES.CHAT_HISTORY)}
             className={cn(
-              'flex w-full items-center gap-2 rounded-lg px-2 h-8 text-[13px] transition-colors',
+              'flex w-full items-center gap-2 rounded-lg px-2 h-8 text-[13px] transition-colors mb-8',
               onChats
                 ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                 : 'text-foreground/80 hover:bg-sidebar-hover hover:text-foreground',
