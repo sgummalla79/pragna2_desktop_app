@@ -18,6 +18,17 @@ import {
   LONG_PDF_EPISODE_SENTINEL,
   LONG_PDF_GENERATING_LABEL,
 } from '@/constants/documentTools';
+import {
+  SIDEBAR_BOX_INSET_PX,
+  SIDEBAR_BOX_GAP_PX,
+  SIDEBAR_TITLE_ROW_PX,
+  CHAT_SIDEBAR_WIDTH_PX,
+  TITLEBAR_TOGGLE_LEFT_PX,
+  TOGGLE_BUTTON_PX,
+  TITLE_GAP_PX,
+  TRAFFIC_LIGHT_Y,
+} from '@/constants/windowChrome';
+import { useUiStore } from '@/presentation/store/uiStore';
 import { useRefetchOpenEpisodeOnSettle } from './hooks/useRefetchOpenEpisodeOnSettle';
 import { useChatModels } from './hooks/useChatModels';
 import { useChatPreferences } from '@/presentation/hooks/preferences/useChatPreferences';
@@ -337,14 +348,38 @@ function ChatConversation({
   const activeModelId = conversation?.userModelId ?? null;
   const thinkingEnabled = conversation?.thinkingEnabled ?? false;
 
+  // Left offset for the title in the window title-bar strip. Left-aligned: it
+  // starts after the sidebar box when expanded, and after the traffic lights +
+  // collapse toggle when collapsed (so it never overlaps the window controls).
+  const chatCollapsed = useUiStore((s) => s.chatPaneCollapsed);
+  const titleLeftPx = chatCollapsed
+    ? TITLEBAR_TOGGLE_LEFT_PX + TOGGLE_BUTTON_PX + TITLE_GAP_PX
+    : SIDEBAR_BOX_INSET_PX + CHAT_SIDEBAR_WIDTH_PX + SIDEBAR_BOX_GAP_PX + TITLE_GAP_PX;
+
   return (
-    <div className="flex h-full flex-col">
-      {/* Header. */}
-      <header className="flex items-center gap-2 px-4 pt-8 pb-2">
-        <h1 className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title={title}>
-          {title}
-        </h1>
-      </header>
+    <div
+      className="flex h-full flex-col"
+      // Reserve the overlay title-bar zone (traffic lights + collapse toggle +
+      // the window-title text) so the messages/composer sit cleanly below it.
+      style={{ paddingTop: SIDEBAR_BOX_INSET_PX + SIDEBAR_TITLE_ROW_PX }}
+    >
+      {/* Conversation title shown IN the window title-bar strip (macOS-style) —
+          LEFT-aligned, vertically centered on the traffic lights, starting after
+          the sidebar (expanded) or after the window controls (collapsed). Not a
+          header row above the messages. pointer-events-none keeps the title bar
+          draggable through the text. */}
+      <h1
+        className="pointer-events-none fixed z-[60] truncate text-sm font-medium text-foreground"
+        style={{
+          left: titleLeftPx,
+          top: TRAFFIC_LIGHT_Y,
+          transform: 'translateY(-50%)',
+          maxWidth: `calc(100vw - ${titleLeftPx + TITLE_GAP_PX}px)`,
+        }}
+        title={title}
+      >
+        {title}
+      </h1>
 
       {/* Messages. */}
       <div className="min-h-0 flex-1 overflow-y-auto">

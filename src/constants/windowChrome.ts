@@ -35,13 +35,24 @@ export const SIDEBAR_BOX_GAP_PX = 8;
  *  lights + collapse/drawer toggle; nav content is padded below it, px. */
 export const SIDEBAR_TITLE_ROW_PX = 40;
 
+/** Chat conversation sidebar (desktop rail) width, px. Source of truth — used by
+ *  ChatView's rail and to left-align the conversation title beside it. */
+export const CHAT_SIDEBAR_WIDTH_PX = 260;
+
 /** Left offset of the collapse/drawer toggle button — just right of the
  *  traffic-light group, spaced like the gap between the lights, px. */
-export const TITLEBAR_TOGGLE_LEFT_PX = 88;
+export const TITLEBAR_TOGGLE_LEFT_PX = 86;
 
 /** Toggle icon size. Matched to a macOS traffic-light's height so the icon's
  *  top + bottom line up with the lights (the clickable button stays larger), px. */
 export const TOGGLE_ICON_PX = 14;
+
+/** Clickable box of the collapse/drawer toggle button (matches its h-6 w-6), px. */
+export const TOGGLE_BUTTON_PX = 24;
+
+/** Left gap before the title-bar conversation title, after the sidebar (expanded)
+ *  or the traffic lights + toggle (collapsed), px. */
+export const TITLE_GAP_PX = 12;
 
 /** Fine vertical nudge for the collapse/drawer toggle relative to the lights'
  *  center ({@link TRAFFIC_LIGHT_Y}). Positive = down. Decoupled from the lights

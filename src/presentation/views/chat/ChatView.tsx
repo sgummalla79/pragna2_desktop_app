@@ -6,6 +6,7 @@ import {
   SIDEBAR_BOX_INSET_PX,
   SIDEBAR_BOX_GAP_PX,
   SIDEBAR_TITLE_ROW_PX,
+  CHAT_SIDEBAR_WIDTH_PX,
   TITLEBAR_TOGGLE_LEFT_PX,
   TITLEBAR_TOGGLE_Y_NUDGE_PX,
   TOGGLE_ICON_PX,
@@ -59,10 +60,12 @@ export function ChatView() {
       {!collapsed && (
         <aside
           className={cn(
-            'hidden md:flex w-[260px] min-w-[260px] flex-shrink-0 flex-col overflow-hidden rounded-md',
+            'hidden md:flex flex-shrink-0 flex-col overflow-hidden rounded-md',
             'border border-border bg-sidebar text-sidebar-foreground shadow-sm',
           )}
           style={{
+            width: CHAT_SIDEBAR_WIDTH_PX,
+            minWidth: CHAT_SIDEBAR_WIDTH_PX,
             marginTop: SIDEBAR_BOX_INSET_PX,
             marginBottom: SIDEBAR_BOX_INSET_PX,
             marginLeft: SIDEBAR_BOX_INSET_PX,
