@@ -47,7 +47,7 @@ test.describe('Scenario 14 — Rapid chat switching', () => {
     const conversationUrls: string[] = [];
 
     for (const prompt of RAPID_PROMPTS) {
-      const composer = page.getByPlaceholder(/ask anything|message the assistant|reply/i);
+      const composer = page.getByPlaceholder(/ask .*anything|message the assistant|reply/i);
       // The composer briefly disables between rapid submits while the new-chat
       // route remounts and the prior run's eager-create flush completes.
       await expect(composer).toBeEnabled({ timeout: 15_000 });

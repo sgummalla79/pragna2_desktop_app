@@ -63,7 +63,7 @@ function captureMessages(page: Page): ApiMessage[][] {
 async function runDocPrompt(page: Page, prompt: string): Promise<void> {
   const messagesPayloads = captureMessages(page);
 
-  const composer = page.getByPlaceholder(/ask anything|message the assistant/i);
+  const composer = page.getByPlaceholder(/ask .*anything|message the assistant/i);
   await composer.click();
   await composer.fill(prompt);
   await page.keyboard.press('Enter');

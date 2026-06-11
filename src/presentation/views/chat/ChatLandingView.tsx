@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import PragnaLogo from '@/assets/logo.svg?react';
 import { ROUTES } from '@/constants/routes';
+import { APP_NAME } from '@/constants/api';
 import { useServices } from '@/presentation/providers/ServiceContext';
 import { useDefaultAgent } from '@/presentation/hooks/agents/useAgents';
 import { usePragnaSlashFlows } from '@/presentation/hooks/flows/usePragnaSlashFlows';
@@ -110,7 +111,9 @@ export default function ChatLandingView() {
             disabled={!ready || creating}
             autoFocus
             slashFlows={slashFlows}
-            placeholder={ready ? 'Ask anything…' : 'Connect a model to start chatting…'}
+            placeholder={
+              ready ? `Ask ${APP_NAME} anything…` : 'Connect a model to start chatting…'
+            }
             banner={
               gating ? (
                 <SetupBanner />

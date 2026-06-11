@@ -64,7 +64,7 @@ test.describe('Scenario 19 — create_pdf document tool', () => {
       }
     });
 
-    const composer = page.getByPlaceholder(/ask anything|message the assistant/i);
+    const composer = page.getByPlaceholder(/ask .*anything|message the assistant/i);
     await composer.click();
     await composer.fill(
       'Create a PDF document titled "Quick Note" that summarizes these three ' +

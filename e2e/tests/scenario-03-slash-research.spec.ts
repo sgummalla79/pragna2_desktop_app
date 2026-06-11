@@ -100,7 +100,7 @@ test.describe('Scenario 3 — Single-agent slash flow', () => {
 
     // ── Act — dispatch /research ──
     await page.goto('/chat', { waitUntil: 'networkidle' });
-    const composer = page.getByPlaceholder(/ask anything|message the assistant|reply/i);
+    const composer = page.getByPlaceholder(/ask .*anything|message the assistant|reply/i);
     await composer.click();
     await composer.fill(`/${SLASH_NAME} what is the speed of light`);
     await page.keyboard.press('Enter');

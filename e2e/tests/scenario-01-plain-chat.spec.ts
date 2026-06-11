@@ -41,7 +41,7 @@ test.describe('Scenario 1 — Plain chat', () => {
   test('user message + assistant reply round-trip', async ({ page }) => {
     // The landing composer's placeholder is "Ask anything…" (ChatLandingView);
     // after navigation to the session it becomes "Reply…". Match either.
-    const composer = page.getByPlaceholder(/ask anything|message the assistant|reply/i);
+    const composer = page.getByPlaceholder(/ask .*anything|message the assistant|reply/i);
     await composer.click();
     await composer.fill('In one sentence, what is the capital of France?');
     await page.keyboard.press('Enter');

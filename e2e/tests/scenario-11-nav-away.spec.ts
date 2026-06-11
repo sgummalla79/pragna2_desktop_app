@@ -45,7 +45,7 @@ test.describe('Scenario 11 — Navigate away mid-response', () => {
   }) => {
     await page.goto('/chat', { waitUntil: 'networkidle' });
 
-    const composer = page.getByPlaceholder(/ask anything|message the assistant|reply/i);
+    const composer = page.getByPlaceholder(/ask .*anything|message the assistant|reply/i);
     await composer.click();
     await composer.fill(LONG_PROMPT);
     await page.keyboard.press('Enter');

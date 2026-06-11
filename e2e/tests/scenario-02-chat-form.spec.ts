@@ -26,7 +26,7 @@ const PROMPT = `I want to book a meeting room. Please use ask_user to collect th
 
 /** Submit the composer text. */
 async function sendComposer(page: Page, text: string) {
-  const composer = page.getByPlaceholder(/ask anything|message the assistant|reply/i);
+  const composer = page.getByPlaceholder(/ask .*anything|message the assistant|reply/i);
   await composer.click();
   await composer.fill(text);
   await page.keyboard.press('Enter');

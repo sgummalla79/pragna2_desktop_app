@@ -74,7 +74,7 @@ describe('ChatLandingView', () => {
     renderWithProviders(<ChatLandingView />, { services });
 
     expect(screen.getByRole('heading')).toHaveTextContent(/Good (morning|afternoon|evening)/);
-    expect(await screen.findByPlaceholderText('Ask anything…')).toBeInTheDocument();
+    expect(await screen.findByPlaceholderText('Ask Pragna anything…')).toBeInTheDocument();
   });
 
   it('shows the setup banner and disables sending when there is no chat-eligible model', async () => {
@@ -100,7 +100,7 @@ describe('ChatLandingView', () => {
     const { services, create } = makeServices();
     renderWithProviders(<ChatLandingView />, { services });
 
-    const textarea = await screen.findByPlaceholderText('Ask anything…');
+    const textarea = await screen.findByPlaceholderText('Ask Pragna anything…');
     await userEvent.type(textarea, 'Plan my trip');
     await userEvent.click(screen.getByRole('button', { name: 'Send message' }));
 
@@ -119,7 +119,7 @@ describe('ChatLandingView', () => {
     const { services } = makeServices({ create });
     renderWithProviders(<ChatLandingView />, { services });
 
-    const textarea = await screen.findByPlaceholderText('Ask anything…');
+    const textarea = await screen.findByPlaceholderText('Ask Pragna anything…');
     await userEvent.type(textarea, 'Hello');
     await userEvent.click(screen.getByRole('button', { name: 'Send message' }));
 

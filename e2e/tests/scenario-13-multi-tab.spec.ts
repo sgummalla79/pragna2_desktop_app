@@ -64,7 +64,7 @@ test.describe('Scenario 13 — Multi-tab consistency', () => {
       await tabA.goto('/chat', { waitUntil: 'networkidle' });
 
       // Tab A submits the long prompt.
-      const composerA = tabA.getByPlaceholder(/ask anything|message the assistant|reply/i);
+      const composerA = tabA.getByPlaceholder(/ask .*anything|message the assistant|reply/i);
       await composerA.click();
       await composerA.fill(PROMPT);
       await tabA.keyboard.press('Enter');
