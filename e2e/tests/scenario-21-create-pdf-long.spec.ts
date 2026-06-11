@@ -33,7 +33,7 @@ const HAS_REAL_KEY = Boolean(process.env.E2E_ANTHROPIC_API_KEY);
 
 // A long document on a low OTPM tier is minutes of paced worker calls. We assert
 // completion + attachment, never a tight wall-clock deadline.
-const DOC_CARD_TIMEOUT_MS = 360_000;
+const DOC_CARD_TIMEOUT_MS = 540_000;
 
 /** Captures every GET /messages payload so we can cross-check BE truth. */
 function captureMessages(page: Page): ApiMessage[][] {
@@ -138,11 +138,14 @@ test.describe('Scenario 21 — create_pdf_long fan-out + leak guards', () => {
     await page.goto('/chat', { waitUntil: 'networkidle' });
   });
 
-  // FIXME(CF-003): blocked on a BACKEND PDF-renderer bug — create_pdf_long
-  // raises reportlab `LayoutError: Flowable Table too large on page` on large
-  // architecture_guidance / technical_requirements docs (the fan-out emits a
-  // table cell taller than the page frame, which reportlab can't split). The
-  // fix is in pragna2-api's renderer, not this app. See docs/CODE_FIXES.md CF-003.
+  // NOTE: the backend CF-003 renderer crash is FIXED (pragna2-api
+  // hotfix/pdf-large-table-layout) and verified — the PDF now renders and is
+  // stored+linked. This spec stays fixme for a DIFFERENT, newly-found desktop
+  // bug: CF-005 — create_pdf_long posts the document as a background, post-ack
+  // assistant turn, and the FE never refetches to surface it
+  // (useConversationMessages is staleTime:Infinity with no poll), so the card
+  // only appears after a manual reload. Un-fixme once CF-005 is fixed (see
+  // docs/CODE_FIXES.md CF-005 + docs/TODO.md TD-030).
   test.fixme('large multi-section architecture doc → card, no hang, no JSON leak', async ({
     page,
   }) => {
@@ -168,7 +171,8 @@ test.describe('Scenario 21 — create_pdf_long fan-out + leak guards', () => {
     );
   });
 
-  // FIXME(CF-003): same backend PDF-renderer LayoutError as above — see CODE_FIXES.md.
+  // Same as above: CF-003 (backend) fixed; fixme on CF-005 (FE doesn't surface
+  // the async post-ack document turn). See docs/CODE_FIXES.md CF-005.
   test.fixme('technical_requirements TRD → card, no hang, no JSON leak', async ({
     page,
   }) => {

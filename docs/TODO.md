@@ -37,6 +37,7 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 | [TD-027](#td-027--integration--e2e-test-suite-tiers-1--2--manual-doc) | Integration + E2E test suite (Tiers 1 & 2 + manual doc) | Testing | P2 | ✅ done |
 | [TD-028](#td-028--true-tauri-window-e2e-deferred-to-windows) | True Tauri-window e2e (native seam) — deferred to Windows | Testing | P3 | ⬜ open |
 | [TD-029](#td-029--load--scaling-test-for-concurrent-users) | Load / scaling test for concurrent users | Testing | P3 | ⬜ open |
+| [TD-030](#td-030--async-create_pdf_long-document-does-not-auto-surface-in-chat) | Async create_pdf_long document doesn't auto-surface in chat (CF-005) | Chat | P2 | ⬜ open |
 
 ---
 
@@ -665,6 +666,29 @@ real local stack), plus a desktop-owned manual-testing doc. Plan:
   CF-003). To run the keyed tier: put keys in `/tmp/e2e-keys.env`, `npm run
   setup`, `set -a; . /tmp/e2e-keys.env; set +a; npm test`.
 - **Deferred:** the native Tauri-window seam is TD-028.
+
+---
+
+## TD-030 — Async create_pdf_long document doesn't auto-surface in chat (CF-005)
+
+**Area:** Chat · **Priority:** P2 · **Status:** ⬜ open
+
+**What:** `create_pdf_long` is asynchronous — the chat turn ACKs instantly and the
+document is built in the background, then posted back as a SEPARATE assistant turn
+minutes later. The desktop FE never surfaces that posted-back turn live: the
+messages query (`useConversationMessages`) is `staleTime: Infinity` with no
+`refetchInterval`, and the only refetch fires at the (early) ack-run finalize —
+before the document exists. So the generated PDF card only appears after a manual
+reload/navigation. Found by `scenario-21-create-pdf-long` (the backend renderer
+crash CF-003 is fixed; this is the remaining, separate FE gap). Full write-up:
+`docs/CODE_FIXES.md` CF-005.
+
+**When taken up:** while a `create_pdf_long` request is pending, poll `/messages`
+on a bounded `refetchInterval` until the document turn lands, OR refetch on the
+long-doc episode-completion signal. Compare the web app's create_pdf_long
+surfacing (its `scenario-21` passes, so it has a mechanism the desktop likely
+lacks — probable parity gap) and port the missing piece. Then un-`fixme`
+`scenario-21` ×2.
 
 ---
 
