@@ -5,6 +5,12 @@ import { EntityIcon } from '@/presentation/components/icons/EntityIcon';
 import { Sidebar, ItemList } from '@/components/ui/sidebar/Sidebar';
 import { cn } from '@/lib/utils';
 import { ROUTES } from '@/constants/routes';
+import {
+  TITLEBAR_TOGGLE_LEFT_PX,
+  TITLEBAR_TOGGLE_Y_NUDGE_PX,
+  TOGGLE_ICON_PX,
+  TRAFFIC_LIGHT_Y,
+} from '@/constants/windowChrome';
 import { useUiStore } from '@/presentation/store/uiStore';
 import type { SidebarItemConfig } from '@/components/ui/sidebar/types';
 
@@ -65,8 +71,17 @@ export function SettingsSidebar() {
 
   return (
     <>
-      {/* Title-bar toggle — sits next to the macOS traffic lights. */}
-      <div className="group fixed left-[78px] top-0 z-[70] flex h-[34px] items-center">
+      {/* Title-bar toggle — sits right of the (inset) macOS traffic lights,
+          vertically centered in the sidebar box's title row. */}
+      <div
+        className="group fixed z-[70] flex items-center"
+        // Centered on the (inset) traffic lights' vertical center, with a fine nudge.
+        style={{
+          left: TITLEBAR_TOGGLE_LEFT_PX,
+          top: TRAFFIC_LIGHT_Y + TITLEBAR_TOGGLE_Y_NUDGE_PX,
+          transform: 'translateY(-50%)',
+        }}
+      >
         <button
           type="button"
           onClick={() => {
@@ -93,13 +108,13 @@ export function SettingsSidebar() {
               Expanded → panel (expanded) icon idle, collapse on hover. */}
           {collapsed ? (
             <>
-              <AlignLeft size={16} aria-hidden="true" className="group-hover:hidden" />
-              <PanelLeftOpen size={16} aria-hidden="true" className="hidden group-hover:block" />
+              <AlignLeft size={TOGGLE_ICON_PX} aria-hidden="true" className="group-hover:hidden" />
+              <PanelLeftOpen size={TOGGLE_ICON_PX} aria-hidden="true" className="hidden group-hover:block" />
             </>
           ) : (
             <>
-              <PanelLeft size={16} aria-hidden="true" className="group-hover:hidden" />
-              <PanelLeftClose size={16} aria-hidden="true" className="hidden group-hover:block" />
+              <PanelLeft size={TOGGLE_ICON_PX} aria-hidden="true" className="group-hover:hidden" />
+              <PanelLeftClose size={TOGGLE_ICON_PX} aria-hidden="true" className="hidden group-hover:block" />
             </>
           )}
         </button>

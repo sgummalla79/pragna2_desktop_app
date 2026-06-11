@@ -1,4 +1,9 @@
 import { cn } from '@/lib/utils';
+import {
+  SIDEBAR_BOX_INSET_PX,
+  SIDEBAR_BOX_GAP_PX,
+  SIDEBAR_TITLE_ROW_PX,
+} from '@/constants/windowChrome';
 
 import { SidebarBackItem } from './SidebarBackItem';
 import { SidebarNavItem } from './SidebarNavItem';
@@ -38,22 +43,39 @@ interface Props {
 }
 
 /**
- * Static sidebar panel (the expanded rail). Collapse + the collapsed hover
- * flyout are handled by the title-bar toggle (see SettingsSidebar), not here.
- * `pt-7` clears the overlay title bar's macOS traffic lights. Theme tokens only.
+ * Static sidebar panel (the expanded rail), rendered as a floating rounded
+ * "box" inset from the window edges (window background shows around it). The
+ * macOS traffic lights are inset (see {@link TRAFFIC_LIGHT_X}/`Y` +
+ * tauri.conf.json) to sit INSIDE the box's top-left title row, so the nav
+ * content is padded below that row ({@link SIDEBAR_TITLE_ROW_PX}). Collapse +
+ * the collapsed hover flyout are handled by the title-bar toggle (see
+ * SettingsSidebar), not here. Geometry comes from `@/constants/windowChrome`;
+ * theme tokens only.
  */
 export function Sidebar({ items, width = 240, label = 'Navigation', className }: Props) {
   return (
     <aside
       aria-label={label}
       className={cn(
-        'flex h-full flex-shrink-0 flex-col pt-7',
-        'bg-sidebar text-sidebar-foreground border-r border-border',
+        'flex flex-shrink-0 flex-col overflow-hidden rounded-md',
+        'bg-sidebar text-sidebar-foreground border border-border shadow-sm',
         className,
       )}
-      style={{ width, minWidth: width }}
+      style={{
+        width,
+        minWidth: width,
+        marginTop: SIDEBAR_BOX_INSET_PX,
+        marginBottom: SIDEBAR_BOX_INSET_PX,
+        marginLeft: SIDEBAR_BOX_INSET_PX,
+        marginRight: SIDEBAR_BOX_GAP_PX,
+        height: `calc(100vh - ${SIDEBAR_BOX_INSET_PX * 2}px)`,
+      }}
     >
-      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5 px-3 py-4">
+      <div
+        className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5 px-3 pb-4"
+        // Push the nav below the title row (traffic lights + collapse toggle).
+        style={{ paddingTop: SIDEBAR_TITLE_ROW_PX }}
+      >
         <ItemList items={items} expanded />
       </div>
     </aside>
