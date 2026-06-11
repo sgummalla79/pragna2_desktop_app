@@ -119,7 +119,7 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
-## CF-005 — async create_pdf_long document never auto-surfaces in the chat [OPEN — desktop FE]
+## CF-005 — async create_pdf_long document never auto-surfaces in the chat [FIXED — desktop FE]
 
 - **Date:** 2026-06-11
 - **Area / file:** desktop FE — `src/presentation/hooks/conversations/useConversationMessages.ts`
@@ -136,10 +136,21 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
   gap, not missing data — a fresh fetch renders it, as the seeded `scenario-20` proves.)
 - **Root cause:** no mechanism to refetch `/messages` (or stream the posted-back turn) when a pending
   long-document background episode completes.
-- **Status / fix:** **OPEN (desktop).** Recommended: while a `create_pdf_long` request is pending,
-  poll `/messages` (a bounded `refetchInterval` until the document turn arrives) OR refetch on the
-  long-doc episode-completion signal. Tracked as TD-030. `scenario-21` ×2 stay `test.fixme` on this
-  until fixed. (The backend CF-003 fix is independent and already done.)
-- **Web-app applicability:** **CHECK / likely a parity gap.** The web app's `scenario-21` presumably
-  passes, so it has *some* surfacing mechanism (polling or episode-completion refetch) the desktop
-  lacks. Compare the web app's create_pdf_long surfacing and port the missing piece.
+- **Status / fix:** **FIXED (desktop, 2026-06-11).** Ported the web app's event-driven
+  background-episode attach (NOT polling): `useOpenEpisode` (open-episode lookup) +
+  `useRefetchOpenEpisodeOnSettle` (refetch the open-episode query on the run→settle transition) +
+  `attach()` in `useChatSession` (streams the background episode via a swapped-URL `runAgent` to
+  `POST /api/conversations/{cid}/episodes/{eid}/stream`) + **`replaceMessages` reconciliation** (the
+  real lynchpin — the attach streams the posted-back assistant message with a LangChain *stream* id,
+  while the PDF attachment is keyed by the *persisted BE UUID*; swapping in-memory messages for the
+  persisted list after the run settles makes the attachment → `DocumentCard` lookup resolve) +
+  `ChatSessionView` auto-attach effect + a "Generating your document…" label + the `LONG_PDF_*`
+  constants. Unit tests added (`useEpisodes`, `useRefetchOpenEpisodeOnSettle`). **Validated live:**
+  `scenario-21` ×2 un-`fixme`'d and green — the document card now surfaces with no manual reload.
+  Tracked as TD-030 (done).
+- **Discovery note:** the desktop had **deferred** this whole subsystem with only a generic
+  `useChatSession` comment ("episode attach … and attachments are deferred (see docs/TODO.md)") —
+  **no stable TD-ID**, a gap vs the repo's TODO rule. The comment is now corrected.
+- **Web-app applicability:** **NONE — desktop-only gap.** The web app already has this subsystem
+  (its `scenario-21` passes); CF-005 is the **desktop catching up to the web app** (same direction as
+  CF-002). No web-app change needed.

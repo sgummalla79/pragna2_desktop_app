@@ -107,6 +107,20 @@ export interface ChatSessionApi {
    * and stream its run live. May immediately pause into a {@link pendingInterrupt}.
    */
   startEpisode: (payload: CreateEpisodePayload) => void;
+  /**
+   * Attach to a live background run (`POST …/episodes/{eid}/stream`). The
+   * endpoint replays the episode's event log + streams any live events, so a
+   * `create_pdf_long` document generated after the instant ack posts back into
+   * the transcript with no manual reload (and its "section i of N" progress
+   * feeds the thinking-strip). No-op while a run is already in flight.
+   */
+  attach: (conversationId: string, episodeId: string) => void;
+  /**
+   * Replace the agent's in-memory messages with the authoritative persisted
+   * list (used to reconcile streamed stream-id messages to their BE UUIDs after
+   * a run settles, so attachment / model-attribution lookups resolve). Idempotent.
+   */
+  replaceMessages: (replacement: Message[]) => void;
 }
 
 export interface UseChatSessionOptions {
@@ -137,9 +151,13 @@ export interface UseChatSessionOptions {
  * mirrors the agent's `messages` into local state on every event.
  *
  * `send` is a no-op while a run is in flight — the user must wait or `stop`.
- * Supports default-agent chat and per-turn `/slash` flow dispatch (see
- * `slashFlowNames`); episode attach (HITL) and attachments are deferred (see
- * `docs/TODO.md`).
+ * Supports default-agent chat, per-turn `/slash` flow dispatch (see
+ * `slashFlowNames`), HITL episodes (`startEpisode`/`submitInterrupt`), and
+ * background-run {@link UseChatSession.attach} — used to surface an async
+ * `create_pdf_long` document into the transcript (see `docs/TODO.md` TD-030 /
+ * `docs/CODE_FIXES.md` CF-005). Streamed turns are reconciled to their persisted
+ * BE ids via {@link UseChatSession.replaceMessages} so attachment / model lookups
+ * resolve.
  */
 export function useChatSession(
   options: UseChatSessionOptions = {},
@@ -632,6 +650,48 @@ export function useChatSession(
     [agent, threadId, status, runEpisodeStream],
   );
 
+  const attach = useCallback(
+    (conversationId: string, episodeId: string) => {
+      if (!agent) return;
+      // Already running (the user submitted a turn between the open-episode
+      // query landing the active result and this firing) — don't double-POST;
+      // the active run is authoritative and would deliver the same events.
+      if (status === 'running') return;
+      // Swap the agent URL to the episode stream endpoint; `onRunFinalized`
+      // restores it (same override pattern as slash dispatch / sendWithOverrides).
+      if (overrideUrlRef.current === null) overrideUrlRef.current = agent.url;
+      agent.url = `${API_BASE_URL}/conversations/${encodeURIComponent(
+        conversationId,
+      )}/episodes/${encodeURIComponent(episodeId)}/stream`;
+      // No message push — the endpoint replays the event log + live events; the
+      // standard subscriber chain applies them to `agent.messages` exactly as a
+      // chat run does, and `onRunFinalized` refetches /messages so the
+      // posted-back document's PDF attachment surfaces as a DocumentCard.
+      agent.runAgent({}).catch((e: unknown) => {
+        if (e instanceof Error && e.name === 'AbortError') return;
+        logger.fromError(
+          'CHT_004:attach_rejected',
+          e instanceof Error ? e : new Error(String(e)),
+        );
+      });
+    },
+    [agent, status],
+  );
+
+  // Replace the agent's in-memory message list with the authoritative persisted
+  // list, then mirror to React state. After a tool-using turn (e.g. create_pdf)
+  // or a buffered episode stream, the in-memory final-assistant keeps its
+  // LangChain stream id, so per-message lookups keyed on BE UUIDs (attachments →
+  // the document card, model attribution) miss until reconciled. Idempotent.
+  const replaceMessages = useCallback(
+    (replacement: Message[]) => {
+      if (!agent) return;
+      agent.setMessages(replacement);
+      syncMessages();
+    },
+    [agent, syncMessages],
+  );
+
   const stop = useCallback(() => {
     // A raw episode run (start/resume) bypasses ag-ui's abortRun — cancel its
     // own controller first.
@@ -663,6 +723,8 @@ export function useChatSession(
     pendingInterrupt,
     submitInterrupt,
     startEpisode,
+    attach,
+    replaceMessages,
   };
 }
 

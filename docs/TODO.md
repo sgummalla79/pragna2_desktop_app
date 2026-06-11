@@ -37,7 +37,8 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 | [TD-027](#td-027--integration--e2e-test-suite-tiers-1--2--manual-doc) | Integration + E2E test suite (Tiers 1 & 2 + manual doc) | Testing | P2 | ✅ done |
 | [TD-028](#td-028--true-tauri-window-e2e-deferred-to-windows) | True Tauri-window e2e (native seam) — deferred to Windows | Testing | P3 | ⬜ open |
 | [TD-029](#td-029--load--scaling-test-for-concurrent-users) | Load / scaling test for concurrent users | Testing | P3 | ⬜ open |
-| [TD-030](#td-030--async-create_pdf_long-document-does-not-auto-surface-in-chat) | Async create_pdf_long document doesn't auto-surface in chat (CF-005) | Chat | P2 | ⬜ open |
+| [TD-030](#td-030--async-create_pdf_long-document-does-not-auto-surface-in-chat) | Async create_pdf_long document doesn't auto-surface in chat (CF-005) | Chat | P2 | ✅ done |
+| [TD-031](#td-031--settings-profile-page-not-implemented-placeholder) | Settings Profile page not implemented (placeholder) | Settings | P3 | ⬜ open |
 
 ---
 
@@ -669,26 +670,49 @@ real local stack), plus a desktop-owned manual-testing doc. Plan:
 
 ---
 
+## TD-031 — Settings Profile page not implemented (placeholder)
+
+**Area:** Settings · **Priority:** P3 · **Status:** ⬜ open
+
+**What:** The Settings **Profile** route (`ROUTES.SETTINGS_PROFILE`,
+`/settings/profile`) is wired to the generic `PlaceholderView` ("Coming soon /
+isn't available in the desktop app yet") — it's a shipped-but-empty page. Every
+other settings route now points at a real view; Profile is the only remaining
+placeholder. Surfaced by the deferred-work audit (2026-06-11): the deferral had
+no tracked TD-ID, so this records it per the CLAUDE.md rule
+(`AppRoutes.tsx` now references TD-031 at the route).
+
+**When taken up:** build the Profile view (display/edit the user's
+name/email/settings via `AuthService.updateSettings` / the `/auth/me` data) and
+point the route at it, then remove the placeholder. Reference the web app's
+Profile page for parity.
+
+---
+
 ## TD-030 — Async create_pdf_long document doesn't auto-surface in chat (CF-005)
 
-**Area:** Chat · **Priority:** P2 · **Status:** ⬜ open
+**Area:** Chat · **Priority:** P2 · **Status:** ✅ done (2026-06-11)
 
 **What:** `create_pdf_long` is asynchronous — the chat turn ACKs instantly and the
 document is built in the background, then posted back as a SEPARATE assistant turn
-minutes later. The desktop FE never surfaces that posted-back turn live: the
-messages query (`useConversationMessages`) is `staleTime: Infinity` with no
-`refetchInterval`, and the only refetch fires at the (early) ack-run finalize —
-before the document exists. So the generated PDF card only appears after a manual
-reload/navigation. Found by `scenario-21-create-pdf-long` (the backend renderer
-crash CF-003 is fixed; this is the remaining, separate FE gap). Full write-up:
-`docs/CODE_FIXES.md` CF-005.
+minutes later. The desktop FE never surfaced that posted-back turn (it had no
+background-episode attach + no streamed→persisted message reconciliation — the
+desktop had **deferred** that whole subsystem, while the web app has it), so the
+generated PDF card only appeared after a manual reload. Found by
+`scenario-21-create-pdf-long`. Full write-up: `docs/CODE_FIXES.md` CF-005.
 
-**When taken up:** while a `create_pdf_long` request is pending, poll `/messages`
-on a bounded `refetchInterval` until the document turn lands, OR refetch on the
-long-doc episode-completion signal. Compare the web app's create_pdf_long
-surfacing (its `scenario-21` passes, so it has a mechanism the desktop likely
-lacks — probable parity gap) and port the missing piece. Then un-`fixme`
-`scenario-21` ×2.
+**Resolved (parity port from the web app, NOT polling — event-driven attach):**
+`useOpenEpisode` (open-episode lookup) + `useRefetchOpenEpisodeOnSettle` (refetch
+the open-episode query on the run→settle transition) + `attach()` in
+`useChatSession` (streams the background episode via a swapped-URL `runAgent` to
+`/episodes/{id}/stream`) + `replaceMessages` reconciliation (swap streamed
+stream-id messages for the persisted BE-UUID ones so the attachment → DocumentCard
+lookup resolves) + `ChatSessionView` wiring (auto-attach to the active doc episode
++ a "Generating your document…" label) + `LONG_PDF_EPISODE_SENTINEL`/
+`LONG_PDF_GENERATING_LABEL` constants. Unit tests: `useEpisodes` (4),
+`useRefetchOpenEpisodeOnSettle` (4). **Validated live:** `scenario-21` ×2
+un-`fixme`'d and green against the fixed BE (the document card surfaces with no
+manual reload). This was a desktop-only gap — no web-app fix needed.
 
 ---
 

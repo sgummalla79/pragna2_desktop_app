@@ -138,15 +138,11 @@ test.describe('Scenario 21 — create_pdf_long fan-out + leak guards', () => {
     await page.goto('/chat', { waitUntil: 'networkidle' });
   });
 
-  // NOTE: the backend CF-003 renderer crash is FIXED (pragna2-api
-  // hotfix/pdf-large-table-layout) and verified — the PDF now renders and is
-  // stored+linked. This spec stays fixme for a DIFFERENT, newly-found desktop
-  // bug: CF-005 — create_pdf_long posts the document as a background, post-ack
-  // assistant turn, and the FE never refetches to surface it
-  // (useConversationMessages is staleTime:Infinity with no poll), so the card
-  // only appears after a manual reload. Un-fixme once CF-005 is fixed (see
-  // docs/CODE_FIXES.md CF-005 + docs/TODO.md TD-030).
-  test.fixme('large multi-section architecture doc → card, no hang, no JSON leak', async ({
+  // CF-003 (backend renderer crash) fixed + merged to Releases/V1; CF-005 (FE
+  // never surfaced the async post-ack document) fixed by the background-episode
+  // attach port (useOpenEpisode + attach() + useRefetchOpenEpisodeOnSettle). The
+  // document now posts back into the transcript without a manual reload.
+  test('large multi-section architecture doc → card, no hang, no JSON leak', async ({
     page,
   }) => {
     test.setTimeout(600_000);
@@ -171,9 +167,8 @@ test.describe('Scenario 21 — create_pdf_long fan-out + leak guards', () => {
     );
   });
 
-  // Same as above: CF-003 (backend) fixed; fixme on CF-005 (FE doesn't surface
-  // the async post-ack document turn). See docs/CODE_FIXES.md CF-005.
-  test.fixme('technical_requirements TRD → card, no hang, no JSON leak', async ({
+  // CF-003 + CF-005 fixed (see above).
+  test('technical_requirements TRD → card, no hang, no JSON leak', async ({
     page,
   }) => {
     test.setTimeout(600_000);

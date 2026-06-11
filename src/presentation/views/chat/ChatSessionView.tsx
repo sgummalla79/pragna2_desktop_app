@@ -13,6 +13,12 @@ import {
 } from '@/presentation/hooks/conversations/useConversationMutations';
 import { usePragnaSlashFlows } from '@/presentation/hooks/flows/usePragnaSlashFlows';
 import { useFlows } from '@/presentation/hooks/flows/useFlows';
+import { useOpenEpisode } from '@/presentation/hooks/episodes/useEpisodes';
+import {
+  LONG_PDF_EPISODE_SENTINEL,
+  LONG_PDF_GENERATING_LABEL,
+} from '@/constants/documentTools';
+import { useRefetchOpenEpisodeOnSettle } from './hooks/useRefetchOpenEpisodeOnSettle';
 import { useChatModels } from './hooks/useChatModels';
 import { useChatPreferences } from '@/presentation/hooks/preferences/useChatPreferences';
 import { logger } from '@/infrastructure/logging/logger';
@@ -144,7 +150,55 @@ function ChatConversation({
     pendingInterrupt,
     submitInterrupt,
     startEpisode,
+    attach,
+    replaceMessages,
   } = useChatSession({ threadId: conversationId, initialMessages, slashFlowNames });
+
+  // Reconcile in-memory → persisted once a run settles. A tool-using turn (e.g.
+  // create_pdf) or a buffered episode/attach stream leaves the final-assistant
+  // with its LangChain stream id, so per-message lookups keyed on BE UUIDs
+  // (attachments → the DocumentCard, model attribution) miss until a manual
+  // reload. Swapping to the persisted list (which carries the BE ids +
+  // attachments) fixes it. Never overwrite an in-flight stream (status guard),
+  // and never wipe a just-streamed reply before the /messages refetch lands.
+  useEffect(() => {
+    if (status === 'running') return;
+    if (messages.length === 0) return;
+    if (persisted.length === 0) return;
+    const lastInMemory = messages[messages.length - 1];
+    const lastPersisted = persisted[persisted.length - 1];
+    if (persisted.length !== messages.length || lastInMemory.id !== lastPersisted.id) {
+      replaceMessages(initialMessages);
+    }
+  }, [persisted, messages, status, initialMessages, replaceMessages]);
+
+  // ── Background document episode (create_pdf_long) ──────────────────────────
+  // create_pdf_long acks instantly, then generates the document in a SEPARATE
+  // background episode and posts it back as a later assistant turn + PDF. We
+  // discover that episode and attach to its live stream so the document surfaces
+  // with no manual reload (CF-005 / TD-030). Refetch the open-episode query when
+  // the ack run settles (the doc episode is spawned just before RUN_FINISHED).
+  const openEpisode = useOpenEpisode(conversationId);
+  useRefetchOpenEpisodeOnSettle(status, conversationId);
+
+  // Auto-attach to a live/active episode (mount-with-active, or the doc episode
+  // discovered on settle). Guarded so we don't double-POST while the open-episode
+  // query re-renders, and never while a foreground run is already streaming.
+  const attachedEpisodeIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const ep = openEpisode.data;
+    if (!ep || ep.status !== 'active') return;
+    if (status === 'running') return;
+    if (attachedEpisodeIdRef.current === ep.id) return;
+    attachedEpisodeIdRef.current = ep.id;
+    attach(conversationId, ep.id);
+  }, [openEpisode.data, status, conversationId, attach]);
+
+  // True while a background create_pdf_long document episode is generating —
+  // drives the "Generating your document…" thinking-strip label.
+  const isLongPdfEpisode =
+    openEpisode.data?.status === 'active' &&
+    openEpisode.data?.seedSummary === LONG_PDF_EPISODE_SENTINEL;
 
   // Flows for detecting `propose_flow_*` tool calls → proposal cards.
   const { data: proposalFlows } = useFlows();
@@ -323,7 +377,10 @@ function ChatConversation({
               finishReason={finishReasonById.get(m.id) ?? null}
             />
           ))}
-          <ThinkingStrip active={status === 'running'} label={progressLabel} />
+          <ThinkingStrip
+            active={status === 'running' || Boolean(isLongPdfEpisode)}
+            label={progressLabel ?? (isLongPdfEpisode ? LONG_PDF_GENERATING_LABEL : null)}
+          />
           {status === 'error' && error && (
             <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
               {error}

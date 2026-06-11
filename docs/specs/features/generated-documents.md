@@ -29,12 +29,18 @@ a tiny `AttachmentChip`, and the `create_pdf` tool showed a raw-JSON tool badge.
 - [x] Download a document directly from the card.
 - [x] Suppress the `create_pdf_short` / `create_pdf_long` tool-call badges.
 - [x] Handle expired documents gracefully.
+- [x] Surface an **async `create_pdf_long`** document live — it acks instantly
+  and generates in a background episode, then posts back as a later assistant
+  turn; the chat auto-attaches to that episode's stream so the card appears with
+  no manual reload, showing a "Generating your document…" label meanwhile
+  (CF-005 / TD-030).
 
 **Non-Goals**
 - A dedicated split-view "canvas" reader pane (the desktop reuses its existing
   full-screen `AttachmentViewer` — see `docs/web-app-parity.md`).
-- `create_pdf_long` background-episode progress placeholder/streaming (the long
-  document still appears as a card once attached; live progress is out of scope).
+- Per-section ("section i of N") progress text for `create_pdf_long` beyond the
+  single "Generating your document…" label (the underlying `on_progress`
+  events feed the thinking-strip, but a richer progress UI is out of scope).
 
 ## 3. User Flow
 
