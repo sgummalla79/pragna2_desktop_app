@@ -83,7 +83,7 @@ test.describe('Scenario 11 — Navigate away mid-response', () => {
 
     // The conversation got a real auto-title (NOT "New chat"), shown in the
     // session header <h1> (ChatSessionView).
-    const headerTitle = (await page.locator('header h1').first().textContent()) ?? '';
+    const headerTitle = (await page.getByTestId('conversation-title').textContent()) ?? '';
     expect(headerTitle.trim()).not.toMatch(/^new chat$/i);
     expect(headerTitle.trim().length).toBeGreaterThan(3);
   });

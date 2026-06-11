@@ -369,6 +369,7 @@ function ChatConversation({
           header row above the messages. pointer-events-none keeps the title bar
           draggable through the text. */}
       <h1
+        data-testid="conversation-title"
         className="pointer-events-none fixed z-[60] truncate text-sm font-medium text-foreground"
         style={{
           left: titleLeftPx,

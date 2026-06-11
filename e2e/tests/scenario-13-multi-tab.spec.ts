@@ -109,8 +109,8 @@ test.describe('Scenario 13 — Multi-tab consistency', () => {
       expect(remainder === '' || /^by\s+.+/.test(remainder)).toBe(true);
 
       // Both tabs resolved the same non-placeholder auto-title (session <h1>).
-      const titleA = (await tabA.locator('header h1').first().textContent()) ?? '';
-      const titleB = (await tabB.locator('header h1').first().textContent()) ?? '';
+      const titleA = (await tabA.getByTestId('conversation-title').textContent()) ?? '';
+      const titleB = (await tabB.getByTestId('conversation-title').textContent()) ?? '';
       expect(titleA.trim()).toBe(titleB.trim());
       expect(titleA.trim().toLowerCase()).not.toBe('new chat');
     } finally {
