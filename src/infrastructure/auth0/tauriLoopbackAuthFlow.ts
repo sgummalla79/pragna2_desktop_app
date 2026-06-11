@@ -1,5 +1,6 @@
 import { start, cancel, onUrl, onInvalidUrl } from '@fabianlars/tauri-plugin-oauth';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { isTauriRuntime } from '@/infrastructure/platform';
 import type {
   AuthorizationResult,
   IExternalAuthorizationFlow,
@@ -80,11 +81,6 @@ const SUCCESS_HTML = `<!doctype html>
   <script>window.setTimeout(function(){ try { window.close(); } catch (e) {} }, 2000);</script>
 </body>
 </html>`;
-
-/** True when running inside the Tauri webview (loopback flow requires it). */
-function isTauriRuntime(): boolean {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
-}
 
 /**
  * Parse a captured redirect into an absolute URL. tauri-plugin-oauth may hand us

@@ -1,11 +1,7 @@
 import axios from 'axios';
 import { API_BASE_URL } from '@/constants/api';
+import { isTauriRuntime } from '@/infrastructure/platform';
 import { tauriHttpAdapter } from './tauriHttpAdapter';
-
-/** True when running inside the Tauri webview (native HTTP available). */
-function isTauriRuntime(): boolean {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
-}
 
 export const axiosClient = axios.create({
   baseURL: API_BASE_URL,

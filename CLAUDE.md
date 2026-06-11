@@ -89,6 +89,24 @@ src-tauri/
   affected pages render and remain usable from narrow → wide widths. Do not commit UI that breaks
   or overflows at smaller sizes.
 
+### Platform Abstraction — Strict Rule
+
+All platform-specific code (OS detection, OS API wrappers, platform-conditional behaviour) must live in dedicated platform layers. **Never scatter platform checks across business or infrastructure code.**
+
+- **Frontend:** `src/infrastructure/platform/` is the **only** entry point for platform concerns.
+  No other file may define `isTauriRuntime()` or reference OS-specific APIs directly.
+  Import `isTauriRuntime` and OS store wrappers exclusively from `@/infrastructure/platform`.
+- **Tauri config:** Platform-conditional window and bundle settings **must** live in
+  `tauri.macos.conf.json` (macOS) and `tauri.windows.conf.json` (Windows).
+  `tauri.conf.json` must contain only settings that are identical across all supported platforms.
+- **Rust:** Any `#[cfg(target_os = …)]` / `#[cfg(windows)]` code must be isolated in
+  `src-tauri/src/platform/`. No platform `cfg` attributes in `lib.rs` or the
+  domain / application / adapters layers.
+
+**Why:** Scattered platform checks make it easy to miss a case when adding Linux, break
+silently on cross-platform regression, and hard to audit what actually differs between OSes.
+A dedicated layer means: one place to read, one place to change, one place to test.
+
 ### Error Handling
 - Explicit error handling everywhere — no silent fallbacks, no swallowed errors, no untyped rejections.
 - Use typed error enums per layer; propagate with `?` and convert at layer boundaries.

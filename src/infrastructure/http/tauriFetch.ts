@@ -1,9 +1,5 @@
 import { fetch as tauriPluginFetch } from '@tauri-apps/plugin-http';
-
-/** True when running inside the Tauri webview (native HTTP available). */
-function isTauriRuntime(): boolean {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
-}
+import { isTauriRuntime } from '@/infrastructure/platform';
 
 /**
  * A `fetch` implementation that bypasses the webview's CORS policy.
