@@ -2,8 +2,6 @@
   "app": {
     "windows": [
       {
-        "titleBarStyle": "Overlay",
-        "hiddenTitle": true,
         "trafficLightPosition": { "x": 22, "y": 28 }
       }
     ]
