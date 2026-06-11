@@ -124,9 +124,14 @@ function CollapsedSettingsRail({
         <PanelLeftOpen size={16} aria-hidden />
       </button>
 
-      {/* Nav icons only (skip section headers and dividers) */}
-      <div className="flex flex-col items-center gap-0.5 w-full">
-        <ItemList items={items.filter((i) => i.type === 'nav' || i.type === 'back')} expanded={false} />
+      {/* Nav icons — scrollable, fills remaining space */}
+      <div className="flex min-h-0 flex-1 flex-col items-center gap-0.5 overflow-y-auto w-full">
+        <ItemList items={items.filter((i) => i.type === 'nav')} expanded={false} />
+      </div>
+
+      {/* Back to Chat — pinned to the bottom */}
+      <div className="flex flex-col items-center gap-0.5 pb-2 w-full">
+        <ItemList items={items.filter((i) => i.type === 'back')} expanded={false} />
       </div>
     </aside>
   );
