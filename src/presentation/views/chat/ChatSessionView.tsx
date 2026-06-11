@@ -340,7 +340,7 @@ function ChatConversation({
   return (
     <div className="flex h-full flex-col">
       {/* Header. */}
-      <header className="flex items-center gap-2 border-b border-border px-4 pt-8 pb-2">
+      <header className="flex items-center gap-2 px-4 pt-8 pb-2">
         <h1 className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title={title}>
           {title}
         </h1>
@@ -400,7 +400,7 @@ function ChatConversation({
       </div>
 
       {/* Composer. */}
-      <div className="border-t border-border bg-background px-4 py-3">
+      <div className="bg-background px-4 py-3">
         <div className="mx-auto w-full max-w-3xl">
           <ChatInput
             value={draft}
