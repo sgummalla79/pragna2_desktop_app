@@ -166,9 +166,9 @@ export function ChatView() {
             <MessagesSquare size={16} aria-hidden />
           </button>
 
-          {/* Avatar — pinned to the bottom */}
+          {/* Avatar — pinned to the bottom, icon only */}
           <div className="mt-auto pb-2">
-            <AvatarMenu />
+            <AvatarMenu iconOnly />
           </div>
         </aside>
       )}
