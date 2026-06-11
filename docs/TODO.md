@@ -670,6 +670,47 @@ real local stack), plus a desktop-owned manual-testing doc. Plan:
 
 ---
 
+## TD-032 — Investigate e2e BE "degradation" under sustained load (create_pdf_long event-loop blocking?)
+
+**Area:** Backend (`pragna2-api`) · Testing · **Priority:** P2 · **Status:** ⬜ open
+
+**What:** Surfaced 2026-06-11 while running the full keyed e2e suite before
+merging the `ui-polish-batch` UI work. Over a ~20-minute live run, specs that had
+just passed cleanly (connectors/knowledge/sketchon/auth) plus the multi-tab spec
+(scenario-13) started failing — empty assistant replies, slow `/chat`, timeouts.
+A **fresh stack made them all pass again**, so it's stack saturation, not the
+desktop FE (the UI branch is FE-only and doesn't touch streaming/BE/PDF).
+
+**Likely cause (inferred, not yet proven):** the test BE is launched as a
+**single uvicorn worker** (`uvicorn src.presentation.main:app …`, no `--workers`,
+`APP_ENV=dev` — see `e2e/scripts/setup-stack.sh`). During the run,
+`create_pdf_long` ran for **~15 min** (reportlab rendering is synchronous CPU
+work) while chat specs held open SSE streams. On one async worker, a long/heavy
+job + accumulated streams starves concurrent requests. The degraded-run BE logs
+were overwritten by the next `setup`, so this is inferred from the worker config
++ the 15-min slow-file flag, not the failing run's logs.
+
+**The real question to answer:** does `create_pdf_long`'s PDF rendering **block
+the event loop** (synchronous reportlab on the loop) instead of being offloaded
+to a thread/process pool or a background worker? If it blocks, one PDF job stalls
+its whole worker — a genuine concurrency concern even in production (per worker),
+not just a test artifact.
+
+**When taken up (backend task, separate from the FE):**
+1. Confirm whether `create_pdf_long` rendering runs in a threadpool / executor /
+   background worker vs. on the event loop; offload it if it blocks.
+2. Reproduce a long e2e run and watch the worker (event-loop lag, asyncpg pool
+   usage, memory) to root-cause precisely.
+3. Test-harness hygiene: run `create_pdf_long` isolated/last, give the test BE
+   `--workers > 1`, and/or reset DB state between specs so one heavy spec can't
+   degrade later ones.
+
+**Related:** [TD-029](#td-029--load--scaling-test-for-concurrent-users)
+(load/scaling test) — same "behavior under load" theme; the serial e2e suite
+(TD-027) verifies correctness, not scale.
+
+---
+
 ## TD-031 — Settings Profile page not implemented (placeholder)
 
 **Area:** Settings · **Priority:** P3 · **Status:** ⬜ open
