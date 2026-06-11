@@ -13,6 +13,7 @@ import {
   TOGGLE_ICON_PX,
 } from '@/constants/windowChrome';
 import { TitlebarCollapseToggle } from '@/components/ui/sidebar/TitlebarCollapseToggle';
+import { isWindowsPlatform } from '@/infrastructure/platform';
 import { useUiStore } from '@/presentation/store/uiStore';
 import { ChatSidebar } from './components/ChatSidebar';
 import { ChatsSearchModal } from './components/ChatsSearchModal';
@@ -22,12 +23,16 @@ import { ChatsSearchModal } from './components/ChatsSearchModal';
  *
  * Responsive by design:
  *  - `md` and up: an inset, rounded sidebar "box" beside the content. A collapse
- *    toggle next to the (inset) macOS traffic lights hides the rail and reveals
- *    it as a hover flyout while collapsed — same behavior as the settings
- *    sidebar (see {@link TitlebarCollapseToggle}). The choice is persisted.
+ *    toggle hides the rail. On macOS it floats in the title bar next to the
+ *    traffic lights ({@link TitlebarCollapseToggle}); on Windows it is inlined
+ *    in the sidebar header row. The choice is persisted.
  *  - below `md`: the rail is hidden; a hamburger (right of the traffic lights)
  *    opens the sidebar as an overlay drawer that closes on backdrop tap or
  *    navigation.
+ *
+ * Platform-conditional UI (via {@link isWindowsPlatform}):
+ *  - **macOS**: overlay {@link TitlebarCollapseToggle} + search button in title bar.
+ *  - **Windows**: inline collapse toggle inside the sidebar header; no search button.
  *
  * Box/title-row geometry comes from `@/constants/windowChrome`; theme tokens only.
  */
@@ -36,47 +41,51 @@ export function ChatView() {
   const [searchOpen, setSearchOpen] = useState(false);
   const collapsed = useUiStore((s) => s.chatPaneCollapsed);
   const toggleCollapsed = useUiStore((s) => s.toggleChatPane);
+  const isWindows = isWindowsPlatform();
 
   return (
     <div className="flex h-screen bg-background text-foreground">
-      {/* Desktop collapse toggle (md+ only) — next to the traffic lights. The
-          `hidden md:block` wrapper hides the fixed toggle below md, where the
-          mobile drawer hamburger is used instead. */}
-      <div className="hidden md:block">
-        <TitlebarCollapseToggle
-          collapsed={collapsed}
-          onToggle={toggleCollapsed}
-          openLabel="Open conversations"
-          collapseLabel="Collapse conversations"
-          flyout={
-            // Bounded height so the tall conversation list scrolls inside the
-            // flyout (ChatSidebar is h-full).
-            <div className="h-[70vh]">
-              <ChatSidebar />
-            </div>
-          }
-        />
-      </div>
+      {/* macOS only: floating collapse toggle next to the traffic lights.
+          Hidden on Windows (the toggle lives inside the sidebar header there)
+          and hidden below md (mobile uses the drawer hamburger instead). */}
+      {!isWindows && (
+        <div className="hidden md:block">
+          <TitlebarCollapseToggle
+            collapsed={collapsed}
+            onToggle={toggleCollapsed}
+            openLabel="Open conversations"
+            collapseLabel="Collapse conversations"
+            flyout={
+              <div className="h-[70vh]">
+                <ChatSidebar />
+              </div>
+            }
+          />
+        </div>
+      )}
 
-      {/* Search button — sits just right of the collapse/drawer toggle in the
-          title-bar strip (both desktop and mobile). Opens the "all chats" search
-          modal. */}
-      <button
-        type="button"
-        onClick={() => setSearchOpen(true)}
-        aria-label="Search chats"
-        title="Search chats"
-        className="fixed z-[70] flex h-6 w-6 items-center justify-center rounded text-foreground/70 hover:bg-accent hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        style={{
-          left: TITLEBAR_SEARCH_LEFT_PX,
-          top: TITLEBAR_ACTION_TOP_PX,
-          transform: 'translateY(-50%)',
-        }}
-      >
-        <Search size={TOGGLE_ICON_PX} aria-hidden />
-      </button>
+      {/* macOS only: search button in the title-bar strip.
+          Windows has no title-bar search icon. */}
+      {!isWindows && (
+        <>
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            aria-label="Search chats"
+            title="Search chats"
+            className="fixed z-[70] flex h-6 w-6 items-center justify-center rounded text-foreground/70 hover:bg-accent hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            style={{
+              left: TITLEBAR_SEARCH_LEFT_PX,
+              top: TITLEBAR_ACTION_TOP_PX,
+              transform: 'translateY(-50%)',
+            }}
+          >
+            <Search size={TOGGLE_ICON_PX} aria-hidden />
+          </button>
 
-      <ChatsSearchModal open={searchOpen} onOpenChange={setSearchOpen} />
+          <ChatsSearchModal open={searchOpen} onOpenChange={setSearchOpen} />
+        </>
+      )}
 
       {/* Desktop rail, as an inset rounded box. Hidden when collapsed. */}
       {!collapsed && (
@@ -93,10 +102,44 @@ export function ChatView() {
             marginLeft: SIDEBAR_BOX_INSET_PX,
             marginRight: SIDEBAR_BOX_GAP_PX,
             height: `calc(100vh - ${SIDEBAR_BOX_INSET_PX * 2}px)`,
-            paddingTop: SIDEBAR_TITLE_ROW_PX,
+            paddingTop: isWindows ? 0 : SIDEBAR_TITLE_ROW_PX,
           }}
         >
-          <ChatSidebar />
+          <ChatSidebar
+            collapsed={isWindows ? collapsed : undefined}
+            onToggleCollapsed={isWindows ? toggleCollapsed : undefined}
+          />
+        </aside>
+      )}
+
+      {/* Windows collapsed state: show a narrow icon-only rail so the inline
+          toggle stays reachable without floating chrome. */}
+      {isWindows && collapsed && (
+        <aside
+          className={cn(
+            'hidden md:flex flex-shrink-0 flex-col items-center overflow-hidden rounded-md',
+            'border border-border bg-sidebar text-sidebar-foreground shadow-sm',
+          )}
+          style={{
+            width: 48,
+            minWidth: 48,
+            marginTop: SIDEBAR_BOX_INSET_PX,
+            marginBottom: SIDEBAR_BOX_INSET_PX,
+            marginLeft: SIDEBAR_BOX_INSET_PX,
+            marginRight: SIDEBAR_BOX_GAP_PX,
+            height: `calc(100vh - ${SIDEBAR_BOX_INSET_PX * 2}px)`,
+            paddingTop: 12,
+          }}
+        >
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            aria-label="Expand conversations"
+            title="Expand conversations"
+            className="flex h-8 w-8 items-center justify-center rounded text-foreground/60 hover:bg-accent hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <PanelLeft size={16} aria-hidden />
+          </button>
         </aside>
       )}
 
@@ -106,7 +149,6 @@ export function ChatView() {
         onClick={() => setDrawerOpen(true)}
         aria-label="Open conversations"
         className="md:hidden fixed z-[70] flex h-6 w-6 items-center justify-center rounded text-foreground/70 hover:bg-accent hover:text-foreground"
-        // Centered on the (inset) traffic lights' vertical center, with a fine nudge.
         style={{
           left: TITLEBAR_TOGGLE_LEFT_PX,
           top: TITLEBAR_ACTION_TOP_PX,
