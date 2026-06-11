@@ -37,7 +37,11 @@ export function ModelPicker({ userModelId, onModelChange }: ModelPickerProps) {
       <SelectTrigger
         size="sm"
         aria-label="Switch model"
-        className="rounded-full border-border text-[12px] font-medium text-muted-foreground"
+        // Fully blend into the composer: no border + no fill (the shadcn
+        // SelectTrigger base adds `border border-input` AND a dark-mode
+        // `dark:bg-input/30` fill — both overridden here via twMerge). Just a
+        // subtle hover, matching the web app's borderless model pill.
+        className="rounded-full border-transparent bg-transparent text-[12px] font-medium text-muted-foreground hover:bg-accent dark:bg-transparent dark:hover:bg-accent"
       >
         <SelectValue />
       </SelectTrigger>

@@ -320,7 +320,7 @@ export function ChatInput({
         autoFocus={autoFocus}
         disabled={disabled}
         className={cn(
-          'max-h-48 min-h-11 w-full resize-none overflow-y-auto bg-transparent px-1.5 py-1.5 text-[15px] leading-relaxed',
+          'max-h-48 min-h-16 w-full resize-none overflow-y-auto bg-transparent px-1.5 py-2 text-[15px] leading-relaxed',
           'text-foreground placeholder:text-muted-foreground outline-none',
           'field-sizing-content disabled:opacity-60',
         )}
