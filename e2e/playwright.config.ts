@@ -17,6 +17,14 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
   globalSetup: './global-setup.ts',
+  // Default per-test cap. Playwright's built-in default is 30s, which silently
+  // overrode longer per-assertion waits (e.g. a 60s "reply" expect) in specs
+  // that didn't set their own — a stale contradiction. 120s comfortably covers a
+  // normal live reply (model-bound, measured ~1.3–14s); the few genuinely long
+  // specs (multi-agent flows, create_pdf_long) raise it via test.setTimeout /
+  // describe.configure. This is a correctness cap, not a perf guard (see
+  // e2e/helpers/timeouts.ts).
+  timeout: 120_000,
   fullyParallel: false, // one shared backing DB; tests serialize for now
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

@@ -18,6 +18,7 @@
  */
 import { test, expect } from '../fixtures';
 import { psql } from '../helpers/db';
+import { TIMEOUTS } from '../helpers/timeouts';
 
 const HAS_REAL_KEY = Boolean(process.env.E2E_ANTHROPIC_API_KEY);
 
@@ -48,24 +49,24 @@ test.describe('Scenario 1 — Plain chat', () => {
     // ── User bubble appears immediately (FE optimistically commits) ──
     await expect(page.locator('[data-role="user"]').last()).toContainText(
       /capital of France/i,
-      { timeout: 5_000 },
+      { timeout: TIMEOUTS.UI_COMMIT },
     );
 
     // ── The Stop button replaces Send while the run streams ──
     // (aria-label="Stop generating" per ChatInput.tsx). Earliest deterministic
-    // signal that the BE accepted the turn.
+    // signal that the BE accepted the turn (app-controlled → tight).
     await expect(
       page.getByRole('button', { name: /stop generating/i }),
-    ).toBeVisible({ timeout: 30_000 });
+    ).toBeVisible({ timeout: TIMEOUTS.RUN_ACCEPT });
 
     // ── A streaming assistant bubble appears ──
     const assistantBubble = page.locator('[data-role="assistant"]').last();
-    await expect(assistantBubble).toBeVisible({ timeout: 30_000 });
+    await expect(assistantBubble).toBeVisible({ timeout: TIMEOUTS.FE_SETTLE });
 
-    // ── Wait for streaming to finish (Stop reverts to Send) ──
+    // ── Wait for streaming to finish (Stop reverts to Send) — model time ──
     await expect(
       page.getByRole('button', { name: /stop generating/i }),
-    ).toHaveCount(0, { timeout: 60_000 });
+    ).toHaveCount(0, { timeout: TIMEOUTS.CHAT_REPLY });
 
     // ── Shape assertions on the final reply ──
     // We do NOT assert exact content. We DO assert the reply has material text

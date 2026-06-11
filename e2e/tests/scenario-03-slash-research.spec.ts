@@ -25,6 +25,7 @@
  */
 import { test, expect } from '../fixtures';
 import { db, psql } from '../helpers/db';
+import { TIMEOUTS } from '../helpers/timeouts';
 import {
   configureChatAgent,
   connectViaStore,
@@ -107,18 +108,19 @@ test.describe('Scenario 3 — Single-agent slash flow', () => {
     // ── Assert — slash dispatch + reply ──
     await expect(page.locator('[data-role="user"]').last()).toContainText(
       new RegExp(`/${SLASH_NAME}\\b.*speed of light`, 'i'),
-      { timeout: 5_000 },
+      { timeout: TIMEOUTS.UI_COMMIT },
     );
 
-    // The ThinkingStrip surfaces the agent display name during the run.
+    // The ThinkingStrip surfaces the agent display name during the run (run
+    // accepted/started — app-controlled, tight).
     await expect(page.getByText(new RegExp(AGENT_DISPLAY, 'i'))).toBeVisible({
-      timeout: 30_000,
+      timeout: TIMEOUTS.RUN_ACCEPT,
     });
 
-    // Run-complete: Stop reverts to Send.
+    // Run-complete: Stop reverts to Send (model time — generous).
     await expect(
       page.getByRole('button', { name: /stop generating/i }),
-    ).toHaveCount(0, { timeout: 60_000 });
+    ).toHaveCount(0, { timeout: TIMEOUTS.CHAT_REPLY });
 
     // Tolerant content assertion — the factual prompt has a stable answer.
     const reply = await page.locator('[data-role="assistant"]').last().textContent();
