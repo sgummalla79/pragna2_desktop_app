@@ -274,7 +274,7 @@ export function useChatSession(
         setStreamingMessageIds(new Set());
         if (
           e instanceof Error &&
-          (e.name === 'AbortError' || /aborted/i.test(e.message))
+          (e.name === 'AbortError' || /aborted|cancel/i.test(e.message))
         ) {
           setStatus('idle');
           setProgressLabel(null);
@@ -503,7 +503,10 @@ export function useChatSession(
       agent.runAgent(runParams).catch((e: unknown) => {
         // runAgent rejects when the subscriber chain throws; onRunFailed already
         // updated state. Log any unhandled rejection path.
-        if (e instanceof Error && e.name === 'AbortError') return;
+        if (
+          e instanceof Error &&
+          (e.name === 'AbortError' || /aborted|cancel/i.test(e.message))
+        ) return;
         logger.fromError(
           'CHT_004:run_rejected',
           e instanceof Error ? e : new Error(String(e)),
@@ -594,7 +597,7 @@ export function useChatSession(
       } catch (e) {
         if (
           e instanceof Error &&
-          (e.name === 'AbortError' || /abort/i.test(e.message))
+          (e.name === 'AbortError' || /abort|cancel/i.test(e.message))
         ) {
           // user-initiated unwind (Stop / navigation) — silent
         } else {
@@ -668,7 +671,10 @@ export function useChatSession(
       // chat run does, and `onRunFinalized` refetches /messages so the
       // posted-back document's PDF attachment surfaces as a DocumentCard.
       agent.runAgent({}).catch((e: unknown) => {
-        if (e instanceof Error && e.name === 'AbortError') return;
+        if (
+          e instanceof Error &&
+          (e.name === 'AbortError' || /aborted|cancel/i.test(e.message))
+        ) return;
         logger.fromError(
           'CHT_004:attach_rejected',
           e instanceof Error ? e : new Error(String(e)),
