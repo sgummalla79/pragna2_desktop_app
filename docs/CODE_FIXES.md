@@ -243,3 +243,26 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 - **Web-app applicability:** **NOT AFFECTED.** This is a Tauri desktop-shell config concern
   (`tauri.*.conf.json` window definitions + platform-config merge semantics). The web app has no
   Tauri config and no native window chrome, so there is no equivalent bug.
+
+---
+
+## CF-009 — Agent Flows empty state was an inconsistent dashed box with no icon
+
+- **Date:** 2026-06-11
+- **Area / file:** `src/presentation/views/settings/FlowsView/FlowsView.tsx`
+- **Bug:** With no flows defined, the Agent Flows page rendered a dashed-border box containing only
+  the plain text "No flows yet…". Every sibling settings page (Agents, Connectors, Knowledge) shows
+  a centred `size={40}` entity icon at `opacity-30` above the "No X yet" line — the Flows empty
+  state was the odd one out, with no icon and a different container, so it read as a stray box rather
+  than the intended empty state.
+- **Root cause:** The empty state was hand-rolled (`rounded-xl border border-dashed … p-8`) instead
+  of following the shared icon-empty-state pattern the other three pages use, and it never rendered
+  the `FlowsIcon` (whose own docstring lists "the empty state" as an intended usage).
+- **Fix:** Replace the dashed box with the sibling pattern — `<div className="py-16 text-center
+  text-muted-foreground">` containing `<FlowsIcon size={40} className="mx-auto mb-3 opacity-30" />`
+  above the text. Uses the same `FlowsIcon` glyph as the Settings menu item and page header, so the
+  empty state now matches Agents/Connectors/Knowledge and the feature's iconography.
+- **Web-app applicability:** **LIKELY AFFECTED — check.** The web app shares the settings views and
+  the same FlowsView/empty-state pattern. If its Agent Flows page still uses a dashed-box text-only
+  empty state, apply the same icon-empty-state treatment for consistency with its other settings
+  pages.

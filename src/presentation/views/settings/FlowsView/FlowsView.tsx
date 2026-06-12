@@ -1,4 +1,5 @@
 import { EntityIcon } from '@/presentation/components/icons/EntityIcon';
+import { FlowsIcon } from '@/presentation/components/icons/FlowsIcon';
 import { ERRORS } from '@/constants/errors';
 import { useFlows } from '@/presentation/hooks/flows/useFlows';
 import { FlowCard } from './FlowCard';
@@ -32,10 +33,9 @@ export default function FlowsView() {
       {isError && <p className="text-sm text-destructive">{ERRORS.FLW_001.message}</p>}
 
       {!isLoading && !isError && (flows?.length ?? 0) === 0 && (
-        <div className="rounded-xl border border-dashed border-border p-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            No flows yet. Create your first flow to get started.
-          </p>
+        <div className="py-16 text-center text-muted-foreground">
+          <FlowsIcon size={40} className="mx-auto mb-3 opacity-30" />
+          <p>No flows yet. Create your first flow to get started.</p>
         </div>
       )}
 
