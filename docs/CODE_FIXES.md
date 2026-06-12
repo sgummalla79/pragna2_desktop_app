@@ -208,3 +208,38 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 - **Web-app applicability:** **NOT AFFECTED.** The keychain path is Tauri-only (`keyring` crate +
   `isTauriRuntime()`-guarded wrapper). The web app has no OS keychain and persists sessions via
   browser storage, so there is no equivalent denied-read crash to fix.
+
+---
+
+## CF-008 — macOS native title bar reappeared ("Tauri App") after a Windows config change
+
+- **Date:** 2026-06-11
+- **Area / file:** `src-tauri/tauri.macos.conf.json`, `src-tauri/tauri.windows.conf.json`
+  (regression introduced by commit `5fbbebe`), guarded by
+  `src/__tests__/tauriWindowConfig.test.ts`
+- **Found by:** macOS dev build — the window showed the native title bar with the default **"Tauri
+  App"** title and the chat sidebar dropped below it, instead of the intended overlay title bar with
+  inset traffic lights. Windows UI work had silently broken the Mac chrome.
+- **Bug:** On macOS the window lost `titleBarStyle: "Overlay"` + `hiddenTitle: true` (native title
+  bar shown) and also reverted `title` to the Tauri default `"Tauri App"` and the size to Tauri
+  defaults. Windows was fine because it uses `decorations: false`.
+- **Root cause:** Tauri 2 merges `tauri.<platform>.conf.json` into `tauri.conf.json` using **JSON
+  Merge Patch (RFC 7386)**: objects deep-merge, but **arrays are replaced wholesale**. `app.windows`
+  is an array, so each platform file's `windows[0]` *replaces* the base window entirely on that
+  platform — any key not physically present in the platform file reverts to a Tauri default. Commit
+  `5fbbebe` moved `titleBarStyle`/`hiddenTitle` *out* of `tauri.macos.conf.json` into the shared
+  base "so Windows dev picks them up"; on macOS the array-replace then dropped them (the base values
+  never reach a platform that overrides `windows`), and the native title bar returned. The "Tauri
+  App" title was the same array-replace dropping the base `title: "Pragna"` — it was always being
+  lost on macOS, just masked while the title bar was hidden.
+- **Fix:** Make each platform's `windows[0]` **self-contained** — repeat all shared keys (`title`,
+  `width`, `height`, `minWidth`, `minHeight`) in every platform file alongside its platform-specific
+  keys (`titleBarStyle`/`hiddenTitle`/`trafficLightPosition` on macOS; `decorations: false` on
+  Windows). Nothing window-related is split across base + platform anymore, so the array-replace can
+  never silently drop a setting. Added `tauriWindowConfig.test.ts` to fail loudly if the shared keys
+  ever drift between files or the platform-critical chrome keys go missing (JSON can't carry a
+  warning comment, so the invariant is enforced by a test). Side benefit: Windows now opens at the
+  intended `1100×760` instead of Tauri's default `800×600`.
+- **Web-app applicability:** **NOT AFFECTED.** This is a Tauri desktop-shell config concern
+  (`tauri.*.conf.json` window definitions + platform-config merge semantics). The web app has no
+  Tauri config and no native window chrome, so there is no equivalent bug.
