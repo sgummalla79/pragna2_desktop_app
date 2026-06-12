@@ -60,8 +60,8 @@ export function SettingsSidebar() {
           headerContent={
             isWindows ? (
               <>
-                {/* Row 1: empty spacer — clears the custom Windows title bar (32px). */}
-                <div className="h-8 shrink-0" aria-hidden />
+                {/* Row 1: empty spacer — 16px top padding below the title bar. */}
+                <div className="h-4 shrink-0" aria-hidden />
 
                 {/* Row 2: gear icon + "Settings" label left, collapse toggle right. */}
                 <div className="flex items-center px-3 pb-3">
@@ -113,7 +113,7 @@ function CollapsedSettingsRail({
         marginLeft: SIDEBAR_BOX_INSET_PX,
         marginRight: SIDEBAR_BOX_GAP_PX,
         height: 'calc(100vh - 18px)',
-        paddingTop: 32,
+        paddingTop: 16,
       }}
     >
       {/* Expand icon */}

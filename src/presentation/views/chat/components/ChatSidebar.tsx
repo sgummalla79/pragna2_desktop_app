@@ -47,8 +47,8 @@ export function ChatSidebar({ onNavigate, collapsed, onToggleCollapsed }: ChatSi
       {/* ── App header (Windows only) ───────────────────────────── */}
       {isWindows && (
         <>
-          {/* Row 1: empty spacer — clears the custom Windows title bar (32px). */}
-          <div className="h-8 shrink-0" aria-hidden />
+          {/* Row 1: empty spacer — 16px top padding below the title bar. */}
+          <div className="h-4 shrink-0" aria-hidden />
 
           {/* Row 2: [Logo + Brand name] on left, [Collapse toggle] on right. */}
           <div className="flex items-center px-3 pb-3">
