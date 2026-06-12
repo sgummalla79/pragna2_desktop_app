@@ -45,6 +45,9 @@ export interface CredentialFieldDef {
   secret: boolean;
   /** When true, render as a textarea instead of a single-line input. */
   multiline?: boolean;
+  /** When true, the field is not required; it may be left blank. Used for
+   *  gateway fields that only apply to an Anthropic/Bedrock-shaped gateway. */
+  optional?: boolean;
 }
 
 export const CREDENTIAL_FIELDS: Record<CredentialKind, CredentialFieldDef[]> = {
@@ -105,6 +108,22 @@ export const CREDENTIAL_FIELDS: Record<CredentialKind, CredentialFieldDef[]> = {
       hint:        'Bearer token your gateway issued you. The gateway holds the upstream cloud credentials.',
       secret:      true,
     },
+    {
+      key:         'modelsUrl',
+      label:       'Models Endpoint (optional)',
+      placeholder: 'https://your-gateway.example.com/models',
+      hint:        'Optional. For an Anthropic/Bedrock-shaped gateway (no standard /v1/models), the URL that lists available models. Setting this switches the gateway to the Anthropic/Bedrock path.',
+      secret:      false,
+      optional:    true,
+    },
+    {
+      key:         'awsRegion',
+      label:       'AWS Region (optional)',
+      placeholder: 'us-east-1',
+      hint:        'Optional. Region for the Anthropic/Bedrock client; the gateway holds the AWS credentials. Defaults to us-east-1 when blank.',
+      secret:      false,
+      optional:    true,
+    },
   ],
 };
 
@@ -115,8 +134,11 @@ export const CREDENTIAL_FIELDS: Record<CredentialKind, CredentialFieldDef[]> = {
  * - api_key:         returns the raw key value directly.
  * - aws_credentials: JSON-encodes { accessKeyId, secretAccessKey, region }.
  * - gcp_credentials: returns the service-account JSON blob verbatim.
- * - gateway:         JSON-encodes { baseUrl, authToken } — provider-agnostic
- *                    LLM gateway/proxy access (base URL + bearer token).
+ * - gateway:         JSON-encodes { baseUrl, authToken } for an OpenAI-compatible
+ *                    gateway. The optional { modelsUrl, awsRegion } are added
+ *                    ONLY when filled — their presence (modelsUrl) is what tells
+ *                    the backend to use the Anthropic/Bedrock-shaped path, so an
+ *                    OpenAI gateway keeps the minimal { baseUrl, authToken } blob.
  */
 export function serializeCredentials(
   kind: CredentialKind,
@@ -133,10 +155,16 @@ export function serializeCredentials(
       });
     case 'gcp_credentials':
       return values['serviceAccountJson'] ?? '';
-    case 'gateway':
-      return JSON.stringify({
+    case 'gateway': {
+      const blob: Record<string, string> = {
         baseUrl:   values['baseUrl'] ?? '',
         authToken: values['authToken'] ?? '',
-      });
+      };
+      const modelsUrl = values['modelsUrl']?.trim();
+      if (modelsUrl) blob['modelsUrl'] = modelsUrl;
+      const awsRegion = values['awsRegion']?.trim();
+      if (awsRegion) blob['awsRegion'] = awsRegion;
+      return JSON.stringify(blob);
+    }
   }
 }
