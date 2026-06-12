@@ -15,7 +15,7 @@ export function WindowsTitleBar() {
   return (
     <div
       data-tauri-drag-region
-      className="fixed inset-x-0 top-0 z-[200] flex h-8 select-none items-center justify-end bg-background"
+      className="fixed inset-x-0 top-0 z-[200] flex h-8 select-none items-center justify-end bg-transparent"
     >
       {/* Min */}
       <button

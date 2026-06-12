@@ -100,11 +100,11 @@ export function ChatView() {
           style={{
             width: CHAT_SIDEBAR_WIDTH_PX,
             minWidth: CHAT_SIDEBAR_WIDTH_PX,
-            marginTop: SIDEBAR_BOX_INSET_PX,
+            marginTop: isWindows ? 8 : SIDEBAR_BOX_INSET_PX,
             marginBottom: SIDEBAR_BOX_INSET_PX,
             marginLeft: SIDEBAR_BOX_INSET_PX,
             marginRight: SIDEBAR_BOX_GAP_PX,
-            height: `calc(100vh - ${SIDEBAR_BOX_INSET_PX * 2}px)`,
+            height: isWindows ? `calc(100vh - 18px)` : `calc(100vh - ${SIDEBAR_BOX_INSET_PX * 2}px)`,
             paddingTop: isWindows ? 0 : SIDEBAR_TITLE_ROW_PX,
           }}
         >
@@ -125,11 +125,11 @@ export function ChatView() {
           style={{
             width: 48,
             minWidth: 48,
-            marginTop: SIDEBAR_BOX_INSET_PX,
+            marginTop: 8,
             marginBottom: SIDEBAR_BOX_INSET_PX,
             marginLeft: SIDEBAR_BOX_INSET_PX,
             marginRight: SIDEBAR_BOX_GAP_PX,
-            height: `calc(100vh - ${SIDEBAR_BOX_INSET_PX * 2}px)`,
+            height: `calc(100vh - 18px)`,
             paddingTop: 32,
           }}
         >

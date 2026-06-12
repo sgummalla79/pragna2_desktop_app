@@ -76,11 +76,11 @@ export function Sidebar({ items, width = 240, label = 'Navigation', className, h
       style={{
         width,
         minWidth: width,
-        marginTop: SIDEBAR_BOX_INSET_PX,
+        marginTop: headerContent ? 8 : SIDEBAR_BOX_INSET_PX,
         marginBottom: SIDEBAR_BOX_INSET_PX,
         marginLeft: SIDEBAR_BOX_INSET_PX,
         marginRight: SIDEBAR_BOX_GAP_PX,
-        height: `calc(100vh - ${SIDEBAR_BOX_INSET_PX * 2}px)`,
+        height: headerContent ? `calc(100vh - 18px)` : `calc(100vh - ${SIDEBAR_BOX_INSET_PX * 2}px)`,
       }}
     >
       {/* Windows inline header (gear + title + toggle). Replaces the default

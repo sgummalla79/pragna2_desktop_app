@@ -1,4 +1,5 @@
 import { Settings as SettingsIcon, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { SIDEBAR_BOX_INSET_PX, SIDEBAR_BOX_GAP_PX } from '@/constants/windowChrome';
 import { EntityIcon } from '@/presentation/components/icons/EntityIcon';
 import { Sidebar, ItemList } from '@/components/ui/sidebar/Sidebar';
 import { TitlebarCollapseToggle } from '@/components/ui/sidebar/TitlebarCollapseToggle';
@@ -107,9 +108,11 @@ function CollapsedSettingsRail({
       style={{
         width: 48,
         minWidth: 48,
-        margin: 10,
-        marginRight: 8,
-        height: 'calc(100vh - 20px)',
+        marginTop: 8,
+        marginBottom: SIDEBAR_BOX_INSET_PX,
+        marginLeft: SIDEBAR_BOX_INSET_PX,
+        marginRight: SIDEBAR_BOX_GAP_PX,
+        height: 'calc(100vh - 18px)',
         paddingTop: 32,
       }}
     >
