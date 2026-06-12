@@ -55,3 +55,44 @@ export function readDelegationEnvelope(
   }
   return null;
 }
+
+/* ── Connector re-auth pause (#2) ──────────────────────────────────────────── */
+
+/** Top-level KIND key for a remote-OAuth connector re-auth pause (distinct from
+ *  ask_user's `schema` and delegation's `mcp_tool_delegation`). */
+export const MCP_REAUTH_INTERRUPT_KIND = 'connector_reauth';
+
+/** The envelope under `interrupt_value.connector_reauth`. */
+export interface ReauthEnvelope {
+  connector_id: string;
+  display_name: string;
+  auth_type: string;
+  reason: string;
+}
+
+/** The user's choice, posted to `/resume-reauth`. `retry` = they reconnected,
+ *  re-run the tool call; `continue` = skip it, degrade to a tool_error. */
+export type ReauthAction = 'retry' | 'continue';
+
+/** Body for `POST .../episodes/{ep}/resume-reauth`. */
+export interface ResumeReauthPayload {
+  action: ReauthAction;
+}
+
+/**
+ * Read the re-auth envelope off an episode's `interruptValue`, or `null` when
+ * the pause is not a connector re-auth (delegation / ask_user).
+ */
+export function readReauthEnvelope(
+  interruptValue: unknown,
+): ReauthEnvelope | null {
+  if (interruptValue && typeof interruptValue === 'object') {
+    const v = (interruptValue as Record<string, unknown>)[
+      MCP_REAUTH_INTERRUPT_KIND
+    ];
+    if (v && typeof v === 'object' && 'connector_id' in v) {
+      return v as ReauthEnvelope;
+    }
+  }
+  return null;
+}

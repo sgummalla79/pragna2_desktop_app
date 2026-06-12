@@ -19,7 +19,10 @@ import type { AskUserSchema, CreateEpisodePayload } from '@/domain/types/episode
 import {
   type DelegationEnvelope,
   type DelegationResult,
+  type ReauthAction,
+  type ReauthEnvelope,
   readDelegationEnvelope,
+  readReauthEnvelope,
 } from '@/domain/types/mcpDelegation.types';
 
 /** A tool call rendered inline under an assistant turn. */
@@ -113,6 +116,18 @@ export interface ChatSessionApi {
    * run is in flight or when there's no pending interrupt.
    */
   submitInterrupt: (form: Record<string, unknown>, text: string) => void;
+  /**
+   * A live connector re-auth pause (#2): a remote-OAuth connector's token was
+   * revoked mid-run. The view renders a card offering Re-authenticate / Continue.
+   * Null when not paused on re-auth.
+   */
+  pendingReauth: { episodeId: string; envelope: ReauthEnvelope } | null;
+  /**
+   * Resume a connector re-auth pause (`POST …/episodes/{id}/resume-reauth`).
+   * `retry` after the user reconnected the connector; `continue` to skip it and
+   * let the run degrade. No-op while a run is in flight or with no pending re-auth.
+   */
+  submitReauth: (action: ReauthAction) => void;
   /**
    * Start a flow episode (`POST …/episodes`) — e.g. accepting a flow proposal —
    * and stream its run live. May immediately pause into a {@link pendingInterrupt}.
@@ -238,6 +253,16 @@ export function useChatSession(
   const runDelegationRef = useRef<
     (episodeId: string, envelope: DelegationEnvelope) => void
   >(() => {});
+  // #2: a mid-run connector re-auth pause awaiting the user's choice; null when
+  // not paused on re-auth. Carries the episode id so the card can resume it.
+  const [pendingReauth, setPendingReauth] = useState<
+    { episodeId: string; envelope: ReauthEnvelope } | null
+  >(null);
+  const pendingReauthRef = useRef<{
+    episodeId: string;
+    envelope: ReauthEnvelope;
+  } | null>(null);
+  pendingReauthRef.current = pendingReauth;
 
   const agent = useMemo<TauriHttpAgent | null>(() => {
     if (!accessToken) return null;
@@ -499,8 +524,10 @@ export function useChatSession(
       const trimmed = text.trim();
       if (!agent || !trimmed) return;
       if (status === 'running') return;
-      // A pending HITL form owns the conversation — submit the form, not chat.
+      // A pending HITL form / re-auth pause owns the conversation — resolve it,
+      // not chat (the backend 409s on an open episode anyway).
       if (pendingInterruptRef.current) return;
+      if (pendingReauthRef.current) return;
 
       // Per-turn slash dispatch: a `/{name} …` prefix whose name is an exposed
       // flow routes this turn to the flow endpoint. Slash wins over any per-turn
@@ -584,6 +611,13 @@ export function useChatSession(
           runDelegationRef.current(ep.id, envelope);
           return;
         }
+        // #2: a remote-OAuth connector re-auth pause renders a card offering
+        // Re-authenticate / Continue (vs the headless delegation path).
+        const reauth = readReauthEnvelope(ep.interruptValue);
+        if (reauth) {
+          setPendingReauth({ episodeId: ep.id, envelope: reauth });
+          return;
+        }
         const schema =
           (ep.interruptValue as { schema?: AskUserSchema } | null)?.schema ??
           interruptSchemaRef.current ??
@@ -594,6 +628,7 @@ export function useChatSession(
         }
       }
       setPendingInterrupt(null);
+      setPendingReauth(null);
     } catch (e) {
       logger.fromError(
         'HITL_001:open_episode',
@@ -704,6 +739,21 @@ export function useChatSession(
     [agent, threadId, pendingInterrupt, status, runEpisodeStream],
   );
 
+  // #2: resume a connector re-auth pause. `retry` = the user reconnected the
+  // connector out-of-band (the card opened the OAuth flow) → re-run the tool
+  // call; `continue` = skip it (the run degrades + reports). Reuses
+  // runEpisodeStream so a subsequent pause re-resolves naturally.
+  const submitReauth = useCallback(
+    (action: ReauthAction) => {
+      if (!agent || !threadId || !pendingReauth) return;
+      if (status === 'running') return;
+      const url = `${API_BASE_URL}/conversations/${threadId}/episodes/${pendingReauth.episodeId}/resume-reauth`;
+      setPendingReauth(null);
+      void runEpisodeStream(url, { action }, 'HITL_002');
+    },
+    [agent, threadId, pendingReauth, status, runEpisodeStream],
+  );
+
   const startEpisode = useCallback(
     (payload: CreateEpisodePayload) => {
       if (!agent || !threadId) return;
@@ -797,6 +847,8 @@ export function useChatSession(
     streamingModelByMessageId,
     pendingInterrupt,
     submitInterrupt,
+    pendingReauth,
+    submitReauth,
     startEpisode,
     attach,
     replaceMessages,
