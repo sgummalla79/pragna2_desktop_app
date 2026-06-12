@@ -4,7 +4,7 @@
 > (`pragna2_desktop_app`) **deviates** from the web app
 > (`pragna2_sgummalla_works`) it is ported from.
 >
-> **Last Updated**: 2026-06-10
+> **Last Updated**: 2026-06-12
 
 ---
 
@@ -177,6 +177,8 @@ The event-parsing + state machinery (`transformHttpEventStream`, `transformChunk
 | **Theme default + scope (`TD-023`)** | `Theme = 'light' \| 'dark'`, default `dark`, stored in the combined `uiStore`; Appearance page also has a TweakCN palette grid | `ThemeMode = 'light' \| 'dark' \| 'system'`, default **`system`** (follows the OS, desktop convention), in a dedicated `themeStore`; Appearance ships the **mode toggle only** (palette grid deferred → `TD-026`) | Same `.dark`-class mechanism; desktop adds a `system` mode and tracks OS changes live. Palette parity tracked separately |
 | **History browser entry (`TD-024`)** | `ChatView` toggles a `browseMode` flag and renders `ChatsBrowserView` in place; "New chat" clears the flag | A nested **`/chat/history`** route renders `ChatsBrowserView`; reached from the sidebar's "All chats"; "New chat" navigates to `/chat` | Route-based shell vs. in-place flag; identical list/search/infinite-scroll behaviour. `relativeTime` also extracted to `domain/utils` (web app inlines it) for testability |
 | **Generated-document reader (`TD-025`)** | `DocumentCard` opens a dedicated `PdfCanvas` slide-over driven by `uiStore.openPdfDocument`; bytes via `usePdfDocument` | `DocumentCard` opens the existing full-screen `AttachmentViewer` (PDF `<iframe>` via `useAttachmentBlob`); no `PdfCanvas`/`usePdfDocument`/`uiStore` action added | Same card + open-to-read + download behaviour; desktop reuses its one attachment-viewer path (DRY) instead of a second reader. `create_pdf_long` background-episode live progress not ported (the doc still appears as a card once attached) |
+| **"Developer" (local MCP servers) settings page** | **No equivalent** — the web app can't run client-delegated stdio MCP servers (browser sandbox) | A desktop-only Settings page (renamed from "Local MCP servers" → **"Developer"**, slate `EntityIcon` tile, moved last in the rail). Config now edits via an **"Edit Config" flyout `Sheet`** (rounded, inset like the sidebar) that refreshes the Configured-servers list on save, with a collapsible **"Example config"** accordion mirroring the connector cards | **Desktop-only feature — nothing to backport.** Already a platform deviation (`CF-008` family); the recent UI restructure has no web counterpart. The new `Sheet` primitive (`src/components/ui/sheet.tsx`) is a desktop addition |
+| **Settings "Back to Chat" icon** | lucide `MessagesSquare` | Circular back-arrow badge (`bg-foreground`/`text-background`, so white-circle/dark-arrow in dark mode) | UI-only, owner's choice — web may keep `MessagesSquare`. The row's **alignment + text-color** sync (separate from the icon) **is** a real fix to backport — see `CODE_FIXES.md` `CF-010` |
 
 ---
 

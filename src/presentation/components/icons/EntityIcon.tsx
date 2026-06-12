@@ -14,6 +14,7 @@ import type { ComponentType } from 'react';
 import { Bot, Library, SlidersHorizontal } from 'lucide-react';
 
 import { ConnectorsIcon } from './ConnectorsIcon';
+import { DeveloperIcon } from './DeveloperIcon';
 import { FlowsIcon } from './FlowsIcon';
 import { ProvidersIcon } from './ProvidersIcon';
 
@@ -25,7 +26,8 @@ export type EntityKey =
   | 'agents'
   | 'flows'
   | 'appearance'
-  | 'profile';
+  | 'profile'
+  | 'developer';
 
 /** A glyph that accepts a numeric `size` (lucide + our custom icons all do). */
 type Glyph = ComponentType<{ size?: number; className?: string }>;
@@ -48,6 +50,9 @@ export const ENTITY_ICONS: Record<EntityKey, EntityIconDef> = {
   flows: { Glyph: FlowsIcon, tile: 'bg-emerald-500' },
   appearance: { Glyph: AppearanceGlyph, tile: 'bg-rose-500' },
   profile: { Glyph: ProfileGlyph, tile: 'bg-cyan-500' },
+  // Multicolor avatar glyph; a muted slate tile keeps the backdrop calm (a
+  // saturated color reads too bright) and lets the artwork's blue/green pop.
+  developer: { Glyph: DeveloperIcon, tile: 'bg-slate-600' },
 };
 
 type EntitySize = 'sm' | 'md' | 'lg';

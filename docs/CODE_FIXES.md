@@ -266,3 +266,40 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
   the same FlowsView/empty-state pattern. If its Agent Flows page still uses a dashed-box text-only
   empty state, apply the same icon-empty-state treatment for consistency with its other settings
   pages.
+
+---
+
+## CF-010 — Sidebar footer rows ("Back to Chat" + avatar user name) didn't match the nav items above them
+
+- **Date:** 2026-06-12
+- **Area / file:** `src/components/ui/sidebar/SidebarBackItem.tsx`,
+  `src/presentation/views/chat/components/AvatarMenu.tsx`
+- **Bug:** Two pinned footer rows rendered out of sync with the navigation rows above them:
+  1. **Left padding** — the settings sidebar's "Back to Chat" row used `px-2` while every
+     `SidebarNavItem` uses `px-3`, so its icon/label sat 4px further left than the nav items.
+  2. **Text color** — "Back to Chat" used full-strength `text-foreground` and the chat sidebar's
+     avatar **user-name** used `text-foreground`, while their sibling nav items are dimmed
+     (`text-sidebar-foreground/70` in settings, `text-foreground/80` in chat). The footers read
+     brighter than the menu they belong to.
+- **Root cause:** Both footer components were styled to mirror a generic "avatar footer button"
+  rather than the actual nav-item row metrics/tokens, so padding, gap, and resting text color drifted
+  from `SidebarNavItem` / the chat nav rows. The back item's 16px icon also lacked the nav items'
+  20px icon-tile width, so even at matching padding the labels wouldn't line up.
+- **Fix:** Align each footer row to its **own** sidebar's nav rows:
+  - `SidebarBackItem` → `gap-3 px-3 h-8`, resting `text-sidebar-foreground/70` +
+    `hover:text-sidebar-accent-foreground` (matches `SidebarNavItem` inactive), and the back arrow
+    wrapped in a 20px (`w-5`) box so the icon edge and label align with the nav tiles.
+  - `AvatarMenu` trigger → resting `text-foreground/80` + `hover:text-foreground` (matches the chat
+    sidebar's nav rows). (Unrelated same-session change: the back icon was also swapped to a
+    circular back-arrow badge — that's a deliberate UI choice, not part of this fix; see
+    `web-app-parity.md`.)
+- **Web-app applicability:** **LIKELY AFFECTED — apply.** The web app
+  (`pragna2_sgummalla_works`) has the same components with the same mismatch:
+  - `src/presentation/components/ui/Sidebar/SidebarBackItem.tsx` uses full
+    `text-sidebar-foreground` + `gap-2.5 px-3.5 py-2.5 min-h-11`, whereas its `SidebarNavItem` uses
+    `text-sidebar-foreground/70` + `gap-3 px-3 py-1.5 min-h-9` → dim the back row to `/70` (with the
+    `hover:text-sidebar-accent-foreground` hover) and align its padding/height to the nav item.
+  - `src/presentation/views/chat/AvatarMenu.tsx` uses `text-foreground` for the user name while its
+    nav rows are dimmed → match the web chat sidebar's own nav-item color.
+  Apply the same alignment + color-token sync on both. (Icon style may stay as the web app's
+  `MessagesSquare` — UI-only, owner's choice.)

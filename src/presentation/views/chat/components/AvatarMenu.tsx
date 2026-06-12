@@ -67,7 +67,9 @@ export function AvatarMenu({ onNavigate, iconOnly = false }: AvatarMenuProps) {
           aria-label="Account menu"
           className={cn(
             'group flex items-center gap-2 rounded-lg font-medium',
-            'text-foreground transition-colors hover:bg-sidebar-hover',
+            // Match the chat sidebar's nav items (text-foreground/80 → full on
+            // hover) so the user-name row tones with the rest of the rail.
+            'text-foreground/80 transition-colors hover:bg-sidebar-hover hover:text-foreground',
             'data-[state=open]:bg-sidebar-primary data-[state=open]:text-sidebar-primary-foreground',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
             iconOnly
