@@ -90,6 +90,22 @@ export const CREDENTIAL_FIELDS: Record<CredentialKind, CredentialFieldDef[]> = {
       multiline:   true,
     },
   ],
+  gateway: [
+    {
+      key:         'baseUrl',
+      label:       'Gateway URL',
+      placeholder: 'https://your-gateway.example.com/bedrock',
+      hint:        'Base URL of the LLM gateway/proxy that fronts your provider.',
+      secret:      false,
+    },
+    {
+      key:         'authToken',
+      label:       'Auth Token',
+      placeholder: 'sk-… / bearer token',
+      hint:        'Bearer token your gateway issued you. The gateway holds the upstream cloud credentials.',
+      secret:      true,
+    },
+  ],
 };
 
 /**
@@ -99,6 +115,8 @@ export const CREDENTIAL_FIELDS: Record<CredentialKind, CredentialFieldDef[]> = {
  * - api_key:         returns the raw key value directly.
  * - aws_credentials: JSON-encodes { accessKeyId, secretAccessKey, region }.
  * - gcp_credentials: returns the service-account JSON blob verbatim.
+ * - gateway:         JSON-encodes { baseUrl, authToken } — provider-agnostic
+ *                    LLM gateway/proxy access (base URL + bearer token).
  */
 export function serializeCredentials(
   kind: CredentialKind,
@@ -115,5 +133,10 @@ export function serializeCredentials(
       });
     case 'gcp_credentials':
       return values['serviceAccountJson'] ?? '';
+    case 'gateway':
+      return JSON.stringify({
+        baseUrl:   values['baseUrl'] ?? '',
+        authToken: values['authToken'] ?? '',
+      });
   }
 }

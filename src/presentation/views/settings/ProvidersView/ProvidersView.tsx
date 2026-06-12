@@ -31,6 +31,10 @@ export default function ProvidersView() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [credentialValues, setCredentialValues] = useState<Record<string, string>>({});
+  /** Instance label for the multi-instance connect form. */
+  const [label, setLabel] = useState('');
+  /** Which registration's model grid is open in the multi-instance modal. */
+  const [selectedRegistrationId, setSelectedRegistrationId] = useState<string | null>(null);
   const [connectError, setConnectError] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [disconnectError, setDisconnectError] = useState('');
@@ -43,35 +47,46 @@ export default function ProvidersView() {
 
   const selected = selectedId ? (providers.find((p) => p.id === selectedId) ?? null) : null;
 
-  function openModal(id: string) {
-    setSelectedId(id);
+  function resetModalState() {
     setCredentialValues({});
+    setLabel('');
+    setSelectedRegistrationId(null);
     setConnectError('');
     setDisconnectError('');
     setRefreshError('');
     setRefreshInfo('');
+  }
+
+  function openModal(id: string) {
+    setSelectedId(id);
+    resetModalState();
   }
 
   function closeModal() {
     setSelectedId(null);
-    setCredentialValues({});
-    setConnectError('');
-    setDisconnectError('');
-    setRefreshError('');
-    setRefreshInfo('');
+    resetModalState();
   }
 
   async function handleConnect() {
     if (!selected) return;
+    const isMulti = selected.allowsMultipleRegistrations;
     setConnectError('');
     setConnecting(true);
     try {
       const apiKey = serializeCredentials(selected.credentialKind, credentialValues);
-      await registerProvider.mutateAsync({ llmProviderId: selected.id, apiKey });
+      await registerProvider.mutateAsync({
+        llmProviderId: selected.id,
+        apiKey,
+        // Label only travels for multi-instance providers; the backend ignores
+        // it elsewhere, but we omit it to keep single-instance requests clean.
+        label: isMulti ? label.trim() || undefined : undefined,
+      });
       setCredentialValues({});
+      if (isMulti) setLabel('');
     } catch (err) {
-      // A 409 means the provider is already registered — use the specific code;
-      // otherwise prefer the backend's reason over the generic catalog message.
+      // A 409 means a duplicate (provider already registered, or label already
+      // used for a multi-instance provider) — use the specific code; otherwise
+      // prefer the backend's reason over the generic catalog message.
       setConnectError(
         statusOf(err) === 409
           ? ERRORS.PRV_002.message
@@ -82,14 +97,18 @@ export default function ProvidersView() {
     }
   }
 
-  async function handleDisconnect() {
-    const userProvider = selected?.userProviders[0];
-    if (!userProvider) return;
+  async function handleDisconnect(registrationId: string) {
     setDisconnectError('');
     setDisconnecting(true);
     try {
-      await deleteProvider.mutateAsync(userProvider.id);
-      closeModal();
+      await deleteProvider.mutateAsync(registrationId);
+      // Multi-instance: return to the list so the user can manage the rest.
+      // Single-instance: nothing left to manage — close the modal.
+      if (selected?.allowsMultipleRegistrations) {
+        setSelectedRegistrationId(null);
+      } else {
+        closeModal();
+      }
     } catch {
       setDisconnectError(ERRORS.PRV_004.message);
     } finally {
@@ -97,14 +116,12 @@ export default function ProvidersView() {
     }
   }
 
-  async function handleRefresh() {
-    const userProvider = selected?.userProviders[0];
-    if (!userProvider) return;
+  async function handleRefresh(registrationId: string) {
     setRefreshing(true);
     setRefreshError('');
     setRefreshInfo('');
     try {
-      const result = await refreshModels.mutateAsync(userProvider.id);
+      const result = await refreshModels.mutateAsync(registrationId);
       setRefreshInfo(summarizeRefresh(result));
     } catch (err) {
       setRefreshError(detailOr(err, ERRORS.PRV_006.message));
@@ -151,13 +168,24 @@ export default function ProvidersView() {
         <div className="flex flex-wrap gap-3.5">
           {providers.map((item) => {
             const up = item.userProviders[0];
+            const isMulti = item.allowsMultipleRegistrations;
+            const count = item.userProviders.length;
             return (
               <ProviderTile
                 key={item.id}
                 llmProvider={item}
-                connected={!!up}
-                providerEnabled={up?.enabled}
-                onToggleEnabled={up ? () => handleToggle(up.id, !up.enabled) : undefined}
+                connected={isMulti ? count > 0 : !!up}
+                // Per-registration enable/disable lives in the multi-instance
+                // modal; the tile-level pill only applies to single-instance.
+                providerEnabled={isMulti ? undefined : up?.enabled}
+                onToggleEnabled={
+                  isMulti ? undefined : up ? () => handleToggle(up.id, !up.enabled) : undefined
+                }
+                connectedLabel={
+                  isMulti && count > 0
+                    ? `${count} connected`
+                    : undefined
+                }
                 onClick={() => openModal(item.id)}
               />
             );
@@ -176,6 +204,7 @@ export default function ProvidersView() {
         llmProvider={selected}
         userProvider={activeUserProvider}
         models={modalModels}
+        registrations={selected?.userProviders ?? []}
         open={selectedId !== null}
         onClose={closeModal}
         connecting={connecting}
@@ -183,6 +212,10 @@ export default function ProvidersView() {
         credentialValues={credentialValues}
         onCredentialChange={(key, val) => setCredentialValues((prev) => ({ ...prev, [key]: val }))}
         onConnect={handleConnect}
+        label={label}
+        onLabelChange={setLabel}
+        selectedRegistrationId={selectedRegistrationId}
+        onSelectRegistration={setSelectedRegistrationId}
         disconnecting={disconnecting}
         disconnectError={disconnectError}
         onDisconnect={handleDisconnect}

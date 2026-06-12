@@ -147,4 +147,40 @@ describe('ProvidersView', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Disable provider' }));
     expect(toggle).toHaveBeenCalledWith('up-b', false);
   });
+
+  it('renders a count badge for a multi-instance provider and lists its registrations with an add-another form', async () => {
+    const gateway = provider({
+      id: 'gw',
+      name: 'gateway',
+      displayName: 'LLM Gateway',
+      credentialKind: 'gateway',
+      allowsMultipleRegistrations: true,
+      userProviders: [
+        { ...connectedRow('up-prod', true), label: 'prod', providerName: 'gateway' },
+        { ...connectedRow('up-staging', true), label: 'staging', providerName: 'gateway' },
+      ],
+    } as never);
+
+    renderWithProviders(<ProvidersView />, {
+      services: services(() => Promise.resolve([gateway])),
+    });
+    await screen.findByText('LLM Gateway');
+
+    // Tile shows the connection count instead of a single "Connected" badge.
+    expect(screen.getByText('2 connected')).toBeInTheDocument();
+    // No single-instance enable/disable pill on a multi-instance tile.
+    expect(screen.queryByRole('button', { name: /able provider/ })).not.toBeInTheDocument();
+
+    // Open the modal → master-detail list view.
+    await userEvent.click(screen.getByText('LLM Gateway'));
+
+    // Both registrations are listed by label, plus the add-another form.
+    expect(await screen.findByText('prod')).toBeInTheDocument();
+    expect(screen.getByText('staging')).toBeInTheDocument();
+    expect(screen.getByText('Add another connection')).toBeInTheDocument();
+    // The connect form shows the label field + the gateway credential fields.
+    expect(screen.getByLabelText('Label')).toBeInTheDocument();
+    expect(screen.getByLabelText('Gateway URL')).toBeInTheDocument();
+    expect(screen.getByLabelText('Auth Token')).toBeInTheDocument();
+  });
 });
