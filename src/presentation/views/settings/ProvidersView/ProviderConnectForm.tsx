@@ -12,6 +12,16 @@ interface ProviderConnectFormProps {
   error: string;
   connecting: boolean;
   onConnect: () => void;
+  /**
+   * When true, render a required instance-label field above the credential
+   * fields. Set for multi-instance providers (e.g. an LLM gateway) so each
+   * registration is named; the Connect button stays disabled until it's filled.
+   */
+  showLabel?: boolean;
+  /** Current label value (only used when `showLabel`). */
+  label?: string;
+  /** Label change handler (only used when `showLabel`). */
+  onLabelChange?: (value: string) => void;
 }
 
 /**
@@ -26,11 +36,33 @@ export function ProviderConnectForm({
   error,
   connecting,
   onConnect,
+  showLabel = false,
+  label = '',
+  onLabelChange,
 }: ProviderConnectFormProps) {
   const fields = CREDENTIAL_FIELDS[credentialKind];
+  const labelMissing = showLabel && label.trim() === '';
 
   return (
     <div className="flex flex-col gap-4">
+      {showLabel && (
+        <div className="flex flex-col gap-1.5">
+          <Input
+            id="instance-label"
+            placeholder="Label"
+            aria-label="Label"
+            value={label}
+            onChange={(e) => onLabelChange?.(e.target.value)}
+            className={error ? 'border-destructive' : undefined}
+          />
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            <span className="font-mono text-muted-foreground">e.g. prod, staging</span>
+            {'  ·  '}
+            A name to tell this connection apart from your others.
+          </p>
+        </div>
+      )}
+
       {fields.map((field) => (
         <div key={field.key} className="flex flex-col gap-1.5">
           {field.multiline ? (
@@ -80,7 +112,12 @@ export function ProviderConnectForm({
         </p>
       )}
 
-      <Button onClick={onConnect} disabled={connecting} aria-busy={connecting} className="w-full">
+      <Button
+        onClick={onConnect}
+        disabled={connecting || labelMissing}
+        aria-busy={connecting}
+        className="w-full"
+      >
         {connecting ? 'Connecting…' : 'Connect'}
       </Button>
     </div>

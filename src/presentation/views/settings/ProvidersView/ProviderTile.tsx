@@ -11,6 +11,11 @@ interface ProviderTileProps {
   providerEnabled?: boolean;
   /** Calls PATCH /api/user-providers/{id} to flip the enabled state. Only set when connected. */
   onToggleEnabled?: () => void;
+  /**
+   * Overrides the connected-badge text (e.g. "2 connected" for a multi-instance
+   * provider). Defaults to "Connected ✓" when connected.
+   */
+  connectedLabel?: string;
   onClick: () => void;
 }
 
@@ -24,6 +29,7 @@ export function ProviderTile({
   connected,
   providerEnabled,
   onToggleEnabled,
+  connectedLabel,
   onClick,
 }: ProviderTileProps) {
   const [hovered, setHovered] = useState(false);
@@ -65,8 +71,10 @@ export function ProviderTile({
             : 'border-border',
       )}
     >
-      {/* Enable/disable toggle pill — top-right, only when connected */}
-      {connected && (
+      {/* Enable/disable toggle pill — top-right; only when an enable handler is
+          provided (single-instance providers). Multi-instance providers manage
+          enable/disable per registration inside the modal, so no tile pill. */}
+      {connected && onToggleEnabled && (
         <button
           type="button"
           onClick={handleToggle}
@@ -131,7 +139,7 @@ export function ProviderTile({
               : 'bg-muted text-muted-foreground border-border',
           )}
         >
-          {connected ? 'Connected ✓' : 'Not connected'}
+          {connected ? (connectedLabel ?? 'Connected ✓') : 'Not connected'}
         </span>
       </div>
     </div>

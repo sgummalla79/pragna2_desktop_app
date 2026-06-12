@@ -10,6 +10,7 @@ interface ApiUserProviderResponse {
   /** Backend R3.5+ renamed `provider_name` → `provider_api_name`. */
   provider_api_name: string;
   enabled: boolean;
+  label: string | null;
   metadata: Record<string, unknown>;
 }
 
@@ -31,6 +32,7 @@ function mapUserProvider(raw: ApiUserProviderResponse): UserProvider {
     llmProviderId: raw.llm_provider_id,
     providerName:  raw.provider_api_name,
     enabled:       raw.enabled,
+    label:         raw.label ?? null,
     metadata:      raw.metadata ?? {},
   };
 }
@@ -48,6 +50,10 @@ export class ProviderRepository implements IUserProviderRepository {
     const { data } = await this.http.post<ApiProviderWithModelsResponse>('/user-providers', {
       llm_provider_id: payload.llmProviderId,
       api_key:         payload.apiKey,
+      // Top-level `label` (not metadata) — the backend honours it only for
+      // providers whose allows_multiple_registrations capability is set.
+      // Omitted from the JSON body when undefined.
+      label:           payload.label,
     });
     return {
       provider: mapUserProvider(data.provider),

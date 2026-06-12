@@ -1,4 +1,4 @@
-export type CredentialKind = 'api_key' | 'aws_credentials' | 'gcp_credentials';
+export type CredentialKind = 'api_key' | 'aws_credentials' | 'gcp_credentials' | 'gateway';
 
 /** One row from the global llm_providers catalogue (GET /api/llm-providers). */
 export interface LlmProvider {
@@ -12,6 +12,13 @@ export interface LlmProvider {
   credentialKind: CredentialKind;
   /** When false, this provider is hidden from users. */
   enabled: boolean;
+  /**
+   * When true the user may register this provider more than once concurrently,
+   * each with a distinct {@link UserProvider.label} (e.g. an LLM gateway
+   * fronting prod + staging). Drives the "add another" affordance and the
+   * label field. Defaults false — one active registration per provider.
+   */
+  allowsMultipleRegistrations: boolean;
 }
 
 /** A user_providers row — one provider registered by the logged-in user. */
@@ -23,6 +30,11 @@ export interface UserProvider {
   /** Denormalised machine name (e.g. 'anthropic'). */
   providerName: string;
   enabled: boolean;
+  /**
+   * User-supplied instance name. Set only for multi-instance providers
+   * (e.g. a labelled LLM gateway); null otherwise.
+   */
+  label: string | null;
   metadata: Record<string, unknown>;
 }
 
@@ -53,8 +65,17 @@ export interface RegisterProviderPayload {
    * - api_key → raw key string
    * - aws_credentials → JSON-encoded { accessKeyId, secretAccessKey, region }
    * - gcp_credentials → service-account JSON blob verbatim
+   * - gateway → JSON-encoded { baseUrl, authToken } (LLM gateway / proxy
+   *   fronting a provider; the gateway holds the upstream cloud credentials)
    */
   apiKey: string;
+  /**
+   * Instance name. Honoured by the backend only for providers whose
+   * {@link LlmProvider.allowsMultipleRegistrations} capability is set (e.g. an
+   * LLM gateway), where it distinguishes concurrent registrations; ignored
+   * for single-instance providers. Omitted for single-instance registrations.
+   */
+  label?: string;
 }
 
 /** Response from POST /api/user-providers — provider + auto-discovered models. */

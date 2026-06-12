@@ -17,6 +17,7 @@ interface ApiLlmProviderResponse {
   display_name: string;
   credential_kind: string;
   enabled: boolean;
+  allows_multiple_registrations: boolean;
 }
 
 /** Embedded model shape — identical to ApiModelResponse but `archived` is omitted (excluded server-side). */
@@ -27,6 +28,7 @@ interface ApiUserProviderEmbedded {
   llm_provider_id: string;
   provider_api_name: string;
   enabled: boolean;
+  label: string | null;
   metadata: Record<string, unknown>;
   models: ApiEmbeddedModelResponse[];
 }
@@ -37,11 +39,12 @@ interface ApiLlmProviderWithRegistrationsResponse extends ApiLlmProviderResponse
 
 function mapLlmProvider(raw: ApiLlmProviderResponse): LlmProvider {
   return {
-    id:             raw.id,
-    name:           raw.api_name,
-    displayName:    raw.display_name,
-    credentialKind: raw.credential_kind as CredentialKind,
-    enabled:        raw.enabled,
+    id:                          raw.id,
+    name:                        raw.api_name,
+    displayName:                 raw.display_name,
+    credentialKind:              raw.credential_kind as CredentialKind,
+    enabled:                     raw.enabled,
+    allowsMultipleRegistrations: raw.allows_multiple_registrations ?? false,
   };
 }
 
@@ -51,6 +54,7 @@ function mapEmbeddedUserProvider(raw: ApiUserProviderEmbedded): UserProviderWith
     llmProviderId: raw.llm_provider_id,
     providerName:  raw.provider_api_name,
     enabled:       raw.enabled,
+    label:         raw.label ?? null,
     metadata:      raw.metadata ?? {},
     // Embedded models have no `archived` field — server excludes archived rows.
     models: raw.models.map((m) => mapModel({ ...m, archived: false })),

@@ -7,28 +7,45 @@ import { ConfirmButton } from '@/components/ui/confirm-button';
 import { useDirtyDialog } from '@/presentation/hooks/useDirtyDialog';
 import { ProviderConnectForm } from './ProviderConnectForm';
 import { ConnectedPanel } from './ConnectedPanel';
-import type { LlmProvider, UserProvider } from '@/domain/types/provider.types';
+import { MultiInstancePanel } from './MultiInstancePanel';
+import type {
+  LlmProvider,
+  UserProvider,
+  UserProviderWithModels,
+} from '@/domain/types/provider.types';
 import type { Model } from '@/domain/types/model.types';
 
 interface ProviderModalProps {
   llmProvider: LlmProvider | null;
+  /** The single-instance registration (provider has one active row). */
   userProvider: UserProvider | null;
   models: Model[];
+  /** All active registrations — used for the multi-instance master-detail view. */
+  registrations: UserProviderWithModels[];
   open: boolean;
   onClose: () => void;
 
   disconnecting: boolean;
   disconnectError: string;
-  onDisconnect: () => void;
+  /** Archive a registration by id (single-instance passes its sole id). */
+  onDisconnect: (id: string) => void;
 
   credentialValues: Record<string, string>;
   onCredentialChange: (key: string, value: string) => void;
   connectError: string;
   connecting: boolean;
   onConnect: () => void;
+  /** Instance label (multi-instance connect form only). */
+  label: string;
+  onLabelChange: (value: string) => void;
+
+  /** Which registration's model grid is open (multi-instance); null = list view. */
+  selectedRegistrationId: string | null;
+  onSelectRegistration: (id: string | null) => void;
 
   refreshing: boolean;
-  onRefresh: () => void;
+  /** Re-discover models for a registration by id. */
+  onRefresh: (id: string) => void;
   /** Error from the last refresh, if any (rendered under the refresh action). */
   refreshError?: string;
   /** Success summary from the last refresh (e.g. "2 added · 1 archived"). */
@@ -46,6 +63,7 @@ export function ProviderModal({
   llmProvider,
   userProvider,
   models,
+  registrations,
   open,
   onClose,
   disconnecting,
@@ -56,6 +74,10 @@ export function ProviderModal({
   connectError,
   connecting,
   onConnect,
+  label,
+  onLabelChange,
+  selectedRegistrationId,
+  onSelectRegistration,
   refreshing,
   onRefresh,
   refreshError,
@@ -67,6 +89,10 @@ export function ProviderModal({
   const guard = useDirtyDialog(modelEditsDirty);
 
   if (!llmProvider) return null;
+
+  // Multi-instance providers (e.g. an LLM gateway) render the master-detail
+  // panel; their per-registration actions live inside it, not the header.
+  const multi = llmProvider.allowsMultipleRegistrations;
 
   const { bg, fg } = providerColor(llmProvider.name);
   const logoUrl = PROVIDER_LOGO_URLS[llmProvider.name];
@@ -104,7 +130,7 @@ export function ProviderModal({
                 <Dialog.Title className="text-base font-bold text-foreground m-0">
                   {llmProvider.displayName}
                 </Dialog.Title>
-                {userProvider && (
+                {!multi && userProvider && (
                   <span
                     className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary"
                     aria-label="Connected"
@@ -113,11 +139,23 @@ export function ProviderModal({
                     Connected
                   </span>
                 )}
+                {multi && registrations.length > 0 && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary"
+                    aria-label="Connected count"
+                  >
+                    {registrations.length} connected
+                  </span>
+                )}
               </div>
               <Dialog.Description className="text-xs text-muted-foreground m-0">
-                {userProvider ? 'Manage your connected provider.' : 'Enter your credentials to connect.'}
+                {multi
+                  ? 'Manage your connections — add as many as you need.'
+                  : userProvider
+                    ? 'Manage your connected provider.'
+                    : 'Enter your credentials to connect.'}
               </Dialog.Description>
-              {userProvider && (
+              {!multi && userProvider && (
                 <div className="mt-1 flex items-center gap-2">
                   <ConfirmButton
                     size="xs"
@@ -126,14 +164,14 @@ export function ProviderModal({
                     confirmTitle={`Disconnect ${llmProvider.displayName}?`}
                     confirmDescription="This archives your registration and disables every model under it. Your usage history is preserved. You can re-connect at any time."
                     confirmLabel="Yes, disconnect"
-                    onConfirm={onDisconnect}
+                    onConfirm={() => onDisconnect(userProvider.id)}
                   >
                     {disconnecting ? 'Removing…' : 'Disconnect'}
                   </ConfirmButton>
                   <Button
                     variant="default"
                     size="xs"
-                    onClick={onRefresh}
+                    onClick={() => onRefresh(userProvider.id)}
                     disabled={refreshing || disconnecting}
                     aria-busy={refreshing}
                   >
@@ -141,10 +179,10 @@ export function ProviderModal({
                   </Button>
                 </div>
               )}
-              {userProvider && refreshError && (
+              {!multi && userProvider && refreshError && (
                 <p role="alert" className="mt-1 text-xs text-destructive">{refreshError}</p>
               )}
-              {userProvider && !refreshError && refreshInfo && (
+              {!multi && userProvider && !refreshError && refreshInfo && (
                 <p className="mt-1 text-xs text-muted-foreground" aria-live="polite">{refreshInfo}</p>
               )}
             </div>
@@ -160,7 +198,31 @@ export function ProviderModal({
           </div>
 
           {/* Body */}
-          {userProvider ? (
+          {multi ? (
+            <MultiInstancePanel
+              providerDisplayName={llmProvider.displayName}
+              credentialKind={llmProvider.credentialKind}
+              registrations={registrations}
+              selectedRegistrationId={selectedRegistrationId}
+              onSelectRegistration={onSelectRegistration}
+              credentialValues={credentialValues}
+              onCredentialChange={onCredentialChange}
+              label={label}
+              onLabelChange={onLabelChange}
+              connecting={connecting}
+              connectError={connectError}
+              onConnect={onConnect}
+              onDisconnect={onDisconnect}
+              disconnecting={disconnecting}
+              disconnectError={disconnectError}
+              onRefresh={onRefresh}
+              refreshing={refreshing}
+              refreshError={refreshError}
+              refreshInfo={refreshInfo}
+              modelEditsDirty={modelEditsDirty}
+              onModelEditsDirtyChange={onModelEditsDirtyChange}
+            />
+          ) : userProvider ? (
             <ConnectedPanel
               models={models}
               error={disconnectError}
