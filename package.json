@@ -10,7 +10,9 @@
     "tauri": "tauri",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "sign:dev": "bash scripts/macos-dev-codesign.sh",
+    "tauri:dev:signed": "cargo build --manifest-path src-tauri/Cargo.toml && bash scripts/macos-dev-codesign.sh && tauri dev"
   },
   "dependencies": {
     "@ag-ui/client": "^0.0.43",

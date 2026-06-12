@@ -176,3 +176,35 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
   and any future variant are treated as user-initiated unwinds and suppressed. No-op on macOS.
 - **Web-app applicability:** The web app uses the browser's native `fetch` which throws a real
   `AbortError` on cancel. **No web-app change needed.**
+
+---
+
+## CF-007 — keychain prompt on every launch hard-errors when denied/cancelled
+
+- **Date:** 2026-06-11
+- **Area / file:** `src-tauri/src/lib.rs` (`secure_store_get`, `secure_store_set`),
+  `src/infrastructure/platform/secureStore.ts` (`getRefreshToken`, `setRefreshToken`,
+  `clearRefreshToken`)
+- **Bug:** macOS shows *"app wants to use your confidential information stored in com.pragna2.app
+  in your keychain"* on every launch (the startup refresh-token read, TD-009). If the user clicks
+  **Deny/Cancel**, `secure_store_get` returned `Err`, which rejected the `invoke` promise and
+  broke the session-restore / startup flow instead of just falling back to login. The prompt
+  recurs every launch because dev builds are ad-hoc signed (no stable `signingIdentity` in
+  `tauri.macos.conf.json`), so the keychain ACL never matches across rebuilds — a signing/dev
+  concern, not fixed here; this entry addresses only the *denied-read crash*.
+- **Root cause:** `secure_store_get` only special-cased `keyring::Error::NoEntry`; every other
+  error — including a user-dismissed prompt / denied store, which `keyring` surfaces as
+  `NoStorageAccess` or `PlatformFailure` — propagated as a hard error. The frontend wrapper had
+  no `catch`, so the rejection bubbled into the auth bootstrap.
+- **Fix:** (1) Rust read (`secure_store_get`): map `NoStorageAccess` / `PlatformFailure` to
+  `Ok(None)` ("no saved session"), logged via `eprintln!` (not silent); malformed-entry errors
+  still propagate. (2) Rust write (`secure_store_set`): map the same denial variants to `Ok(())`
+  ("persistence skipped") so a denied write during login doesn't crash the flow — the session just
+  won't survive relaunch. (3) Frontend: wrap `getRefreshToken` / `setRefreshToken` /
+  `clearRefreshToken` `invoke`s in `try/catch`, degrading to `null` / no-op with a `console.warn`.
+  Net effect: a dismissed keychain prompt degrades gracefully to interactive login on read and to
+  skipped persistence on write. (Does **not** suppress the prompt itself — that needs stable code
+  signing.)
+- **Web-app applicability:** **NOT AFFECTED.** The keychain path is Tauri-only (`keyring` crate +
+  `isTauriRuntime()`-guarded wrapper). The web app has no OS keychain and persists sessions via
+  browser storage, so there is no equivalent denied-read crash to fix.
