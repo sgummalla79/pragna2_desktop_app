@@ -42,6 +42,7 @@ import { ChatInput } from './components/ChatInput';
 import { ChatMessage } from './components/ChatMessage';
 import { AttachmentViewer } from './components/AttachmentViewer';
 import { HITLFormCard } from './components/hitl/HITLFormCard';
+import { ReauthCard } from './components/hitl/ReauthCard';
 import { ModelPicker } from './components/ModelPicker';
 import { ThinkingToggle } from './components/ThinkingToggle';
 import { ThinkingStrip } from './components/ThinkingStrip';
@@ -160,6 +161,8 @@ function ChatConversation({
     streamingModelByMessageId,
     pendingInterrupt,
     submitInterrupt,
+    pendingReauth,
+    submitReauth,
     startEpisode,
     attach,
     replaceMessages,
@@ -432,6 +435,14 @@ function ChatConversation({
               onSubmit={(form, text) => submitInterrupt(form, text)}
             />
           )}
+          {pendingReauth && (
+            <ReauthCard
+              key={pendingReauth.episodeId}
+              envelope={pendingReauth.envelope}
+              submitting={status === 'running'}
+              onResume={(action) => submitReauth(action)}
+            />
+          )}
           <div ref={bottomRef} />
         </div>
       </div>
@@ -446,8 +457,14 @@ function ChatConversation({
             conversationId={conversationId}
             onStop={stop}
             running={status === 'running'}
-            disabled={Boolean(pendingInterrupt)}
-            placeholder={pendingInterrupt ? 'Complete the form above to continue…' : 'Reply…'}
+            disabled={Boolean(pendingInterrupt) || Boolean(pendingReauth)}
+            placeholder={
+              pendingInterrupt
+                ? 'Complete the form above to continue…'
+                : pendingReauth
+                  ? 'Resolve the connector above to continue…'
+                  : 'Reply…'
+            }
             slashFlows={slashFlows}
             controls={
               <>
