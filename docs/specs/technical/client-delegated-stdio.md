@@ -3,7 +3,7 @@
 > **Status**: Approved
 > **Author**: Suman Gummalla
 > **Created**: 2026-06-11
-> **Last Updated**: 2026-06-11
+> **Last Updated**: 2026-06-12
 
 ---
 
@@ -122,6 +122,62 @@ New Rust crates: `rmcp` (client + child-process transport), `tokio` (rt-multi-th
 
 - [ ] `rmcp` API surface verified against docs at implementation time (version pinned in Cargo.toml).
 - [ ] Warm-process teardown on app-close wired via a Tauri window/exit handler.
+
+---
+
+## 11. Presentation revision — "Developer" page (2026-06-12)
+
+Presentation-layer only. No change to the Rust host, the
+discover/register/delegate data flow (§3), the keychain config store, or the
+`useChatSession` delegation handler. All of `LocalServersView`'s service calls
+(`mcpStdio.discover/saveConfig/clearConfig`, `mcpConnectorService.*`, the
+`MCP_CONNECTORS_KEY` invalidation) are unchanged — only the surrounding UI moved.
+
+**New / changed files**
+
+```
+src/components/ui/sheet.tsx                         NEW — reusable right-anchored flyout
+src/presentation/components/icons/DeveloperIcon.tsx NEW — multicolor SVG glyph
+src/presentation/components/icons/EntityIcon.tsx    + 'developer' entity (slate tile)
+src/presentation/components/settings/SettingsSidebar/SettingsSidebar.tsx
+                                                    rename "Local MCP servers"→"Developer",
+                                                    EntityIcon entity="developer", moved last
+src/presentation/views/settings/LocalServersView/LocalServersView.tsx
+                                                    flyout editor + example accordion + state
+```
+
+**`Sheet` primitive (`src/components/ui/sheet.tsx`)** — a thin wrapper over the
+Radix `Dialog` primitive (same engine as `dialog.tsx`), exporting
+`Sheet`/`SheetTrigger`/`SheetContent`/`SheetHeader`/`SheetFooter`/`SheetTitle`/
+`SheetDescription`/`SheetClose`. `SheetContent` is `fixed`, anchored to the right,
+**inset 10px** on all sides (Tailwind `2.5`, matching `SIDEBAR_BOX_INSET_PX`) with
+`rounded-md` + `border-border` so its corners are visible like the sidebar box,
+and slides via the existing `tw-animate-css` `data-open:slide-in-from-right` /
+`data-closed:slide-out-to-right` utilities. Width is `w-[calc(100vw-1.25rem)]`
+(fluid) capped at `sm:max-w-lg` (overridden to `sm:max-w-xl` by the view). Open
+state via Radix `data-open`/`data-closed` (the variants `dialog.tsx` already uses).
+
+**`DeveloperIcon` + `EntityIcon`** — `DeveloperIcon` is a hand-traced multicolor
+SVG (ignores `currentColor`; has its own fills) accepting `{ size?, className? }`,
+so it satisfies `EntityIcon`'s `Glyph` type and renders as-is inside the white-glyph
+tile wrapper. `ENTITY_ICONS.developer = { Glyph: DeveloperIcon, tile: 'bg-slate-600' }`;
+both the sidebar item and the page header now go through `EntityIcon entity="developer"`.
+
+**`LocalServersView` flyout + accordion** — two new pieces of local state:
+`panelOpen` (the `Sheet`) and `exampleOpen` (the accordion). The editor `<textarea>`
++ Save moved inside `SheetContent` (textarea `flex-1` to fill); `handleSave` calls
+`setPanelOpen(false)` **only on success** (errors keep it open, shown inline). The
+"Configured servers" header carries the **Edit Config** button (`onClick` clears
+`error`/`notice` and opens the panel). The example moved above the list as a
+controlled accordion that mirrors `ConnectorCard`'s pattern (a `role="button"`
+header with `aria-expanded`/`aria-controls`, `ChevronRight`→`ChevronDown`, and a
+conditionally-rendered bordered body) instead of a native `<details>`. The
+success `notice` now renders in the Configured-servers section (visible after the
+panel closes). The example string is a `JSON.stringify(…, null, 2)` constant
+(`EXAMPLE_CONFIG`) rather than an inline one-liner.
+
+**Reuse note** — the `Sheet` flyout is generic and now available app-wide; this
+page is its first consumer.
 
 ---
 

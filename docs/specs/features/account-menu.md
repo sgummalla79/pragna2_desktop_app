@@ -3,7 +3,7 @@
 > **Status**: Implemented
 > **Author**: Suman Gummalla
 > **Created**: 2026-06-10
-> **Last Updated**: 2026-06-10
+> **Last Updated**: 2026-06-12
 
 ---
 
@@ -72,3 +72,24 @@ The pill is full-width (`w-full`) with a truncating label, so it adapts to the
 260px desktop rail and the ≤85vw mobile drawer without overflow. The dropdown
 opens `side="top"` (the footer sits at the bottom of the rail) with a fixed
 min-width and is portalled above all chrome.
+
+## 7. Sidebar footer visual consistency (2026-06-12)
+
+The pinned footer rows in both sidebars were brought in line with the nav rows
+above them (a visual-consistency fix; behaviour unchanged). Logged as a
+backportable web-app fix in `docs/CODE_FIXES.md` **CF-010** (the web app shares
+`AvatarMenu` / `SidebarBackItem` with the same mismatch).
+
+- **Avatar user name** (`AvatarMenu`): resting text dimmed from full
+  `text-foreground` to **`text-foreground/80`** with **`hover:text-foreground`**,
+  matching the chat sidebar's nav rows. The avatar initial badge, chevron, and
+  open-state highlight are unchanged.
+- **Settings "Back to Chat"** (`SidebarBackItem`): row metrics aligned to
+  `SidebarNavItem` (**`gap-3 px-3 h-8`**), resting text set to
+  **`text-sidebar-foreground/70`** + `hover:text-sidebar-accent-foreground`, and
+  the icon swapped to a **circular back-arrow badge** — `bg-foreground` /
+  `text-background` so it inverts per theme (white circle + dark arrow in dark
+  mode, the reverse in light mode), wrapped in a 20px box so the icon edge and
+  label line up with the nav tiles. The back-arrow **icon style** is a UI-only
+  deviation from the web app's `MessagesSquare` (see `docs/web-app-parity.md`);
+  the alignment + color sync is the part to backport (CF-010).
