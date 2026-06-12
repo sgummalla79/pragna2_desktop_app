@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ServiceProvider } from '@/presentation/providers/ServiceProvider';
 import { AppRoutes } from '@/presentation/router/AppRoutes';
 import { useBootstrap } from '@/presentation/hooks/auth/useBootstrap';
+import { isWindowsPlatform } from '@/infrastructure/platform';
+import { WindowsTitleBar } from '@/components/ui/WindowsTitleBar';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,10 +26,13 @@ export default function App() {
       <BrowserRouter>
         <ServiceProvider>
           <BootstrapGate />
-          {/* Overlay title bar (see tauri.conf): the webview fills the whole
-              window, so this thin strip at the very top is the draggable
-              "title bar" region. macOS traffic lights float over its left. */}
-          <div data-tauri-drag-region className="fixed inset-x-0 top-0 h-7 z-30" />
+          {/* Windows: custom title bar with drag region + min/max/close buttons.
+              macOS: plain drag-region strip (traffic lights are OS-rendered). */}
+          {isWindowsPlatform() ? (
+            <WindowsTitleBar />
+          ) : (
+            <div data-tauri-drag-region className="fixed inset-x-0 top-0 h-7 z-30" />
+          )}
           {/* Each route owns its own layout; this wrapper just guarantees a
               min viewport height so short pages don't collapse. */}
           <main className="min-h-screen">

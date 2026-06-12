@@ -28,6 +28,8 @@ function avatarInitial(name: string | null | undefined, email: string | undefine
 interface AvatarMenuProps {
   /** Called after a navigation action — lets the mobile drawer close itself. */
   onNavigate?: () => void;
+  /** When true, renders only the avatar circle (no name or chevron). Used in the collapsed Windows rail. */
+  iconOnly?: boolean;
 }
 
 /**
@@ -39,7 +41,7 @@ interface AvatarMenuProps {
  * out resets the auth store, which the {@link ProtectedRoute} guard observes to
  * redirect to the login screen; the explicit navigate keeps that snappy.
  */
-export function AvatarMenu({ onNavigate }: AvatarMenuProps) {
+export function AvatarMenu({ onNavigate, iconOnly = false }: AvatarMenuProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -64,11 +66,13 @@ export function AvatarMenu({ onNavigate }: AvatarMenuProps) {
           type="button"
           aria-label="Account menu"
           className={cn(
-            'group flex w-full items-center gap-2 rounded-lg px-2 h-8 font-medium',
+            'group flex items-center gap-2 rounded-lg font-medium',
             'text-foreground transition-colors hover:bg-sidebar-hover',
-            // While the menu is open, show the selected-menu-item style.
             'data-[state=open]:bg-sidebar-primary data-[state=open]:text-sidebar-primary-foreground',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            iconOnly
+              ? 'h-8 w-8 justify-center px-0'
+              : 'w-full px-2 h-8',
           )}
         >
           <span
@@ -76,23 +80,24 @@ export function AvatarMenu({ onNavigate }: AvatarMenuProps) {
             className={cn(
               'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full leading-none',
               'bg-primary/10 text-primary text-[10px] font-semibold',
-              // Keep the badge legible on the primary fill when the menu is open.
               'group-data-[state=open]:bg-sidebar-primary-foreground/20 group-data-[state=open]:text-sidebar-primary-foreground',
             )}
           >
             {initial}
           </span>
-          <span className="min-w-0 flex-1 truncate text-left text-[13px]">{displayName}</span>
-          {/* Chevron marks this as a dropdown; rotates 180° while open, driven
-              purely by Radix's data-state on the trigger — no extra state. */}
-          <ChevronDown
-            size={16}
-            aria-hidden="true"
-            className={cn(
-              'flex-shrink-0 text-muted-foreground transition-transform',
-              'group-data-[state=open]:rotate-180 group-data-[state=open]:text-sidebar-primary-foreground',
-            )}
-          />
+          {!iconOnly && (
+            <>
+              <span className="min-w-0 flex-1 truncate text-left text-[13px]">{displayName}</span>
+              <ChevronDown
+                size={16}
+                aria-hidden="true"
+                className={cn(
+                  'flex-shrink-0 text-muted-foreground transition-transform',
+                  'group-data-[state=open]:rotate-180 group-data-[state=open]:text-sidebar-primary-foreground',
+                )}
+              />
+            </>
+          )}
         </button>
       </DropdownMenu.Trigger>
 

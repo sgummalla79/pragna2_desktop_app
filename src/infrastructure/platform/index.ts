@@ -9,5 +9,5 @@
  *   - Adding a new OS or runtime variant means changing only this file.
  */
 
-export { isTauriRuntime } from './runtime';
+export { isTauriRuntime, isWindowsPlatform } from './runtime';
 export { secureStore } from './secureStore';

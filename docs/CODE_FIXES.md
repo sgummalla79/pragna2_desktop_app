@@ -154,3 +154,25 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 - **Web-app applicability:** **NONE — desktop-only gap.** The web app already has this subsystem
   (its `scenario-21` passes); CF-005 is the **desktop catching up to the web app** (same direction as
   CF-002). No web-app change needed.
+
+---
+
+## CF-006 — Stop button / navigation abort logs a spurious CHT_004 error
+
+- **Date:** 2026-06-12
+- **Area / file:** `src/presentation/views/chat/hooks/useChatSession.ts`
+- **Bug:** After clicking the Stop button (or navigating away mid-stream), the console showed
+  `[ERROR] CHT_004:run_failed` and `CHT_004:run_rejected` even though the cancellation was
+  intentional. The UI didn't break (status reset to idle correctly), but the noise made it
+  hard to spot real errors.
+- **Platform scope:** Windows-only. On macOS, Tauri's NSURLSession transport propagates a
+  standard `AbortError` on cancellation, which the old `/aborted/i` guard already caught
+  correctly. On Windows, the WinHTTP/reqwest layer throws `Error: "Request cancelled"` instead,
+  so only Windows exhibited the spurious log.
+- **Root cause:** The abort-guard checked only `e.name === 'AbortError'` and `/aborted/i` —
+  neither matches "cancelled", so the Windows error fell through to the logging path. The same
+  gap affected the `attach` catch and the raw episode `runEpisodeStream` guard.
+- **Fix:** Widened all three abort guards to `/aborted|cancel/i` so "Request cancelled" (Windows)
+  and any future variant are treated as user-initiated unwinds and suppressed. No-op on macOS.
+- **Web-app applicability:** The web app uses the browser's native `fetch` which throws a real
+  `AbortError` on cancel. **No web-app change needed.**
