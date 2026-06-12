@@ -1,8 +1,10 @@
 import type { IMcpConnectorRepository } from '@/application/ports/IMcpConnectorRepository';
 import type {
+  ClientToolSchema,
   CreateMcpConnectorPayload,
   McpConnector,
   RefreshToolsResult,
+  RegisterClientDelegatedPayload,
   RegisteredMcpConnector,
   StartOAuthPayload,
   StartOAuthResult,
@@ -31,6 +33,19 @@ export class McpConnectorService {
    */
   register(payload: CreateMcpConnectorPayload): Promise<RegisteredMcpConnector> {
     return this.repo.register(payload);
+  }
+
+  /** Register a CLIENT-DELEGATED (stdio) connector from desktop-discovered tool
+   *  schemas (no server-side discovery). */
+  registerClientDelegated(
+    payload: RegisterClientDelegatedPayload,
+  ): Promise<RegisteredMcpConnector> {
+    return this.repo.registerClientDelegated(payload);
+  }
+
+  /** Re-sync a client-delegated connector's tools from a fresh desktop list. */
+  syncTools(id: string, tools: ClientToolSchema[]): Promise<RefreshToolsResult> {
+    return this.repo.syncTools(id, tools);
   }
 
   /** Partial update — display_name / description / auth_type / status /

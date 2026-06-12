@@ -8,12 +8,14 @@
  */
 
 import type {
+  ClientToolSchema,
   CreateMcpConnectorPayload,
   McpAuthType,
   McpConnector,
   McpConnectorStatus,
   McpConnectorToolCounts,
   McpTransport,
+  RegisterClientDelegatedPayload,
   RegisteredMcpConnector,
   UpdateMcpConnectorPayload,
 } from '@/domain/types/mcp.types';
@@ -106,6 +108,38 @@ export function toApiCreatePayload(
   if (payload.description !== undefined) body.description = payload.description;
   if (payload.credentials !== undefined) body.credentials = payload.credentials;
   return body;
+}
+
+/** Map client-supplied tool schemas to the BE's snake_case `input_schema` shape. */
+function toApiToolSchemas(tools: ClientToolSchema[]): Record<string, unknown>[] {
+  return tools.map((t) => ({
+    name: t.name,
+    description: t.description,
+    input_schema: t.inputSchema,
+  }));
+}
+
+/** Map a client-delegated (stdio) registration payload to the BE shape for
+ *  `POST /api/mcp-connectors/client-delegated`. No url / credentials — the
+ *  launch config lives on the desktop. */
+export function toApiClientDelegatedPayload(
+  payload: RegisterClientDelegatedPayload,
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    display_name: payload.displayName,
+    transport: 'stdio',
+    tools: toApiToolSchemas(payload.tools),
+  };
+  if (payload.description !== undefined) body.description = payload.description;
+  return body;
+}
+
+/** Map a re-sync tool list to the BE shape for
+ *  `POST /api/mcp-connectors/{id}/sync-tools`. */
+export function toApiSyncToolsPayload(
+  tools: ClientToolSchema[],
+): Record<string, unknown> {
+  return { tools: toApiToolSchemas(tools) };
 }
 
 /** Map the domain update payload to the snake_case shape the BE expects.

@@ -9,3 +9,6 @@
 /// Matches the Tauri app identifier so credentials are scoped to this app.
 /// Used by the `keyring` crate on macOS (Keychain) and Windows (Credential Manager).
 pub const KEYRING_SERVICE: &str = "com.pragna2.app";
+
+/// Warm stdio-MCP process registry + keychain launch-config store (Phase F).
+pub mod mcp_registry;

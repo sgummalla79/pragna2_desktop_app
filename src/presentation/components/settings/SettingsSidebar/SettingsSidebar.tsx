@@ -1,4 +1,9 @@
-import { Settings as SettingsIcon, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import {
+  Settings as SettingsIcon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  TerminalSquare,
+} from 'lucide-react';
 import { SIDEBAR_BOX_INSET_PX, SIDEBAR_BOX_GAP_PX } from '@/constants/windowChrome';
 import { EntityIcon } from '@/presentation/components/icons/EntityIcon';
 import { Sidebar, ItemList } from '@/components/ui/sidebar/Sidebar';
@@ -14,6 +19,7 @@ const SETTINGS_NAV: SidebarItemConfig[] = [
   { type: 'nav', to: ROUTES.SETTINGS_CONFIGURATION, icon: <EntityIcon entity="configuration" />, label: 'Configuration' },
   { type: 'nav', to: ROUTES.SETTINGS_PROVIDERS, icon: <EntityIcon entity="providers" />, label: 'Providers' },
   { type: 'nav', to: ROUTES.SETTINGS_CONNECTORS, icon: <EntityIcon entity="connectors" />, label: 'Connectors' },
+  { type: 'nav', to: ROUTES.SETTINGS_LOCAL_SERVERS, icon: <TerminalSquare size={18} aria-hidden />, label: 'Local MCP servers' },
   { type: 'nav', to: ROUTES.SETTINGS_KNOWLEDGE, icon: <EntityIcon entity="knowledge" />, label: 'Knowledge' },
   { type: 'section', label: 'Build' },
   { type: 'nav', to: ROUTES.SETTINGS_AGENTS, icon: <EntityIcon entity="agents" />, label: 'Agents' },

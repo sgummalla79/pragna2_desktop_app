@@ -83,6 +83,9 @@ fn secure_store_delete(key: String) -> Result<(), String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // Warm registry of running local stdio MCP services (Phase F). Lazy —
+        // empty until the first delegated tool call spawns a server.
+        .manage(platform::mcp_registry::McpRegistry::default())
         .plugin(tauri_plugin_opener::init())
         // Loopback OAuth server for the production social-login flow: starts a
         // temporary localhost HTTP server that captures Auth0's redirect after
@@ -96,7 +99,11 @@ pub fn run() {
             greet,
             secure_store_set,
             secure_store_get,
-            secure_store_delete
+            secure_store_delete,
+            adapters::mcp_commands::mcp_stdio_discover,
+            adapters::mcp_commands::mcp_stdio_call,
+            adapters::mcp_commands::mcp_stdio_save_config,
+            adapters::mcp_commands::mcp_stdio_clear_config
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

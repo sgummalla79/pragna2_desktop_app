@@ -7,9 +7,43 @@
  */
 
 /** Transport discriminator on an `McpConnector`. `http` = HTTP-SSE;
- *  `streamable_http` = the modern remote transport used by OAuth-era servers.
- *  The local `stdio` transport is intentionally not supported in the app. */
-export type McpTransport = 'http' | 'streamable_http';
+ *  `streamable_http` = the modern remote transport used by OAuth-era servers;
+ *  `stdio` = a CLIENT-DELEGATED local server (runs on this desktop; the backend
+ *  delegates tool calls to us — Phase F). */
+export type McpTransport = 'http' | 'streamable_http' | 'stdio';
+
+/** How to launch a local (stdio) MCP server. Lives ONLY on the desktop (OS
+ *  keychain), never sent to the backend. Mirrors Claude Desktop's `mcpServers`
+ *  entry shape. `env` carries credentials (e.g. `GITHUB_TOKEN`) — secret. */
+export interface StdioServerConfig {
+  command: string;
+  args: string[];
+  /** Environment variables for the subprocess (carries credentials; secret). */
+  env: Record<string, string>;
+}
+
+/** The editor's whole-config shape: a map of display name → launch config,
+ *  matching Claude Desktop's `claude_desktop_config.json` `mcpServers` block. */
+export interface LocalServersConfig {
+  mcpServers: Record<string, StdioServerConfig>;
+}
+
+/** One tool schema discovered locally (Rust `mcp_stdio_discover`) and pushed up
+ *  to the backend's `/client-delegated` route. */
+export interface ClientToolSchema {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+}
+
+/** Body for `POST /api/mcp-connectors/client-delegated` (camelCase; the mapper
+ *  converts to the BE's snake_case `{display_name, transport, tools:[{name,
+ *  description, input_schema}]}`). */
+export interface RegisterClientDelegatedPayload {
+  displayName: string;
+  description?: string;
+  tools: ClientToolSchema[];
+}
 
 /** Lifecycle status — mirrors the BE `mcp_connectors.status` column.
  *  `active` = usable; `inactive` = parked (hidden from runtime); `archived` =

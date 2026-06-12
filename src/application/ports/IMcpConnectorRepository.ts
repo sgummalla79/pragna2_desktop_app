@@ -7,9 +7,11 @@
  */
 
 import type {
+  ClientToolSchema,
   CreateMcpConnectorPayload,
   McpConnector,
   RefreshToolsResult,
+  RegisterClientDelegatedPayload,
   RegisteredMcpConnector,
   StartOAuthPayload,
   StartOAuthResult,
@@ -26,6 +28,19 @@ export interface IMcpConnectorRepository {
    *  The returned object includes the discovered api_names so the UI can
    *  show a meaningful count. Maps to `POST /api/mcp-connectors`. */
   register(payload: CreateMcpConnectorPayload): Promise<RegisteredMcpConnector>;
+
+  /** Register a CLIENT-DELEGATED (stdio) connector — no server-side discovery;
+   *  the desktop supplies the locally-discovered tool schemas. Stores identity
+   *  + schemas only (no url / credentials). Maps to
+   *  `POST /api/mcp-connectors/client-delegated`. */
+  registerClientDelegated(
+    payload: RegisterClientDelegatedPayload,
+  ): Promise<RegisteredMcpConnector>;
+
+  /** Re-sync a client-delegated connector's tools from a fresh desktop schema
+   *  list (reconciles added/unchanged/archived). Maps to
+   *  `POST /api/mcp-connectors/{id}/sync-tools`. */
+  syncTools(id: string, tools: ClientToolSchema[]): Promise<RefreshToolsResult>;
 
   /** Partial update — display_name / description / auth_type / status /
    *  credentials. Maps to `PATCH /api/mcp-connectors/{id}`. */

@@ -39,6 +39,7 @@ Priority: `P1` (blocks a feature) · `P2` (should do soon) · `P3` (nice to have
 | [TD-029](#td-029--load--scaling-test-for-concurrent-users) | Load / scaling test for concurrent users | Testing | P3 | ⬜ open |
 | [TD-030](#td-030--async-create_pdf_long-document-does-not-auto-surface-in-chat) | Async create_pdf_long document doesn't auto-surface in chat (CF-005) | Chat | P2 | ✅ done |
 | [TD-031](#td-031--settings-profile-page-not-implemented-placeholder) | Settings Profile page not implemented (placeholder) | Settings | P3 | ⬜ open |
+| [TD-033](#td-033--client-delegated-stdio-phase-f-refinements) | Client-delegated stdio (Phase F) refinements | Connectors | P3 | ⬜ open |
 
 ---
 
@@ -669,6 +670,32 @@ real local stack), plus a desktop-owned manual-testing doc. Plan:
 - **Deferred:** the native Tauri-window seam is TD-028.
 
 ---
+
+## TD-033 — Client-delegated stdio (Phase F) refinements
+
+**Area:** Connectors / Local MCP servers · **Priority:** P3 · **Status:** ⬜ open
+
+**What:** Phase F shipped a working v1 of client-delegated stdio MCP servers
+(Rust `rmcp` host + `LocalServersView` config editor + headless delegation in
+`useChatSession`). Functional v1 deferrals to revisit:
+
+- **Per-tool enable/disable + expandable tool list** on each Local-servers row
+  (the backend already supports it via `mcp_connector_tools.enabled` + `PATCH
+  /api/tools`, the same as the remote `ConnectorToolToggleList`). v1 shows only
+  the `{enabled}/{total}` count.
+- **Explicit warm-process teardown on app exit** (a Tauri `RunEvent::Exit`
+  handler calling `McpRegistry::shutdown_all`). v1 relies on `kill_on_drop` —
+  children die when the runtime drops, but an explicit graceful close is nicer.
+- **Text-only result flattening** in the Rust host (`flatten_result` currently
+  serialises the whole `CallToolResult.content` array to JSON; extracting the
+  text parts like the backend's `_flatten_result_content` is cleaner for the LLM).
+- **Fixture-based Rust integration tests** for `discover`/`call`/timeout against a
+  tiny in-repo MCP server (v1 has pure unit tests; the rmcp path is covered by
+  manual e2e only).
+- **Per-call confirmation / allowlist** + a nicer consent modal (v1 uses
+  `window.confirm` showing the commands before the first spawn).
+- **Re-discover button** wired to `syncTools` from the row (v1 re-discovers on
+  every config Save).
 
 ## TD-032 — Investigate e2e BE "degradation" under sustained load (create_pdf_long event-loop blocking?)
 

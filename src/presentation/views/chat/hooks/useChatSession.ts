@@ -1,15 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AgentSubscriber, Message } from '@ag-ui/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { API_BASE_URL, PRAGNA_BASE_URL } from '@/constants/api';
+import {
+  API_BASE_URL,
+  CLIENT_CAPABILITIES_HEADER,
+  CLIENT_CAPABILITY_STDIO_DELEGATION,
+  PRAGNA_BASE_URL,
+} from '@/constants/api';
 import { ERRORS } from '@/constants/errors';
 import { SLASH_COMMAND_RE } from '@/constants/slashCommands';
 import { TauriHttpAgent } from '@/infrastructure/agui/TauriHttpAgent';
+import { mcpStdio } from '@/infrastructure/platform';
 import { invalidateConversationListQueries } from '@/presentation/hooks/conversations/useConversations';
 import { useServices } from '@/presentation/providers/ServiceContext';
 import { useAuthStore } from '@/presentation/store/authStore';
 import { logger } from '@/infrastructure/logging/logger';
 import type { AskUserSchema, CreateEpisodePayload } from '@/domain/types/episode.types';
+import {
+  type DelegationEnvelope,
+  type DelegationResult,
+  readDelegationEnvelope,
+} from '@/domain/types/mcpDelegation.types';
 
 /** A tool call rendered inline under an assistant turn. */
 export interface ChatToolCall {
@@ -222,12 +233,24 @@ export function useChatSession(
   // Stable ref to the latest open-episode resolver, called from the subscriber
   // (avoids adding it to the subscribe effect's deps).
   const resolveOpenEpisodeRef = useRef<() => void>(() => {});
+  // Phase F: headless client-delegated tool runner; set after runEpisodeStream
+  // is defined (resolveOpenEpisode → runDelegation → runEpisodeStream cycle).
+  const runDelegationRef = useRef<
+    (episodeId: string, envelope: DelegationEnvelope) => void
+  >(() => {});
 
   const agent = useMemo<TauriHttpAgent | null>(() => {
     if (!accessToken) return null;
     return new TauriHttpAgent({
       url: `${PRAGNA_BASE_URL}/chat`,
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        // Phase F: declare that this (desktop) client can execute client-delegated
+        // (stdio) tools. The header rides on every run/episode/resume request
+        // (run() + runRaw() both spread this.headers), so the backend binds stdio
+        // tools and the capability gate passes. The web app omits it → 409.
+        [CLIENT_CAPABILITIES_HEADER]: CLIENT_CAPABILITY_STDIO_DELEGATION,
+      },
       threadId,
       initialMessages,
     });
@@ -554,6 +577,13 @@ export function useChatSession(
       const page = await episodeService.list(threadId, { limit: 1, offset: 0 });
       const ep = page.episodes[0];
       if (ep && ep.status === 'awaiting_user') {
+        // Phase F: a client-delegated (stdio) tool pause runs HEADLESSLY —
+        // execute the tools locally and auto-resume, no form rendered.
+        const envelope = readDelegationEnvelope(ep.interruptValue);
+        if (envelope) {
+          runDelegationRef.current(ep.id, envelope);
+          return;
+        }
         const schema =
           (ep.interruptValue as { schema?: AskUserSchema } | null)?.schema ??
           interruptSchemaRef.current ??
@@ -622,6 +652,45 @@ export function useChatSession(
     },
     [agent, threadId, resolveOpenEpisode, qc],
   );
+
+  // Phase F: headless client-delegated tool execution. Run each call locally via
+  // the Rust stdio host, then auto-resume the paused run with the ordered results
+  // (`/resume-tool` maps them by index). A failed/declined call → `tool_error` so
+  // the run degrades + the agent reports it. Reuses runEpisodeStream, which
+  // re-resolves the open episode on completion — so a run that pauses again at
+  // another delegation recurses naturally.
+  const runDelegation = useCallback(
+    async (episodeId: string, envelope: DelegationEnvelope) => {
+      if (!threadId) return;
+      setStatus('running');
+      setProgressLabel('Running local tools…');
+      const results: DelegationResult[] = [];
+      for (const call of envelope.calls) {
+        try {
+          const result = await mcpStdio.call(
+            call.connector_id,
+            call.upstream_name,
+            call.args,
+          );
+          results.push({ tool_result: result });
+        } catch (e) {
+          results.push({
+            tool_error: e instanceof Error ? e.message : String(e),
+          });
+          logger.fromError(
+            'DELEG_001:tool_call',
+            e instanceof Error ? e : new Error(String(e)),
+          );
+        }
+      }
+      const url = `${API_BASE_URL}/conversations/${threadId}/episodes/${episodeId}/resume-tool`;
+      await runEpisodeStream(url, { results }, 'HITL_002');
+    },
+    [threadId, runEpisodeStream],
+  );
+  runDelegationRef.current = (episodeId, envelope) => {
+    void runDelegation(episodeId, envelope);
+  };
 
   const submitInterrupt = useCallback(
     (form: Record<string, unknown>, text: string) => {

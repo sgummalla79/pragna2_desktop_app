@@ -9,9 +9,11 @@
 import type { AxiosInstance } from 'axios';
 import type { IMcpConnectorRepository } from '@/application/ports/IMcpConnectorRepository';
 import type {
+  ClientToolSchema,
   CreateMcpConnectorPayload,
   McpConnector,
   RefreshToolsResult,
+  RegisterClientDelegatedPayload,
   RegisteredMcpConnector,
   StartOAuthPayload,
   StartOAuthResult,
@@ -23,7 +25,9 @@ import {
   type ApiRegisteredMcpConnectorResponse,
   mapMcpConnector,
   mapRegisteredMcpConnector,
+  toApiClientDelegatedPayload,
   toApiCreatePayload,
+  toApiSyncToolsPayload,
   toApiUpdatePayload,
 } from './mappers/mapMcpConnector';
 
@@ -46,6 +50,31 @@ export class McpConnectorRepository implements IMcpConnectorRepository {
       toApiCreatePayload(payload),
     );
     return mapRegisteredMcpConnector(data);
+  }
+
+  async registerClientDelegated(
+    payload: RegisterClientDelegatedPayload,
+  ): Promise<RegisteredMcpConnector> {
+    const { data } = await this.http.post<ApiRegisteredMcpConnectorResponse>(
+      '/mcp-connectors/client-delegated',
+      toApiClientDelegatedPayload(payload),
+    );
+    return mapRegisteredMcpConnector(data);
+  }
+
+  async syncTools(
+    id: string,
+    tools: ClientToolSchema[],
+  ): Promise<RefreshToolsResult> {
+    const { data } = await this.http.post<ApiRefreshToolsResponse>(
+      `/mcp-connectors/${id}/sync-tools`,
+      toApiSyncToolsPayload(tools),
+    );
+    return {
+      added: data.added,
+      unchanged: data.unchanged,
+      archived: data.archived,
+    };
   }
 
   async update(
