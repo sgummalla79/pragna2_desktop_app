@@ -2,7 +2,6 @@ import {
   Settings as SettingsIcon,
   PanelLeftClose,
   PanelLeftOpen,
-  TerminalSquare,
 } from 'lucide-react';
 import { SIDEBAR_BOX_INSET_PX, SIDEBAR_BOX_GAP_PX } from '@/constants/windowChrome';
 import { EntityIcon } from '@/presentation/components/icons/EntityIcon';
@@ -19,7 +18,6 @@ const SETTINGS_NAV: SidebarItemConfig[] = [
   { type: 'nav', to: ROUTES.SETTINGS_CONFIGURATION, icon: <EntityIcon entity="configuration" />, label: 'Configuration' },
   { type: 'nav', to: ROUTES.SETTINGS_PROVIDERS, icon: <EntityIcon entity="providers" />, label: 'Providers' },
   { type: 'nav', to: ROUTES.SETTINGS_CONNECTORS, icon: <EntityIcon entity="connectors" />, label: 'Connectors' },
-  { type: 'nav', to: ROUTES.SETTINGS_LOCAL_SERVERS, icon: <TerminalSquare size={18} aria-hidden />, label: 'Local MCP servers' },
   { type: 'nav', to: ROUTES.SETTINGS_KNOWLEDGE, icon: <EntityIcon entity="knowledge" />, label: 'Knowledge' },
   { type: 'section', label: 'Build' },
   { type: 'nav', to: ROUTES.SETTINGS_AGENTS, icon: <EntityIcon entity="agents" />, label: 'Agents' },
@@ -27,6 +25,7 @@ const SETTINGS_NAV: SidebarItemConfig[] = [
   { type: 'section', label: 'Account' },
   { type: 'nav', to: ROUTES.SETTINGS_APPEARANCE, icon: <EntityIcon entity="appearance" />, label: 'Appearance' },
   { type: 'nav', to: ROUTES.SETTINGS_PROFILE, icon: <EntityIcon entity="profile" />, label: 'Profile' },
+  { type: 'nav', to: ROUTES.SETTINGS_LOCAL_SERVERS, icon: <EntityIcon entity="developer" />, label: 'Developer' },
   // Pinned to the bottom of the rail by Sidebar (mirrors the chat avatar footer).
   { type: 'back', to: ROUTES.CHAT, label: 'Back to Chat' },
 ];
