@@ -113,6 +113,9 @@ const AUTH_OPTIONS: { value: AuthMode; title: string; blurb: string }[] = [
 const TRANSPORT_LABELS: Record<McpTransport, string> = {
   http: 'HTTP-SSE',
   streamable_http: 'Streamable HTTP',
+  // Client-delegated local servers are managed in the Local MCP servers page,
+  // not this remote-connector form; included for type completeness.
+  stdio: 'Local (stdio)',
 };
 
 let _rowSeq = 0;

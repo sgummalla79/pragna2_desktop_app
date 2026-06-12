@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   mapMcpConnector,
   mapRegisteredMcpConnector,
+  toApiClientDelegatedPayload,
   toApiCreatePayload,
+  toApiSyncToolsPayload,
   toApiUpdatePayload,
   type ApiMcpConnectorResponse,
   type ApiRegisteredMcpConnectorResponse,
@@ -90,5 +92,39 @@ describe('toApiUpdatePayload', () => {
 
   it('maps clearCredentials → clear_credentials', () => {
     expect(toApiUpdatePayload({ clearCredentials: true })).toEqual({ clear_credentials: true });
+  });
+});
+
+describe('toApiClientDelegatedPayload (Phase F)', () => {
+  it('maps to the snake_case stdio shape (no url/credentials)', () => {
+    const body = toApiClientDelegatedPayload({
+      displayName: 'Local Tools',
+      description: 'my local server',
+      tools: [{ name: 'read', description: 'Read', inputSchema: { type: 'object' } }],
+    });
+    expect(body.display_name).toBe('Local Tools');
+    expect(body.transport).toBe('stdio');
+    expect(body.description).toBe('my local server');
+    expect(body.url).toBeUndefined();
+    expect((body.tools as Array<Record<string, unknown>>)[0]).toEqual({
+      name: 'read',
+      description: 'Read',
+      input_schema: { type: 'object' },
+    });
+  });
+
+  it('omits description when absent', () => {
+    const body = toApiClientDelegatedPayload({ displayName: 'X', tools: [] });
+    expect('description' in body).toBe(false);
+  });
+});
+
+describe('toApiSyncToolsPayload (Phase F)', () => {
+  it('maps tool schemas to snake_case input_schema', () => {
+    const body = toApiSyncToolsPayload([{ name: 'write', description: '', inputSchema: {} }]);
+    const tools = body.tools as Array<Record<string, unknown>>;
+    expect(tools).toHaveLength(1);
+    expect(tools[0].name).toBe('write');
+    expect(tools[0].input_schema).toEqual({});
   });
 });

@@ -13,6 +13,7 @@ const RegisterView = lazy(() => import('@/presentation/views/auth/RegisterView')
 const ProvidersView = lazy(() => import('@/presentation/views/settings/ProvidersView/ProvidersView'));
 const ConfigurationView = lazy(() => import('@/presentation/views/settings/ConfigurationView/ConfigurationView'));
 const ConnectorsView = lazy(() => import('@/presentation/views/settings/ConnectorsView/ConnectorsView'));
+const LocalServersView = lazy(() => import('@/presentation/views/settings/LocalServersView/LocalServersView'));
 const KnowledgeView = lazy(() => import('@/presentation/views/settings/KnowledgeView/KnowledgeView'));
 const AgentsView = lazy(() => import('@/presentation/views/settings/AgentsView/AgentsView'));
 const FlowsView = lazy(() => import('@/presentation/views/settings/FlowsView/FlowsView'));
@@ -40,6 +41,7 @@ export function AppRoutes() {
           <Route path={ROUTES.SETTINGS_PROVIDERS} element={<ProvidersView />} />
           <Route path={ROUTES.SETTINGS_CONFIGURATION} element={<ConfigurationView />} />
           <Route path={ROUTES.SETTINGS_CONNECTORS} element={<ConnectorsView />} />
+          <Route path={ROUTES.SETTINGS_LOCAL_SERVERS} element={<LocalServersView />} />
           <Route path={ROUTES.SETTINGS_KNOWLEDGE} element={<KnowledgeView />} />
           <Route path={ROUTES.SETTINGS_AGENTS} element={<AgentsView />} />
           <Route path={ROUTES.SETTINGS_FLOWS} element={<FlowsView />} />

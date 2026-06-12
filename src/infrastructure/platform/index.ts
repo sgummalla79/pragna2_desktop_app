@@ -11,3 +11,4 @@
 
 export { isTauriRuntime, isWindowsPlatform } from './runtime';
 export { secureStore } from './secureStore';
+export { mcpStdio, NotInTauriError } from './mcpStdio';

@@ -33,3 +33,10 @@ export const APP_NAME: string =
 
 export const APP_VERSION: string =
   envOr(import.meta.env.VITE_APP_VERSION as string | undefined, '0.1.0');
+
+// Capability the desktop declares on run-start requests so the backend binds
+// client-delegated (stdio) tools and the capability gate passes (Phase F). The
+// web app omits this header and is rejected (409) if a run needs stdio tools.
+export const CLIENT_CAPABILITIES_HEADER = 'X-Client-Capabilities';
+export const CLIENT_CAPABILITY_STDIO_DELEGATION = 'stdio_delegation';
+

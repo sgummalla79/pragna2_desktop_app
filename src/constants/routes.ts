@@ -16,6 +16,7 @@ export const ROUTES = {
   SETTINGS_CONFIGURATION: '/settings/configuration',
   SETTINGS_PROVIDERS:     '/settings/providers',
   SETTINGS_CONNECTORS:    '/settings/connectors',
+  SETTINGS_LOCAL_SERVERS: '/settings/local-servers',
   SETTINGS_KNOWLEDGE:     '/settings/knowledge',
   SETTINGS_AGENTS:        '/settings/agents',
   SETTINGS_FLOWS:         '/settings/flows',

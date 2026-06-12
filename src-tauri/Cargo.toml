@@ -27,4 +27,11 @@ serde_json = "1"
 # Cross-platform OS secure store for the auth refresh token: macOS Keychain +
 # Windows Credential Manager (one API). See docs/TODO.md TD-009.
 keyring = { version = "3", features = ["apple-native", "windows-native"] }
+# Client-delegated stdio MCP host (Phase F). `rmcp` is the official Rust MCP
+# SDK; we use it as a CLIENT over the child-process (stdio) transport to spawn
+# local MCP servers, list their tools, and call them. `tokio` is its async
+# runtime (process spawning + async stdio). See docs/specs/technical/client-delegated-stdio.md.
+rmcp = { version = "0.8", features = ["client", "transport-child-process"] }
+tokio = { version = "1", features = ["rt-multi-thread", "process", "io-util", "macros", "sync", "time"] }
+uuid = { version = "1", features = ["v4", "serde"] }
 
