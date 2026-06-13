@@ -9,7 +9,7 @@
 
 ## 1. Overview
 
-Lets a user register and run **local (stdio) MCP servers** from the desktop app, even though the agent loop runs on the hosted backend. The backend never spawns a subprocess (that would be an RCE surface); instead the desktop runs the stdio server, and when a hosted run calls one of its tools the backend **pauses and delegates** the call to the desktop, which executes it locally and resumes the run. This is the client half of the already-shipped backend feature (master `5c7134f`).
+Lets a user register and run **local (stdio) MCP servers** from the desktop app, even though the agent loop runs on the hosted backend. The backend never spawns a subprocess (that would be an RCE surface); instead the desktop runs the stdio server, and when a hosted run calls one of its tools the backend **pauses and delegates** the call to the desktop, which executes it locally and resumes the run. This is the client half of the already-shipped backend feature (main `5c7134f`).
 
 In the Settings rail this surface is labelled **"Developer"** (the user-facing name; the underlying route/feature remains client-delegated stdio). See §8 for the 2026-06-12 UI revision that renamed it, moved it last in the rail, and moved config editing into a flyout.
 
