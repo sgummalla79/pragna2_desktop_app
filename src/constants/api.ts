@@ -31,10 +31,11 @@ export const LOG_LEVEL: string =
 export const APP_NAME: string =
   envOr(import.meta.env.VITE_APP_NAME as string | undefined, 'Pragna');
 
-// Defaults to the package.json version injected at build (__APP_VERSION__); an
-// explicit VITE_APP_VERSION still wins for one-off overrides.
-export const APP_VERSION: string =
-  envOr(import.meta.env.VITE_APP_VERSION as string | undefined, __APP_VERSION__);
+// Single source of truth: package.json, injected at build by Vite as
+// __APP_VERSION__ (see vite.config.ts / vitest.config.ts). Deliberately NOT read
+// from VITE_APP_VERSION — a stale env value must not be able to shadow the real
+// release version that drives the compatibility handshake.
+export const APP_VERSION: string = __APP_VERSION__;
 
 // Capability the desktop declares on run-start requests so the backend binds
 // client-delegated (stdio) tools and the capability gate passes (Phase F). The

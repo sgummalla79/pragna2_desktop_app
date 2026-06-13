@@ -1,7 +1,15 @@
 import { DropdownMenu } from 'radix-ui';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, LogOut, ChevronDown } from 'lucide-react';
+import {
+  Settings as SettingsIcon,
+  LogOut,
+  ChevronDown,
+  ChevronRight,
+  Info,
+  Tag,
+} from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
+import { CLIENT_VERSION } from '@/constants/version';
 import { useAuth } from '@/presentation/hooks/auth/useAuth';
 import { cn } from '@/lib/utils';
 
@@ -126,6 +134,38 @@ export function AvatarMenu({ onNavigate, iconOnly = false }: AvatarMenuProps) {
             <SettingsIcon size={16} aria-hidden="true" />
             Settings
           </DropdownMenu.Item>
+
+          {/* About → Version. A submenu so documentation links can be added
+              here later as sibling items alongside the version row. */}
+          <DropdownMenu.Sub>
+            <DropdownMenu.SubTrigger className={MENU_ITEM_CLASS}>
+              <Info size={16} aria-hidden="true" />
+              <span className="flex-1">About</span>
+              <ChevronRight size={16} aria-hidden="true" className="text-muted-foreground" />
+            </DropdownMenu.SubTrigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.SubContent
+                sideOffset={4}
+                className={cn(
+                  'z-[700] min-w-[200px] rounded-lg border border-border',
+                  'bg-popover p-1 shadow-2xl focus:outline-none',
+                )}
+              >
+                {/* Informational row showing the app's own version. Future
+                    documentation links go here as DropdownMenu.Item siblings. */}
+                <DropdownMenu.Item
+                  className={cn(MENU_ITEM_CLASS, 'justify-between')}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  <span className="flex items-center gap-2">
+                    <Tag size={16} aria-hidden="true" />
+                    Version
+                  </span>
+                  <span className="tabular-nums text-muted-foreground">{CLIENT_VERSION}</span>
+                </DropdownMenu.Item>
+              </DropdownMenu.SubContent>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Sub>
 
           <DropdownMenu.Item onSelect={handleSignOut} className={MENU_ITEM_CLASS}>
             <LogOut size={16} aria-hidden="true" />

@@ -5,6 +5,7 @@ import { AppRoutes } from '@/presentation/router/AppRoutes';
 import { useBootstrap } from '@/presentation/hooks/auth/useBootstrap';
 import { useVersionCheck } from '@/presentation/hooks/useVersionCheck';
 import { VersionBanner } from '@/presentation/components/VersionBanner';
+import { UpdateRequiredScreen } from '@/presentation/components/UpdateRequiredScreen';
 import { isWindowsPlatform } from '@/infrastructure/platform';
 import { WindowsTitleBar } from '@/components/ui/WindowsTitleBar';
 
@@ -37,6 +38,7 @@ export default function App() {
             <div data-tauri-drag-region className="fixed inset-x-0 top-0 h-7 z-30" />
           )}
           <VersionBanner />
+          <UpdateRequiredScreen />
           {/* Each route owns its own layout; this wrapper just guarantees a
               min viewport height so short pages don't collapse. */}
           <main className="min-h-screen">
