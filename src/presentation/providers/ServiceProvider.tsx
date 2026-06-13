@@ -2,6 +2,7 @@ import { useMemo, type ReactNode } from 'react';
 import { axiosClient } from '@/infrastructure/http/axiosClient';
 import { applyAuthInterceptor } from '@/infrastructure/http/authInterceptor';
 import { applyCorrelationInterceptor } from '@/infrastructure/http/correlationInterceptor';
+import { applyVersionInterceptor } from '@/infrastructure/http/versionInterceptor';
 import { Auth0Repository } from '@/infrastructure/auth0/Auth0Repository';
 import { TauriLoopbackAuthFlow } from '@/infrastructure/auth0/tauriLoopbackAuthFlow';
 import { LlmProviderRepository } from '@/infrastructure/repositories/LlmProviderRepository';
@@ -35,6 +36,7 @@ import { useAuthStore } from '@/presentation/store/authStore';
 import { ServiceContext } from './ServiceContext';
 
 applyCorrelationInterceptor(axiosClient);
+applyVersionInterceptor(axiosClient);
 
 interface ServiceProviderProps {
   children: ReactNode;

@@ -31,8 +31,10 @@ export const LOG_LEVEL: string =
 export const APP_NAME: string =
   envOr(import.meta.env.VITE_APP_NAME as string | undefined, 'Pragna');
 
+// Defaults to the package.json version injected at build (__APP_VERSION__); an
+// explicit VITE_APP_VERSION still wins for one-off overrides.
 export const APP_VERSION: string =
-  envOr(import.meta.env.VITE_APP_VERSION as string | undefined, '0.1.0');
+  envOr(import.meta.env.VITE_APP_VERSION as string | undefined, __APP_VERSION__);
 
 // Capability the desktop declares on run-start requests so the backend binds
 // client-delegated (stdio) tools and the capability gate passes (Phase F). The

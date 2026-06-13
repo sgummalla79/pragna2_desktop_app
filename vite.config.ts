@@ -3,6 +3,15 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import svgr from "vite-plugin-svgr";
 import path from "node:path";
+import { readFileSync } from "node:fs";
+
+// Single source of truth for the app version: package.json (kept in sync with
+// src-tauri/tauri.conf.json + Cargo.toml). Injected into the bundle as
+// __APP_VERSION__ (see src/vite-env.d.ts) so the version-compatibility handshake
+// reports the real release, not a stale env default.
+const PKG_VERSION: string = JSON.parse(
+  readFileSync(path.resolve(__dirname, "package.json"), "utf-8"),
+).version;
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
@@ -25,7 +34,7 @@ const processEnvShim = (mode: string): Record<string, string> => ({
 
 // https://vite.dev/config/
 export default defineConfig(async ({ mode }) => ({
-  define: processEnvShim(mode),
+  define: { ...processEnvShim(mode), __APP_VERSION__: JSON.stringify(PKG_VERSION) },
   optimizeDeps: {
     esbuildOptions: {
       define: processEnvShim(mode),
