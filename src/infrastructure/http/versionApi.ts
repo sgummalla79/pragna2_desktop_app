@@ -5,6 +5,7 @@ export interface VersionCard {
   service: string;
   version: string;
   compat: string;
+  codename?: string;
   min_client_compat: string;
   db_schema_revision: string | null;
 }
