@@ -5,12 +5,26 @@ describe('CREDENTIAL_FIELDS.gateway', () => {
   it('captures a non-secret base URL and a secret auth token', () => {
     const fields = CREDENTIAL_FIELDS.gateway;
     const keys = fields.map((f) => f.key);
-    expect(keys).toEqual(['baseUrl', 'authToken']);
+    // baseUrl + authToken are required; modelsUrl + awsRegion are optional and
+    // only apply to an Anthropic/Bedrock-shaped gateway.
+    expect(keys).toEqual(['baseUrl', 'authToken', 'modelsUrl', 'awsRegion']);
 
     const baseUrl = fields.find((f) => f.key === 'baseUrl')!;
     const authToken = fields.find((f) => f.key === 'authToken')!;
     expect(baseUrl.secret).toBe(false);
     expect(authToken.secret).toBe(true);
+    expect(baseUrl.optional).toBeUndefined();
+    expect(authToken.optional).toBeUndefined();
+  });
+
+  it('marks the Anthropic/Bedrock fields as optional and non-secret', () => {
+    const fields = CREDENTIAL_FIELDS.gateway;
+    const modelsUrl = fields.find((f) => f.key === 'modelsUrl')!;
+    const awsRegion = fields.find((f) => f.key === 'awsRegion')!;
+    expect(modelsUrl.optional).toBe(true);
+    expect(awsRegion.optional).toBe(true);
+    expect(modelsUrl.secret).toBe(false);
+    expect(awsRegion.secret).toBe(false);
   });
 });
 
