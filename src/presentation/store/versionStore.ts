@@ -14,12 +14,19 @@ interface VersionState {
   serverCompat: string | null;
   dismissed: boolean;
 
+  // Phase 3 (enforcement): set when the API actively rejects this client with
+  // 426 Upgrade Required. Drives a non-dismissible blocking screen. Dormant
+  // until the operator raises MIN_CLIENT_COMPAT on the API.
+  blocked: boolean;
+  blockMessage: string | null;
+
   setResult: (
     status: CompatStatus,
     serverVersion: string | null,
     serverCompat: string | null,
   ) => void;
   dismiss: () => void;
+  setBlocked: (message: string) => void;
 }
 
 export const useVersionStore = create<VersionState>((set) => ({
@@ -27,8 +34,11 @@ export const useVersionStore = create<VersionState>((set) => ({
   serverVersion: null,
   serverCompat: null,
   dismissed: false,
+  blocked: false,
+  blockMessage: null,
 
   setResult: (status, serverVersion, serverCompat) =>
     set({ status, serverVersion, serverCompat }),
   dismiss: () => set({ dismissed: true }),
+  setBlocked: (message) => set({ blocked: true, blockMessage: message }),
 }));

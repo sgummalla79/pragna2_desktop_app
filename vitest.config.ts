@@ -2,6 +2,13 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
+
+// Match vite.config's __APP_VERSION__ define so modules that read the app
+// version (constants/api.ts) resolve under the test runner too.
+const PKG_VERSION: string = JSON.parse(
+  readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8'),
+).version;
 
 /**
  * Vitest config for the frontend unit suite.
@@ -15,6 +22,7 @@ import path from 'node:path';
  */
 export default defineConfig({
   plugins: [react(), svgr()],
+  define: { __APP_VERSION__: JSON.stringify(PKG_VERSION) },
   test: {
     globals: true,
     environment: 'jsdom',
