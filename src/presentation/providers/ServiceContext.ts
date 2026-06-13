@@ -4,6 +4,7 @@ import type { LlmProviderService } from '@/application/services/LlmProviderServi
 import type { ProviderService } from '@/application/services/ProviderService';
 import type { ModelService } from '@/application/services/ModelService';
 import type { EmbeddingKeyService } from '@/application/services/EmbeddingKeyService';
+import type { KnowledgeSettingsService } from '@/application/services/KnowledgeSettingsService';
 import type { McpConnectorService } from '@/application/services/McpConnectorService';
 import type { ToolService } from '@/application/services/ToolService';
 import type { KnowledgeService } from '@/application/services/KnowledgeService';
@@ -30,6 +31,8 @@ export interface Services {
   modelService: ModelService;
   /** The user's per-user embedding (Voyage) key (/api/auth/me/embedding-key). */
   embeddingKeyService: EmbeddingKeyService;
+  /** The user's knowledge / retrieval settings (/api/auth/me/knowledge-settings). */
+  knowledgeSettingsService: KnowledgeSettingsService;
   /** The user's MCP connectors (/api/mcp-connectors). */
   mcpConnectorService: McpConnectorService;
   /** The user's tools inventory (/api/tools). */

@@ -15,8 +15,26 @@ import ConfigurationView from './ConfigurationView';
  * ConfigurationView so the composition is exercised too.
  */
 
-/** ConfigurationView reads `embeddingKeyService` (status/set/clear). The chat
- *  actions section uses only localStorage. */
+/** A fully-resolved knowledge-settings object for the section's initial query. */
+const KNOWLEDGE_SETTINGS = {
+  embeddingProvider: 'voyage',
+  embeddingDimensions: 1024,
+  embeddingModel: 'voyage-3-large',
+  chunkMaxTokens: 512,
+  chunkOverlapTokens: 64,
+  rerankEnabled: true,
+  rerankModel: 'rerank-2.5',
+  searchDenseK: 50,
+  searchSparseK: 50,
+  rrfK: 60,
+  rerankCandidates: 30,
+  searchTopK: 8,
+  cagMaxSourceTokens: 180000,
+};
+
+/** ConfigurationView reads `embeddingKeyService` (status/set/clear) and
+ *  `knowledgeSettingsService` (get/update). The chat actions section uses only
+ *  localStorage. */
 function services(overrides: Record<string, unknown> = {}): Partial<Services> {
   return {
     embeddingKeyService: {
@@ -24,6 +42,10 @@ function services(overrides: Record<string, unknown> = {}): Partial<Services> {
       setKey: vi.fn().mockResolvedValue({ hasVoyageKey: true }),
       clearKey: vi.fn().mockResolvedValue(undefined),
       ...overrides,
+    } as never,
+    knowledgeSettingsService: {
+      get: vi.fn().mockResolvedValue(KNOWLEDGE_SETTINGS),
+      update: vi.fn().mockResolvedValue(KNOWLEDGE_SETTINGS),
     } as never,
   };
 }
@@ -41,6 +63,11 @@ describe('ConfigurationView', () => {
     expect(screen.getByText('Chat actions')).toBeInTheDocument();
     // Status resolves to "Not configured" for an absent key.
     expect(await screen.findByText('Not configured')).toBeInTheDocument();
+  });
+
+  it('renders the Knowledge & retrieval card', () => {
+    renderWithProviders(<ConfigurationView />, { services: services() });
+    expect(screen.getByText('Knowledge & retrieval')).toBeInTheDocument();
   });
 
   it('shows the Configured badge when a key is already set', async () => {

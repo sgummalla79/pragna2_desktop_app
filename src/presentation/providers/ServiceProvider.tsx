@@ -9,6 +9,7 @@ import { LlmProviderRepository } from '@/infrastructure/repositories/LlmProvider
 import { ProviderRepository } from '@/infrastructure/repositories/ProviderRepository';
 import { ModelRepository } from '@/infrastructure/repositories/ModelRepository';
 import { EmbeddingKeyRepository } from '@/infrastructure/repositories/EmbeddingKeyRepository';
+import { KnowledgeSettingsRepository } from '@/infrastructure/repositories/KnowledgeSettingsRepository';
 import { McpConnectorRepository } from '@/infrastructure/repositories/McpConnectorRepository';
 import { ToolRepository } from '@/infrastructure/repositories/ToolRepository';
 import { KnowledgeRepository } from '@/infrastructure/repositories/KnowledgeRepository';
@@ -23,6 +24,7 @@ import { LlmProviderService } from '@/application/services/LlmProviderService';
 import { ProviderService } from '@/application/services/ProviderService';
 import { ModelService } from '@/application/services/ModelService';
 import { EmbeddingKeyService } from '@/application/services/EmbeddingKeyService';
+import { KnowledgeSettingsService } from '@/application/services/KnowledgeSettingsService';
 import { McpConnectorService } from '@/application/services/McpConnectorService';
 import { ToolService } from '@/application/services/ToolService';
 import { KnowledgeService } from '@/application/services/KnowledgeService';
@@ -62,6 +64,9 @@ export function ServiceProvider({ children }: ServiceProviderProps) {
       providerService: new ProviderService(new ProviderRepository(axiosClient)),
       modelService: new ModelService(new ModelRepository(axiosClient)),
       embeddingKeyService: new EmbeddingKeyService(new EmbeddingKeyRepository(axiosClient)),
+      knowledgeSettingsService: new KnowledgeSettingsService(
+        new KnowledgeSettingsRepository(axiosClient),
+      ),
       mcpConnectorService: new McpConnectorService(new McpConnectorRepository(axiosClient)),
       toolService: new ToolService(new ToolRepository(axiosClient)),
       knowledgeService: new KnowledgeService(new KnowledgeRepository(axiosClient)),
