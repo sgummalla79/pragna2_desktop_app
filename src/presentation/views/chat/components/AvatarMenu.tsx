@@ -9,7 +9,7 @@ import {
   Tag,
 } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
-import { CLIENT_VERSION } from '@/constants/version';
+import { CLIENT_VERSION, RELEASE_CODENAME } from '@/constants/version';
 import { useAuth } from '@/presentation/hooks/auth/useAuth';
 import { cn } from '@/lib/utils';
 
@@ -161,7 +161,10 @@ export function AvatarMenu({ onNavigate, iconOnly = false }: AvatarMenuProps) {
                     <Tag size={16} aria-hidden="true" />
                     Version
                   </span>
-                  <span className="tabular-nums text-muted-foreground">{CLIENT_VERSION}</span>
+                  <span className="text-muted-foreground">
+                    <span className="tabular-nums">{CLIENT_VERSION}</span>
+                    {RELEASE_CODENAME ? ` (${RELEASE_CODENAME})` : ''}
+                  </span>
                 </DropdownMenu.Item>
               </DropdownMenu.SubContent>
             </DropdownMenu.Portal>

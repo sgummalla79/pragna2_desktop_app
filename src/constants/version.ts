@@ -14,6 +14,13 @@ export const CLIENT_APP_NAME = 'desktop';
 // Vite (see APP_VERSION in ./api).
 export const CLIENT_VERSION = APP_VERSION;
 
+// Release codename for the CURRENT compatibility line (MAJOR.MINOR). Tied to the
+// compat generation: unchanged across hotfixes/builds, changes ONLY on a MINOR
+// (DB/breaking) bump. When you bump MINOR, set this to the next gemstone from the
+// canonical A→Z table in pragna2-api/docs/architecture/version-compatibility.md
+// (1.0 = Amber, 1.1 = Beryl, …).
+export const RELEASE_CODENAME = 'Amber';
+
 // Minimum API MAJOR.MINOR ("compat") this build of the client requires. Bump
 // this when the client starts depending on a newer API contract. Kept at the
 // baseline line for now so no false "update the server" warning is shown.
