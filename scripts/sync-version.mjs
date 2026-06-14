@@ -1,14 +1,14 @@
 // Single-source the desktop app version.
 //
-// package.json is the ONE source of truth for the version. This script copies
-// that value into the two other files that also carry it — src-tauri/tauri.conf.json
-// (drives the installer/bundle version) and src-tauri/Cargo.toml (the Rust crate
-// version) — so they cannot drift. Cargo.lock is updated automatically by the
-// next `cargo build`.
+// The repo-root VERSION file is the ONE source of truth (bumped before each
+// release). This script copies that value into the files that also carry it —
+// src-tauri/tauri.conf.json (drives the installer/bundle version) and
+// src-tauri/Cargo.toml (the Rust crate version) — so they cannot drift.
+// Cargo.lock is updated automatically by the next `cargo build`.
 //
 // Runs as the first step of `pnpm build`, which is also Tauri's
 // `beforeBuildCommand`, so the Rust files are synced before cargo compiles.
-// See pragna2-api/docs/architecture/version-compatibility.md (§7).
+// See pragna2-api/docs/architecture/version-compatibility.md.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -16,9 +16,9 @@ import { dirname, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-const version = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf-8')).version;
+const version = readFileSync(resolve(root, 'VERSION'), 'utf-8').trim();
 if (!version) {
-  console.error('[sync-version] package.json has no "version"');
+  console.error('[sync-version] VERSION file is empty');
   process.exit(1);
 }
 

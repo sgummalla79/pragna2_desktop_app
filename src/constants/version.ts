@@ -14,12 +14,22 @@ export const CLIENT_APP_NAME = 'desktop';
 // Vite (see APP_VERSION in ./api).
 export const CLIENT_VERSION = APP_VERSION;
 
-// Release codename for the CURRENT compatibility line (MAJOR.MINOR). Tied to the
-// compat generation: unchanged across hotfixes/builds, changes ONLY on a MINOR
-// (DB/breaking) bump. When you bump MINOR, set this to the next gemstone from the
-// canonical A→Z table in pragna2-api/docs/architecture/version-compatibility.md
-// (1.0 = Amber, 1.1 = Beryl, …).
-export const RELEASE_CODENAME = 'Amber';
+// Release-line codenames per MAJOR (V1 = Amber, V2 = Beryl, V3 = Citrine, …).
+// The current name is DERIVED from this client's MAJOR version — never
+// hand-maintained; it changes only when a new major line forks. The A→Z gemstone
+// table is fixed reference data. See
+// pragna2-api/docs/architecture/version-compatibility.md §8.
+const RELEASE_CODENAMES = [
+  'Amber', 'Beryl', 'Citrine', 'Diamond', 'Emerald', 'Fluorite', 'Garnet',
+  'Hematite', 'Iolite', 'Jade', 'Kunzite', 'Lapis', 'Moonstone', 'Nephrite',
+  'Opal', 'Peridot', 'Quartz', 'Ruby', 'Sapphire', 'Topaz', 'Uvarovite',
+  'Variscite', 'Wulfenite', 'Xenotime', 'Yooperlite', 'Zircon',
+] as const;
+
+/** The release-line codename for this client's MAJOR version (V1 = Amber, …). */
+export const RELEASE_CODENAME =
+  RELEASE_CODENAMES[(Number(CLIENT_VERSION.split('.')[0]) || 1) - 1] ??
+  RELEASE_CODENAMES[0];
 
 // Minimum API MAJOR.MINOR ("compat") this build of the client requires. Bump
 // this when the client starts depending on a newer API contract. Kept at the
