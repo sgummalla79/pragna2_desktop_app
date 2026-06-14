@@ -1,10 +1,10 @@
 /**
- * Embedding (Voyage) key section of the Configuration page (RAG ladder Rung 2).
+ * Embeddings (Voyage) section of the Configuration page (RAG ladder Rung 2).
  *
- * One self-contained card for the per-user embedding-provider key, used when an
- * agent searches an attached Knowledge library. Optional — when unset,
- * embeddings use the deployment key. The key is write-only: the API only reports
- * whether one is set, never the value.
+ * One self-contained card holding everything Voyage-powered: the per-user
+ * embedding-provider key (write-only — the API only reports whether one is set)
+ * AND the knowledge / retrieval tuning fields (rendered as a sub-form). The key
+ * is optional — when unset, embeddings use the deployment key.
  */
 
 import { useState } from 'react';
@@ -21,8 +21,9 @@ import {
   useEmbeddingKeyStatus,
   useSetEmbeddingKey,
 } from '@/presentation/hooks/embeddings/useEmbeddingKey';
+import { KnowledgeSettingsFields } from './KnowledgeSettingsSection';
 
-/** Card for setting, replacing, and clearing the per-user embedding key. */
+/** Card for the per-user embedding key plus the knowledge / retrieval tuning. */
 export function EmbeddingKeySection() {
   const { data: status, isLoading, isError } = useEmbeddingKeyStatus();
   const setKey = useSetEmbeddingKey();
@@ -86,7 +87,7 @@ export function EmbeddingKeySection() {
           <ChevronRight size={16} aria-hidden="true" className="shrink-0" />
         )}
         <span className="min-w-0 flex-1 text-sm font-semibold">
-          Embeddings — Voyage API key
+          Embeddings — Voyage
         </span>
         {statusIndicator}
       </button>
@@ -157,6 +158,8 @@ export function EmbeddingKeySection() {
               </Button>
             </div>
           </form>
+
+          <KnowledgeSettingsFields />
         </div>
       )}
     </section>
