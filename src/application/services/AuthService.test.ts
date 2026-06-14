@@ -5,6 +5,7 @@ import type { IAuthRepository } from '@/application/ports/IAuthRepository';
 vi.mock('@/infrastructure/storage/tokenStorage', () => ({
   tokenStorage: {
     getAccessToken: vi.fn(),
+    getIdToken: vi.fn(),
     setAccessToken: vi.fn(),
     setIdToken: vi.fn(),
     clearAll: vi.fn(),
@@ -30,6 +31,7 @@ function makeRepo(overrides: Partial<IAuthRepository> = {}): IAuthRepository {
     login: vi.fn().mockResolvedValue(TOKENS),
     loginWithSocial: vi.fn().mockResolvedValue(TOKENS),
     refresh: vi.fn().mockResolvedValue(TOKENS),
+    provisionOAuthUser: vi.fn().mockResolvedValue(USER),
     me: vi.fn().mockResolvedValue(USER),
     fetchSocialConnections: vi.fn().mockResolvedValue([]),
     updateSettings: vi.fn().mockResolvedValue(USER),
@@ -93,6 +95,65 @@ describe('AuthService.bootstrap', () => {
     expect(tokenStorage.clearAll).toHaveBeenCalled();
     expect(repo.refresh).toHaveBeenCalledWith('rt');
     expect(out).toEqual({ user: USER, accessToken: 'at' });
+  });
+
+  it('is single-flight: concurrent calls share ONE refresh + provision', async () => {
+    // The StrictMode double-invoke / refresh-rotation race: two parallel
+    // bootstraps must collapse onto one run, or the second reuses the rotated
+    // refresh token and clobbers the first's access token (the 401 burst).
+    vi.mocked(tokenStorage.getAccessToken).mockReturnValue(null);
+    vi.mocked(tokenStorage.getIdToken).mockReturnValue('it');
+    vi.mocked(secureStore.getRefreshToken).mockResolvedValue('rt');
+    const repo = makeRepo();
+    const service = new AuthService(repo);
+
+    const [a, b] = await Promise.all([service.bootstrap(), service.bootstrap()]);
+
+    expect(repo.refresh).toHaveBeenCalledTimes(1);
+    expect(repo.provisionOAuthUser).toHaveBeenCalledTimes(1);
+    expect(a).toEqual({ user: USER, accessToken: 'at' });
+    expect(b).toEqual(a);
+  });
+
+  it('starts a fresh run after the in-flight one settles', async () => {
+    vi.mocked(tokenStorage.getAccessToken).mockReturnValue('at');
+    vi.mocked(tokenStorage.getIdToken).mockReturnValue('it');
+    const repo = makeRepo();
+    const service = new AuthService(repo);
+
+    await service.bootstrap();
+    await service.bootstrap();
+
+    // The promise is released on settle, so a later call provisions again.
+    expect(repo.provisionOAuthUser).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('AuthService — ID-token provisioning', () => {
+  it('login provisions via the ID token (creates the BE account) when present', async () => {
+    vi.mocked(tokenStorage.getIdToken).mockReturnValue('it');
+    const repo = makeRepo();
+    const out = await new AuthService(repo).login({ email: 'a@b.com', password: 'x' });
+    expect(repo.provisionOAuthUser).toHaveBeenCalledWith('it');
+    expect(repo.me).not.toHaveBeenCalled();
+    expect(out.user).toEqual(USER);
+  });
+
+  it('bootstrap provisions via the ID token when an access token is present', async () => {
+    vi.mocked(tokenStorage.getAccessToken).mockReturnValue('at');
+    vi.mocked(tokenStorage.getIdToken).mockReturnValue('it');
+    const repo = makeRepo();
+    await new AuthService(repo).bootstrap();
+    expect(repo.provisionOAuthUser).toHaveBeenCalledWith('it');
+  });
+
+  it('falls back to me() when there is no ID token (e.g. local session)', async () => {
+    vi.mocked(tokenStorage.getAccessToken).mockReturnValue('at');
+    vi.mocked(tokenStorage.getIdToken).mockReturnValue(null);
+    const repo = makeRepo();
+    await new AuthService(repo).bootstrap();
+    expect(repo.me).toHaveBeenCalled();
+    expect(repo.provisionOAuthUser).not.toHaveBeenCalled();
   });
 });
 
