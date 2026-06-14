@@ -1,9 +1,11 @@
 /**
- * Knowledge / retrieval settings section of the Configuration page (RAG Rung 2).
+ * Knowledge / retrieval settings fields (RAG Rung 2).
  *
- * One self-contained collapsible card exposing the per-user knobs that tune
- * embeddings + hybrid search over Knowledge libraries. Fields are grouped by
- * the three backend behavioural classes:
+ * A body-only sub-form rendered INSIDE the "Embeddings — Voyage" card (it shares
+ * that accordion rather than owning its own). It keeps its own data hook, dirty
+ * state, and Save/Reset because it PATCHes a different endpoint than the key.
+ *
+ * Fields are grouped by the three backend behavioural classes:
  *
  * - **Embedding model** (read-only) — the locked provider/dimensions pins plus
  *   the model new libraries pin. Not editable here (the vector column + the
@@ -16,7 +18,6 @@
  */
 
 import { useEffect, useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -48,12 +49,11 @@ function toEditable(s: KnowledgeSettings): EditableKnowledgeSettings {
   };
 }
 
-export function KnowledgeSettingsSection() {
+export function KnowledgeSettingsFields() {
   const { data, isLoading, isError } = useKnowledgeSettings();
   const update = useUpdateKnowledgeSettings();
   const [form, setForm] = useState<EditableKnowledgeSettings | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     if (data) setForm(toEditable(data));
@@ -85,169 +85,143 @@ export function KnowledgeSettingsSection() {
     setError(null);
   }
 
-  const statusIndicator = isLoading ? (
-    <span className="text-xs text-muted-foreground">Loading…</span>
-  ) : isError ? (
-    <Badge variant="destructive">Unavailable</Badge>
-  ) : dirty ? (
-    <Badge variant="outline" data-testid="knowledge-settings-dirty">
-      Unsaved changes
-    </Badge>
-  ) : null;
-
   return (
-    <section
-      className="rounded-lg border border-border"
-      data-testid="knowledge-settings-card"
+    <div
+      className="flex flex-col gap-4 border-t border-border pt-4"
+      data-testid="knowledge-settings-fields"
     >
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left md:px-6"
-        aria-expanded={expanded}
-        aria-controls="knowledge-settings-body"
-        data-testid="knowledge-settings-toggle"
-      >
-        {expanded ? (
-          <ChevronDown size={16} aria-hidden="true" className="shrink-0" />
-        ) : (
-          <ChevronRight size={16} aria-hidden="true" className="shrink-0" />
-        )}
-        <span className="min-w-0 flex-1 text-sm font-semibold">
+      <div className="flex items-center gap-2">
+        <h3 className="min-w-0 flex-1 text-sm font-semibold">
           Knowledge &amp; retrieval
-        </span>
-        {statusIndicator}
-      </button>
+        </h3>
+        {dirty && (
+          <Badge variant="outline" data-testid="knowledge-settings-dirty">
+            Unsaved changes
+          </Badge>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Tunes how your agents embed and search the Knowledge libraries they use.
+        Defaults work well — change these only if you know why.
+      </p>
 
-      {expanded && (
-        <div
-          id="knowledge-settings-body"
-          className="flex flex-col gap-5 border-t border-border p-4 md:p-6"
-        >
-          <p className="text-xs text-muted-foreground">
-            Tunes how your agents embed and search the Knowledge libraries they
-            use. Defaults work well — change these only if you know why.
-          </p>
+      {!form || !data ? (
+        <p className="text-xs text-muted-foreground">
+          {isError ? 'Could not load settings.' : isLoading ? 'Loading…' : null}
+        </p>
+      ) : (
+        <form onSubmit={handleSave} className="flex flex-col gap-5">
+          <Group title="Embedding model" note="Fixed by the deployment.">
+            <ReadOnlyField label="Provider" value={data.embeddingProvider} />
+            <ReadOnlyField
+              label="Model (new libraries)"
+              value={data.embeddingModel}
+            />
+            <ReadOnlyField
+              label="Dimensions"
+              value={String(data.embeddingDimensions)}
+            />
+          </Group>
 
-          {!form || !data ? (
-            <p className="text-xs text-muted-foreground">
-              {isError ? 'Could not load settings.' : 'Loading…'}
+          <Group
+            title="Chunking"
+            note="Applies to documents ingested after you save — existing chunks are unchanged."
+          >
+            <NumberField
+              id="chunk-max-tokens"
+              label="Max tokens per chunk"
+              value={form.chunkMaxTokens}
+              onChange={(v) => set('chunkMaxTokens', v)}
+            />
+            <NumberField
+              id="chunk-overlap-tokens"
+              label="Chunk overlap (tokens)"
+              value={form.chunkOverlapTokens}
+              onChange={(v) => set('chunkOverlapTokens', v)}
+            />
+          </Group>
+
+          <Group
+            title="Search &amp; rerank"
+            note="Takes effect on the next search."
+          >
+            <label className="col-span-full flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.rerankEnabled}
+                onChange={(e) => set('rerankEnabled', e.target.checked)}
+                data-testid="rerank-enabled"
+                className="h-4 w-4 rounded border-border"
+              />
+              Re-rank results after fusion
+            </label>
+            <TextField
+              id="rerank-model"
+              label="Rerank model"
+              value={form.rerankModel}
+              onChange={(v) => set('rerankModel', v)}
+            />
+            <NumberField
+              id="search-top-k"
+              label="Results returned (top k)"
+              value={form.searchTopK}
+              onChange={(v) => set('searchTopK', v)}
+            />
+            <NumberField
+              id="search-dense-k"
+              label="Dense candidates"
+              value={form.searchDenseK}
+              onChange={(v) => set('searchDenseK', v)}
+            />
+            <NumberField
+              id="search-sparse-k"
+              label="Sparse candidates"
+              value={form.searchSparseK}
+              onChange={(v) => set('searchSparseK', v)}
+            />
+            <NumberField
+              id="rerank-candidates"
+              label="Rerank candidates"
+              value={form.rerankCandidates}
+              onChange={(v) => set('rerankCandidates', v)}
+            />
+            <NumberField
+              id="rrf-k"
+              label="RRF constant (k)"
+              value={form.rrfK}
+              onChange={(v) => set('rrfK', v)}
+            />
+            <NumberField
+              id="cag-max-source-tokens"
+              label="Max tokens read whole (CAG)"
+              value={form.cagMaxSourceTokens}
+              onChange={(v) => set('cagMaxSourceTokens', v)}
+            />
+          </Group>
+
+          {error && (
+            <p role="alert" className="text-[12px] text-destructive">
+              {error}
             </p>
-          ) : (
-            <form onSubmit={handleSave} className="flex flex-col gap-5">
-              <Group title="Embedding model" note="Fixed by the deployment.">
-                <ReadOnlyField label="Provider" value={data.embeddingProvider} />
-                <ReadOnlyField
-                  label="Model (new libraries)"
-                  value={data.embeddingModel}
-                />
-                <ReadOnlyField
-                  label="Dimensions"
-                  value={String(data.embeddingDimensions)}
-                />
-              </Group>
-
-              <Group
-                title="Chunking"
-                note="Applies to documents ingested after you save — existing chunks are unchanged."
-              >
-                <NumberField
-                  id="chunk-max-tokens"
-                  label="Max tokens per chunk"
-                  value={form.chunkMaxTokens}
-                  onChange={(v) => set('chunkMaxTokens', v)}
-                />
-                <NumberField
-                  id="chunk-overlap-tokens"
-                  label="Chunk overlap (tokens)"
-                  value={form.chunkOverlapTokens}
-                  onChange={(v) => set('chunkOverlapTokens', v)}
-                />
-              </Group>
-
-              <Group
-                title="Search &amp; rerank"
-                note="Takes effect on the next search."
-              >
-                <label className="col-span-full flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={form.rerankEnabled}
-                    onChange={(e) => set('rerankEnabled', e.target.checked)}
-                    data-testid="rerank-enabled"
-                    className="h-4 w-4 rounded border-border"
-                  />
-                  Re-rank results after fusion
-                </label>
-                <TextField
-                  id="rerank-model"
-                  label="Rerank model"
-                  value={form.rerankModel}
-                  onChange={(v) => set('rerankModel', v)}
-                />
-                <NumberField
-                  id="search-top-k"
-                  label="Results returned (top k)"
-                  value={form.searchTopK}
-                  onChange={(v) => set('searchTopK', v)}
-                />
-                <NumberField
-                  id="search-dense-k"
-                  label="Dense candidates"
-                  value={form.searchDenseK}
-                  onChange={(v) => set('searchDenseK', v)}
-                />
-                <NumberField
-                  id="search-sparse-k"
-                  label="Sparse candidates"
-                  value={form.searchSparseK}
-                  onChange={(v) => set('searchSparseK', v)}
-                />
-                <NumberField
-                  id="rerank-candidates"
-                  label="Rerank candidates"
-                  value={form.rerankCandidates}
-                  onChange={(v) => set('rerankCandidates', v)}
-                />
-                <NumberField
-                  id="rrf-k"
-                  label="RRF constant (k)"
-                  value={form.rrfK}
-                  onChange={(v) => set('rrfK', v)}
-                />
-                <NumberField
-                  id="cag-max-source-tokens"
-                  label="Max tokens read whole (CAG)"
-                  value={form.cagMaxSourceTokens}
-                  onChange={(v) => set('cagMaxSourceTokens', v)}
-                />
-              </Group>
-
-              {error && (
-                <p role="alert" className="text-[12px] text-destructive">
-                  {error}
-                </p>
-              )}
-
-              <div className="flex items-center justify-end gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleReset}
-                  disabled={!dirty || update.isPending}
-                >
-                  Reset
-                </Button>
-                <Button type="submit" size="sm" disabled={!dirty || update.isPending}>
-                  {update.isPending ? 'Saving…' : 'Save changes'}
-                </Button>
-              </div>
-            </form>
           )}
-        </div>
+
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={handleReset}
+              disabled={!dirty || update.isPending}
+            >
+              Reset
+            </Button>
+            <Button type="submit" size="sm" disabled={!dirty || update.isPending}>
+              {update.isPending ? 'Saving…' : 'Save changes'}
+            </Button>
+          </div>
+        </form>
       )}
-    </section>
+    </div>
   );
 }
 

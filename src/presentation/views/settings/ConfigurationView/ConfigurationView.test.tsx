@@ -8,10 +8,12 @@ import ConfigurationView from './ConfigurationView';
 /**
  * Tier 1 tests for the Configuration page.
  *
- * ConfigurationView itself just composes two section cards, so the meaningful
+ * ConfigurationView itself just composes the section cards, so the meaningful
  * coverage is the sections' own logic: the embedding-key status badge +
- * expand/save flow (`embeddingKeyService`), and the per-browser chat-action
- * toggles (localStorage via useChatPreferences). Both render through the real
+ * expand/save flow (`embeddingKeyService`), the knowledge / retrieval sub-form
+ * revealed inside that same "Embeddings — Voyage" card
+ * (`knowledgeSettingsService`), and the per-browser chat-action toggles
+ * (localStorage via useChatPreferences). All render through the real
  * ConfigurationView so the composition is exercised too.
  */
 
@@ -59,15 +61,20 @@ describe('ConfigurationView', () => {
     renderWithProviders(<ConfigurationView />, { services: services() });
 
     expect(screen.getByRole('heading', { name: 'Configuration', level: 1 })).toBeInTheDocument();
-    expect(screen.getByText('Embeddings — Voyage API key')).toBeInTheDocument();
+    expect(screen.getByText('Embeddings — Voyage')).toBeInTheDocument();
     expect(screen.getByText('Chat actions')).toBeInTheDocument();
     // Status resolves to "Not configured" for an absent key.
     expect(await screen.findByText('Not configured')).toBeInTheDocument();
   });
 
-  it('renders the Knowledge & retrieval card', () => {
+  it('reveals the Knowledge & retrieval sub-form inside the Embeddings card', async () => {
     renderWithProviders(<ConfigurationView />, { services: services() });
-    expect(screen.getByText('Knowledge & retrieval')).toBeInTheDocument();
+    await screen.findByText('Not configured');
+
+    // The knowledge fields live inside the Embeddings — Voyage accordion, so
+    // they appear only once that card is expanded.
+    await userEvent.click(screen.getByTestId('embedding-key-toggle'));
+    expect(await screen.findByText('Knowledge & retrieval')).toBeInTheDocument();
   });
 
   it('shows the Configured badge when a key is already set', async () => {
