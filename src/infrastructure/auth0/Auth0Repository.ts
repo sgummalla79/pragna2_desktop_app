@@ -236,6 +236,26 @@ export class Auth0Repository implements IAuthRepository {
   // /userinfo endpoint using the access token — covers the case where the
   // token exchange did not include an id_token.
 
+  async provisionOAuthUser(idToken: string): Promise<User> {
+    // Provision (or fetch) the user in the BACKEND from the ID token's email.
+    // The access token is attached by the http interceptor; the BE binds the two
+    // by a matching `sub`. This creates the account on first login — the BE
+    // cannot get an email from the access token alone.
+    const { data } = await this.http.post<{
+      id: string;
+      email: string;
+      name: string | null;
+      identity_provider: string;
+    }>('/auth/oauth-users', { id_token: idToken });
+    return {
+      id:               data.id,
+      email:            data.email,
+      name:             data.name,
+      identityProvider: data.identity_provider,
+      settings:         {},
+    };
+  }
+
   async me(): Promise<User> {
     const idToken = tokenStorage.getIdToken();
     if (idToken) {

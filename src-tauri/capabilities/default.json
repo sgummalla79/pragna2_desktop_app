@@ -21,7 +21,9 @@
         { "url": "https://*.sgummallaworks.com/*" },
         { "url": "http://*.sgummallaworks.com/*" },
         { "url": "http://localhost:8000/*" },
-        { "url": "http://127.0.0.1:8000/*" }
+        { "url": "http://127.0.0.1:8000/*" },
+        { "url": "http://localhost:8001/*" },
+        { "url": "http://127.0.0.1:8001/*" }
       ]
     }
   ]

@@ -11,6 +11,17 @@ import { tokenStorage } from '@/infrastructure/storage/tokenStorage';
 import { secureStore } from '@/infrastructure/storage/secureStore';
 
 export class AuthService {
+  /**
+   * In-flight `bootstrap()` promise, shared by concurrent callers (single-flight).
+   * StrictMode double-invokes the bootstrap effect in dev, and refresh-token
+   * rotation makes two parallel `refresh()` calls fatal: the second reuses the
+   * already-rotated token, Auth0's reuse-detection rejects it, and the loser's
+   * `catch` clears the access token the winner just stored — producing a 401
+   * burst. Collapsing concurrent calls onto one promise guarantees a single
+   * refresh + single provision regardless of how many callers race.
+   */
+  private bootstrapInFlight: Promise<{ user: User; accessToken: string } | null> | null = null;
+
   constructor(private readonly authRepository: IAuthRepository) {}
 
   async register(payload: RegisterPayload): Promise<User> {
@@ -20,7 +31,7 @@ export class AuthService {
   async login(payload: LoginPayload): Promise<{ user: User; tokens: AuthTokens }> {
     const tokens = await this.authRepository.login(payload);
     await this.storeTokens(tokens);
-    const user = await this.authRepository.me();
+    const user = await this.establishUser();
     return { user, tokens };
   }
 
@@ -31,7 +42,7 @@ export class AuthService {
   async loginWithSocial(connection: string): Promise<{ user: User; tokens: AuthTokens }> {
     const tokens = await this.authRepository.loginWithSocial(connection);
     await this.storeTokens(tokens);
-    const user = await this.authRepository.me();
+    const user = await this.establishUser();
     return { user, tokens };
   }
 
@@ -41,12 +52,24 @@ export class AuthService {
    * lives in sessionStorage) it falls back to a refresh token persisted in the
    * OS keychain, silently exchanging it for a new access token (TD-009). Returns
    * `null` (sign-in required) when neither path yields a valid session.
+   *
+   * Single-flight: concurrent calls (StrictMode's dev double-invoke, or any
+   * future re-trigger) share one in-flight run so the refresh + provision happen
+   * exactly once. See {@link bootstrapInFlight}.
    */
-  async bootstrap(): Promise<{ user: User; accessToken: string } | null> {
+  bootstrap(): Promise<{ user: User; accessToken: string } | null> {
+    if (this.bootstrapInFlight) return this.bootstrapInFlight;
+    this.bootstrapInFlight = this.runBootstrap().finally(() => {
+      this.bootstrapInFlight = null;
+    });
+    return this.bootstrapInFlight;
+  }
+
+  private async runBootstrap(): Promise<{ user: User; accessToken: string } | null> {
     const accessToken = tokenStorage.getAccessToken();
     if (accessToken) {
       try {
-        const user = await this.authRepository.me();
+        const user = await this.establishUser();
         return { user, accessToken };
       } catch {
         tokenStorage.clearAll();
@@ -59,7 +82,7 @@ export class AuthService {
     try {
       const tokens = await this.authRepository.refresh(refreshToken);
       await this.storeTokens(tokens);
-      const user = await this.authRepository.me();
+      const user = await this.establishUser();
       return { user, accessToken: tokens.accessToken };
     } catch {
       // Refresh token rejected/expired — clear it so we don't retry every launch.
@@ -74,6 +97,18 @@ export class AuthService {
   }
 
   async me(): Promise<User> {
+    return this.authRepository.me();
+  }
+
+  /**
+   * Resolve the current user, provisioning the account in the backend first when
+   * an OIDC ID token is present. The ID token carries the email the BE needs to
+   * CREATE the account on first login (the access token does not). Idempotent.
+   * Falls back to a plain profile read for non-OIDC (local) sessions.
+   */
+  private async establishUser(): Promise<User> {
+    const idToken = tokenStorage.getIdToken();
+    if (idToken) return this.authRepository.provisionOAuthUser(idToken);
     return this.authRepository.me();
   }
 
