@@ -96,6 +96,25 @@ All platform-specific code (OS detection, OS API wrappers, platform-conditional 
 - **Frontend:** `src/infrastructure/platform/` is the **only** entry point for platform concerns.
   No other file may define `isTauriRuntime()` or reference OS-specific APIs directly.
   Import `isTauriRuntime` and OS store wrappers exclusively from `@/infrastructure/platform`.
+- **Gate OS-conditional UI on the RUNTIME, not just the OS.** Any branch that renders
+  Tauri-native chrome or layout (custom title bar, window-control buttons,
+  `decorations:false`-dependent geometry) **must** use a predicate that includes
+  `isTauriRuntime()` — e.g. `usesWindowsChrome()` (= `isWindowsPlatform() && isTauriRuntime()`) —
+  **never** a bare OS check like `isWindowsPlatform()` alone. A plain browser can report *any*
+  OS in its user-agent (the e2e `Desktop Chrome` device sends a **Windows** UA), so UA-only
+  gating renders Tauri-native chrome with no Tauri runtime present. See **CF-011**.
+- **Never call a Tauri-only API at component render time without an `isTauriRuntime()` guard.**
+  `getCurrentWindow()`, window controls, native HTTP, etc. throw in a plain browser (no
+  `__TAURI_INTERNALS__`). Guard the call inside an `isTauriRuntime()`-checked effect, and
+  early-return / no-op in the render path, so the browser-fallback (e2e, dev) and any plain
+  browser on Windows never reach an unguarded Tauri call. Unguarded Tauri-at-render crashes the
+  whole React tree (blank page) — this is exactly CF-011.
+- **Enforcement:** `pnpm lint:platform` (CI gate, `scripts/check-platform-abstraction.mjs`) fails
+  if `navigator.userAgent` / `navigator.platform` / `__TAURI_INTERNALS__` appear **outside**
+  `src/infrastructure/platform/`. Run it before committing any platform-touching change. New
+  platform predicates get a 4-cell OS × runtime truth-table test (see
+  `src/infrastructure/platform/runtime.test.ts`); Windows-chrome layout branches get a component
+  test mocking the predicate both ways (the e2e suite can NOT cover the Windows layout — see below).
 - **Tauri config:** Platform-conditional window and bundle settings **must** live in
   `tauri.macos.conf.json` (macOS) and `tauri.windows.conf.json` (Windows).
   `tauri.conf.json` must contain only settings that are identical across all supported platforms.

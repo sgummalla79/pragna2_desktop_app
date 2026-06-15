@@ -13,11 +13,37 @@ export const API_BASE_URL = process.env.E2E_API_BASE_URL ?? `${BE_URL}/api`;
 export const PG_CONTAINER = process.env.E2E_PG_CONTAINER ?? 'pragna-desktop-e2e';
 export const TEST_DB = process.env.E2E_PG_DB ?? 'pragna_it';
 
+/** The test user the suite authenticates and seeds data as. Defaults to the
+ *  local-stack seeded user; override via `E2E_TEST_EMAIL` / `E2E_TEST_NAME`
+ *  (e.g. when running against an Auth0 BE, set the email to the real Auth0
+ *  account so the DB seeders resolve the correct `user_id`). The password is
+ *  only used by the local password-login path. */
 export const TEST_USER = {
-  email: 'verify@example.com',
-  name: 'Verify',
-  password: 'VerifyTest123!',
+  email: process.env.E2E_TEST_EMAIL ?? 'verify@example.com',
+  name: process.env.E2E_TEST_NAME ?? 'Verify',
+  password: process.env.E2E_TEST_PASSWORD ?? 'VerifyTest123!',
 };
+
+/** Auth mode for seed-token minting:
+ *  - `'local'` (default): log in against the local BE's password endpoint
+ *    (`POST /api/auth/sessions`) — works only when the BE runs
+ *    `AUTH_STRATEGY=local`.
+ *  - `'auth0'`: fetch a REAL token pair from the Auth0 tenant via the
+ *    Resource-Owner-Password-Grant, for running the suite against an
+ *    `AUTH_STRATEGY=auth0` BE (e.g. the production Docker container) that
+ *    rejects local password login. Selected via `E2E_AUTH_MODE`. */
+export const AUTH_MODE = process.env.E2E_AUTH_MODE ?? 'local';
+
+/** Auth0 tenant coordinates + test-user credentials. Used only when
+ *  `AUTH_MODE === 'auth0'`. Every value is sourced from the environment — never
+ *  hardcoded — so credentials never land in the repo. */
+export const AUTH0 = {
+  domain: process.env.E2E_AUTH0_DOMAIN ?? '',
+  clientId: process.env.E2E_AUTH0_CLIENT_ID ?? '',
+  audience: process.env.E2E_AUTH0_AUDIENCE ?? '',
+  username: process.env.E2E_AUTH0_USERNAME ?? '',
+  password: process.env.E2E_AUTH0_PASSWORD ?? '',
+} as const;
 
 /** Friendly model label the flow-editor / chat model picker option is matched
  *  by. `seed-model.sh` seeds `user_models.display_name = "<label> (test)"`, so

@@ -21,6 +21,22 @@ dev Mac. The native seam (keychain, native HTTP, loopback OAuth) that only a
 real Tauri window can exercise is **deferred** — see `docs/TODO.md` **TD-028**
 (it can't run via the official `tauri-driver` on macOS).
 
+## ⚠️ Browser-fallback runs with a WINDOWS user-agent
+
+Playwright's `devices['Desktop Chrome']` sends a **Windows** UA
+(`Windows NT 10.0; Win64; x64`). So in every spec `isWindowsPlatform()` is `true`
+but `isTauriRuntime()` is `false`. Two consequences you MUST keep in mind:
+
+1. **The suite always renders the DEFAULT (non-Windows) chrome.** All OS-conditional
+   UI is gated on `usesWindowsChrome()` (= Windows **and** Tauri), which is `false`
+   here. So the **Windows-native chrome/layout cannot be e2e-tested** — cover it with
+   the component unit tests (mock `usesWindowsChrome` both ways) instead. The real
+   Windows window is TD-028.
+2. **Never gate UI on a UA-only check** (`isWindowsPlatform()` alone) and never call a
+   Tauri-only API at render unguarded — a Windows-UA browser with no Tauri runtime will
+   crash to a blank page (this is what **CF-011** fixed; the whole suite went blank).
+   Run `pnpm lint:platform` in the FE repo to catch reintroductions.
+
 ## Auth = seed token (no login form)
 
 The desktop's wired auth repository is `Auth0Repository`, whose `login()` POSTs
@@ -34,6 +50,30 @@ every test boots already authenticated.
 
 (`storageState` can't carry this — it only persists localStorage + cookies, and
 `tokenStorage` uses sessionStorage.)
+
+### Running against a real Auth0 BE (e.g. the :8001 Docker container)
+
+The default flow above needs a BE running `AUTH_STRATEGY=local` (it POSTs
+email/password to `/api/auth/sessions`). Under `AUTH_STRATEGY=auth0` that endpoint
+is `NotImplementedError` — Auth0 login happens on the frontend. To run the suite
+as a **real Auth0 user** against an `auth0` BE, set `E2E_AUTH_MODE=auth0`:
+`global-setup.ts` then fetches a genuine token pair from the tenant via
+Resource-Owner-Password-Grant (`helpers/tokens.ts` → `mintAuth0Tokens`). Required
+env (all from the environment — never commit credentials):
+
+```
+E2E_AUTH_MODE=auth0
+E2E_AUTH0_DOMAIN / E2E_AUTH0_CLIENT_ID / E2E_AUTH0_AUDIENCE   # tenant + SPA client
+E2E_AUTH0_USERNAME / E2E_AUTH0_PASSWORD                       # the test user
+E2E_TEST_EMAIL / E2E_TEST_NAME      # so the DB seeders resolve the Auth0 user's row
+E2E_BE_URL=http://localhost:8001
+E2E_PG_CONTAINER=pragna2-api  E2E_PG_DB=pragna2   # redirect the psql helper at the
+                                                  # all-in-one container's in-process DB
+```
+
+Caveats: the in-container DB has no host port, so the PDF-render seeder
+(`scenario-20`) can't run; exclude it and the long PDF (`scenario-21`). See the
+project memory `run-desktop-e2e-against-auth0-8001` for the full procedure.
 
 ## Layout
 

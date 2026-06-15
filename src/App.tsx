@@ -6,8 +6,7 @@ import { useBootstrap } from '@/presentation/hooks/auth/useBootstrap';
 import { useVersionCheck } from '@/presentation/hooks/useVersionCheck';
 import { VersionBanner } from '@/presentation/components/VersionBanner';
 import { UpdateRequiredScreen } from '@/presentation/components/UpdateRequiredScreen';
-import { isWindowsPlatform } from '@/infrastructure/platform';
-import { WindowsTitleBar } from '@/components/ui/WindowsTitleBar';
+import { AppTitleBar } from '@/components/ui/AppTitleBar';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,13 +29,9 @@ export default function App() {
       <BrowserRouter>
         <ServiceProvider>
           <BootstrapGate />
-          {/* Windows: custom title bar with drag region + min/max/close buttons.
-              macOS: plain drag-region strip (traffic lights are OS-rendered). */}
-          {isWindowsPlatform() ? (
-            <WindowsTitleBar />
-          ) : (
-            <div data-tauri-drag-region className="fixed inset-x-0 top-0 h-7 z-30" />
-          )}
+          {/* Windows (Tauri): custom title bar with drag region + min/max/close;
+              macOS / browser-fallback: plain drag strip. See {@link AppTitleBar}. */}
+          <AppTitleBar />
           <VersionBanner />
           <UpdateRequiredScreen />
           {/* Each route owns its own layout; this wrapper just guarantees a

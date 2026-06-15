@@ -1,0 +1,86 @@
+# Desktop CI — frontend checks on every push/PR, plus a per-OS Tauri build smoke
+# on Windows + macOS.
+#
+# Why the matrix: the desktop FE branches on OS chrome (custom Windows title bar
+# vs macOS strip; Windows vs macOS sidebar layout), gated by `usesWindowsChrome()`
+# = Windows AND Tauri runtime (see docs/CODE_FIXES.md CF-011). The two layers of
+# protection here:
+#   1. `frontend` job — the platform-abstraction gate + the unit/component suite,
+#      which exercise BOTH chrome branches headlessly (usesWindowsChrome() mocked
+#      true/false) and lock the OS × runtime truth table. This is what catches a
+#      "Windows fix breaks macOS" / "macOS fix breaks Windows" regression.
+#   2. `desktop-smoke` job — compiles the Rust shell on each real OS so
+#      platform-conditional Rust / Tauri-config breakage is caught per target.
+#
+# NOTE (scaffold): the highest-fidelity check — launching the bundled app and
+# asserting the window renders non-blank with the right title bar per OS — needs
+# tauri-driver + WebDriver and is deferred (docs/TODO.md TD-028). When that lands,
+# add a windowed smoke step to `desktop-smoke`.
+
+name: desktop-ci
+
+on:
+  push:
+    branches: [main, 'Releases/**']
+  pull_request:
+
+jobs:
+  frontend:
+    name: Frontend checks (platform gate + unit + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # CF-011 guard: no OS/runtime detection may leak outside the platform layer.
+      - name: Platform-abstraction gate
+        run: pnpm lint:platform
+
+      # Predicate truth-table + per-component chrome-branch tests (both OSes,
+      # headless) live here.
+      - name: Unit + component tests
+        run: pnpm test:run
+
+      - name: Type-check + production build
+        run: pnpm build
+
+  desktop-smoke:
+    name: Tauri build smoke (${{ matrix.os }})
+    needs: frontend
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: pnpm install --frozen-lockfile
+
+      # Produce the FE bundle the Tauri config points at, then compile the Rust
+      # shell on THIS OS — catches platform-conditional Rust (`#[cfg(...)]`) and
+      # tauri.<os>.conf.json breakage. (Bundling/signing is intentionally skipped
+      # to keep the scaffold secret-free; see the TD-028 note above for the full
+      # windowed smoke that should follow.)
+      - name: Build frontend bundle
+        run: pnpm build
+      - name: Compile Tauri shell
+        run: cargo build --manifest-path src-tauri/Cargo.toml

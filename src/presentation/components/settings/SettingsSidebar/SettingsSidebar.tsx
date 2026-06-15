@@ -9,7 +9,7 @@ import { Sidebar, ItemList } from '@/components/ui/sidebar/Sidebar';
 import { TitlebarCollapseToggle } from '@/components/ui/sidebar/TitlebarCollapseToggle';
 import { ROUTES } from '@/constants/routes';
 import { useUiStore } from '@/presentation/store/uiStore';
-import { isWindowsPlatform } from '@/infrastructure/platform';
+import { usesWindowsChrome } from '@/infrastructure/platform';
 import type { SidebarItemConfig } from '@/components/ui/sidebar/types';
 
 /** Settings navigation config — add/remove items here; styling never changes. */
@@ -33,7 +33,7 @@ const SETTINGS_NAV: SidebarItemConfig[] = [
 /**
  * Settings navigation sidebar.
  *
- * Platform differences (governed by {@link isWindowsPlatform}):
+ * Platform differences (governed by {@link usesWindowsChrome}):
  *  - **macOS**: floating {@link TitlebarCollapseToggle} next to the traffic lights.
  *  - **Windows**: inline gear-icon header row (16px top spacer, gear + "Settings"
  *    label left-aligned, collapse/expand toggle right-aligned); no overlay chrome.
@@ -42,7 +42,7 @@ const SETTINGS_NAV: SidebarItemConfig[] = [
 export function SettingsSidebar() {
   const collapsed = useUiStore((s) => s.settingsPaneCollapsed);
   const toggle = useUiStore((s) => s.toggleSettingsPane);
-  const isWindows = isWindowsPlatform();
+  const isWindows = usesWindowsChrome();
 
   return (
     <>

@@ -9,6 +9,6 @@
  *   - Adding a new OS or runtime variant means changing only this file.
  */
 
-export { isTauriRuntime, isWindowsPlatform } from './runtime';
+export { isTauriRuntime, isWindowsPlatform, usesWindowsChrome } from './runtime';
 export { secureStore } from './secureStore';
 export { mcpStdio, NotInTauriError } from './mcpStdio';

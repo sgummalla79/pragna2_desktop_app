@@ -303,3 +303,43 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
     nav rows are dimmed → match the web chat sidebar's own nav-item color.
   Apply the same alignment + color-token sync on both. (Icon style may stay as the web app's
   `MessagesSquare` — UI-only, owner's choice.)
+
+---
+
+## CF-011 — Windows-native chrome activates in a plain browser (Windows UA) → crash / wrong layout
+
+- **Date:** 2026-06-14
+- **Area / file:** `src/infrastructure/platform/runtime.ts` (new `usesWindowsChrome()`),
+  `src/infrastructure/platform/index.ts`, `src/App.tsx`,
+  `src/presentation/views/chat/ChatView.tsx`,
+  `src/presentation/views/chat/components/ChatSidebar.tsx`,
+  `src/presentation/components/settings/SettingsSidebar/SettingsSidebar.tsx`.
+- **Found by:** Desktop e2e suite (Playwright, browser-fallback). EVERY spec failed with a blank
+  page. Diagnostic `pageerror` capture showed
+  `TypeError: Cannot read properties of undefined (reading 'metadata')` thrown from
+  `getCurrentWindow()` inside `WindowsTitleBar` at render. Playwright's `devices['Desktop Chrome']`
+  sends a **Windows** user-agent (`Windows NT 10.0; Win64; x64`).
+- **Bug:** All Windows-specific desktop chrome — the custom `WindowsTitleBar` (App.tsx) and the
+  Windows sidebar/layout branches (ChatView, ChatSidebar, SettingsSidebar) — was gated solely on
+  `isWindowsPlatform()`, a pure user-agent check (`navigator.userAgent.includes('Windows')`). In any
+  plain browser sending a Windows UA (the e2e Desktop Chrome device, and any real browser on
+  Windows) this rendered the Tauri-native chrome with **no Tauri runtime present**:
+  `WindowsTitleBar` calls Tauri's `getCurrentWindow()` at render, which dereferences the absent
+  `window.__TAURI_INTERNALS__` and throws, crashing the whole React tree → blank page → all specs
+  fail. Even without the crash, the Windows branches hid macOS/default affordances the suite asserts
+  (e.g. the "Search chats" title-bar button is `{!isWindows && …}`).
+- **Root cause:** Windows-native chrome exists only because Tauri's `decorations: false` strips the
+  native window frame; it is meaningful **only inside the Tauri runtime**. Gating it on OS detection
+  alone (UA) wrongly activates it in browser contexts. Introduced 2026-06-11 by `80124e9`
+  (UA-based `isWindowsPlatform()` + platform-conditional sidebar) and `51d7ec3` (WindowsTitleBar +
+  App.tsx gating) — both predate the runtime-guard requirement.
+- **Fix:** Add `usesWindowsChrome()` to the platform layer — `isWindowsPlatform() && isTauriRuntime()`
+  — and use it everywhere the Windows-native chrome/layout was gated (App.tsx + the three view
+  components). In the real Tauri Windows app the runtime is present, so behaviour is unchanged; in
+  browser-fallback (and any plain browser on Windows) it falls through to the default web chrome —
+  no Tauri call, no crash, and the layout the e2e suite expects. Keeps the platform check in the
+  platform layer per the project's platform-abstraction rule.
+- **Web-app applicability:** **UNLIKELY — verify.** The web app is browser-only and almost certainly
+  has no `WindowsTitleBar` / Tauri window calls. If it has since copied any UA-based
+  `isWindowsPlatform()` layout branching from the desktop, apply the same runtime-aware predicate;
+  otherwise no action.
