@@ -296,8 +296,28 @@ export function useChatSession(
     );
   }, [agent]);
 
+  // A deferred `abortRun()` scheduled by the subscriber-effect cleanup below,
+  // tagged with the agent it targets. React StrictMode dev-double-invokes effects
+  // (mount → cleanup → mount); aborting SYNCHRONOUSLY in that cleanup would kill
+  // the in-flight first turn (the cleanup runs `agent.abortRun()`), and the
+  // `firedFirstMessage` guard in ChatSessionView then blocks a re-send — so the
+  // first reply never renders (CF-012). Deferring the abort one macrotask lets the
+  // re-subscribe of the SAME agent (StrictMode / a benign effect re-run) cancel it,
+  // while a real unmount or conversation switch (no same-agent re-subscribe) still
+  // aborts the client fetch.
+  const pendingAbortRef = useRef<{
+    agent: TauriHttpAgent;
+    timer: ReturnType<typeof setTimeout>;
+  } | null>(null);
+
   useEffect(() => {
     if (!agent) return undefined;
+    // This same agent re-subscribed before its deferred abort fired (StrictMode
+    // synthetic remount) — cancel it so the in-flight run survives.
+    if (pendingAbortRef.current && pendingAbortRef.current.agent === agent) {
+      clearTimeout(pendingAbortRef.current.timer);
+      pendingAbortRef.current = null;
+    }
     toolCallsRef.current = new Map();
     reasoningByMessageIdRef.current = new Map();
     setStatus('idle');
@@ -506,9 +526,18 @@ export function useChatSession(
     const { unsubscribe } = agent.subscribe(subscriber);
     return () => {
       unsubscribe();
-      // `abortRun` stops the CLIENT-side fetch; the BE run continues server-side
-      // and persists, so the result is visible on next mount via the message log.
-      agent.abortRun();
+      // Defer `abortRun` one macrotask. `abortRun` stops the CLIENT-side fetch
+      // (the BE run continues server-side and persists). A REAL unmount /
+      // conversation switch has no immediate same-agent re-subscribe, so this
+      // fires and stops the fetch as before. StrictMode's synthetic remount
+      // re-subscribes this SAME agent first, cancelling the timer above — so the
+      // first turn is NOT killed mid-flight (CF-012).
+      const abortAgent = agent;
+      const timer = setTimeout(() => {
+        abortAgent.abortRun();
+        if (pendingAbortRef.current?.timer === timer) pendingAbortRef.current = null;
+      }, 0);
+      pendingAbortRef.current = { agent: abortAgent, timer };
     };
   }, [agent, syncMessages, qc, threadId]);
 
