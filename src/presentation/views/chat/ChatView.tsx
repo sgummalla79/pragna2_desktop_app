@@ -13,7 +13,7 @@ import {
   TOGGLE_ICON_PX,
 } from '@/constants/windowChrome';
 import { TitlebarCollapseToggle } from '@/components/ui/sidebar/TitlebarCollapseToggle';
-import { isWindowsPlatform } from '@/infrastructure/platform';
+import { usesWindowsChrome } from '@/infrastructure/platform';
 import { useUiStore } from '@/presentation/store/uiStore';
 import { ROUTES } from '@/constants/routes';
 import { ChatSidebar } from './components/ChatSidebar';
@@ -32,7 +32,7 @@ import { AvatarMenu } from './components/AvatarMenu';
  *    opens the sidebar as an overlay drawer that closes on backdrop tap or
  *    navigation.
  *
- * Platform-conditional UI (via {@link isWindowsPlatform}):
+ * Platform-conditional UI (via {@link usesWindowsChrome}):
  *  - **macOS**: overlay {@link TitlebarCollapseToggle} + search button in title bar.
  *  - **Windows**: inline collapse toggle inside the sidebar header; no search button.
  *
@@ -43,7 +43,7 @@ export function ChatView() {
   const [searchOpen, setSearchOpen] = useState(false);
   const collapsed = useUiStore((s) => s.chatPaneCollapsed);
   const toggleCollapsed = useUiStore((s) => s.toggleChatPane);
-  const isWindows = isWindowsPlatform();
+  const isWindows = usesWindowsChrome();
   const navigate = useNavigate();
 
   return (

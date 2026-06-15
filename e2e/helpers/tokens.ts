@@ -15,7 +15,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { API_BASE_URL, TEST_USER } from './env';
+import { API_BASE_URL, AUTH_MODE, AUTH0, TEST_USER } from './env';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const TOKENS_FILE = path.join(HERE, '..', '.auth', 'tokens.json');
@@ -54,9 +54,53 @@ function mintIdToken(sub: string): string {
   return `${header}.${payload}.seed`;
 }
 
-/** Log in against the local BE's session endpoint and mint the seed pair.
+/** Fetch a REAL Auth0 token pair via the Resource-Owner-Password-Grant.
+ *  Used when `AUTH_MODE === 'auth0'` so the suite can authenticate against an
+ *  `AUTH_STRATEGY=auth0` BE (which rejects local password login): the access
+ *  token is a genuine Auth0 JWT the BE validates via JWKS, and the ID token
+ *  carries `sub`/`email`/`name` for the FE's local `me()` decode. Throws loud on
+ *  missing config or a non-2xx so global setup fails clearly. */
+async function mintAuth0Tokens(): Promise<SeedTokens> {
+  const required: Record<string, string> = {
+    'E2E_AUTH0_DOMAIN': AUTH0.domain,
+    'E2E_AUTH0_CLIENT_ID': AUTH0.clientId,
+    'E2E_AUTH0_AUDIENCE': AUTH0.audience,
+    'E2E_AUTH0_USERNAME': AUTH0.username,
+    'E2E_AUTH0_PASSWORD': AUTH0.password,
+  };
+  for (const [key, value] of Object.entries(required)) {
+    if (!value) throw new Error(`E2E_AUTH_MODE=auth0 requires ${key} — set it in the environment`);
+  }
+
+  const res = await fetch(`https://${AUTH0.domain}/oauth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      grant_type: 'password',
+      username: AUTH0.username,
+      password: AUTH0.password,
+      client_id: AUTH0.clientId,
+      audience: AUTH0.audience,
+      scope: 'openid profile email',
+    }),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Auth0 ROPG login failed: POST /oauth/token → ${res.status} ${res.statusText} ${detail}`);
+  }
+  const body = (await res.json()) as { access_token?: string; id_token?: string };
+  if (!body.access_token || !body.id_token) {
+    throw new Error('Auth0 ROPG response missing access_token / id_token');
+  }
+  return { accessToken: body.access_token, idToken: body.id_token };
+}
+
+/** Log in and mint the seed pair. Delegates to the Auth0 tenant when
+ *  `AUTH_MODE === 'auth0'`, otherwise to the local BE's session endpoint.
  *  Throws on a non-2xx so a misconfigured stack fails loud in global setup. */
 export async function mintSeedTokens(): Promise<SeedTokens> {
+  if (AUTH_MODE === 'auth0') return mintAuth0Tokens();
+
   const res = await fetch(`${API_BASE_URL}/auth/sessions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { Minus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { isTauriRuntime } from '@/infrastructure/platform';
 
 /**
  * Custom title bar for Windows (rendered when `decorations: false` removes
@@ -15,10 +16,13 @@ import { cn } from '@/lib/utils';
  * Only mounted on Windows — see App.tsx.
  */
 export function WindowsTitleBar() {
-  const win = getCurrentWindow();
   const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
+    // Tauri-only window API — guarded so the effect is a no-op outside the Tauri
+    // runtime (see the defensive return below + CF-011).
+    if (!isTauriRuntime()) return;
+    const win = getCurrentWindow();
     // Sync initial state then update whenever the window is resized.
     win.isMaximized().then(setIsMaximized);
     let unlisten: (() => void) | undefined;
@@ -27,6 +31,16 @@ export function WindowsTitleBar() {
     }).then((fn) => { unlisten = fn; });
     return () => { unlisten?.(); };
   }, []);
+
+  // Defensive fallback (see docs/CODE_FIXES.md CF-011): this component calls
+  // Tauri-only window APIs (`getCurrentWindow`) and is gated to the Windows+Tauri
+  // runtime by App's `usesWindowsChrome()`. If a future caller ever mounts it in
+  // a plain browser, degrade to rendering nothing rather than dereferencing the
+  // absent Tauri internals and crashing the whole React tree. The hooks above run
+  // unconditionally (the runtime value is constant for the app's lifetime), so
+  // this early return does not violate the rules of hooks.
+  if (!isTauriRuntime()) return null;
+  const win = getCurrentWindow();
 
   return (
     <div className="fixed inset-x-0 top-0 z-[200] flex h-8 select-none items-center">

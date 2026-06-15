@@ -13,6 +13,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "lint:platform": "node scripts/check-platform-abstraction.mjs",
     "sign:dev": "bash scripts/macos-dev-codesign.sh",
     "tauri:dev:signed": "cargo build --manifest-path src-tauri/Cargo.toml && bash scripts/macos-dev-codesign.sh && tauri dev",
     "bump:patch": "node scripts/bump-version.mjs patch && node scripts/sync-version.mjs",

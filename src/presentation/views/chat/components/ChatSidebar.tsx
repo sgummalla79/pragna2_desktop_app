@@ -3,7 +3,7 @@ import { Plus, MessagesSquare, PanelLeft, PanelLeftClose } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ROUTES } from '@/constants/routes';
 import { APP_NAME } from '@/constants/api';
-import { isWindowsPlatform } from '@/infrastructure/platform';
+import { usesWindowsChrome } from '@/infrastructure/platform';
 import PragnaLogo from '@/assets/logo.svg?react';
 import { ConversationList } from './ConversationList';
 import { AvatarMenu } from './AvatarMenu';
@@ -23,7 +23,7 @@ interface ChatSidebarProps {
 /**
  * Chat sidebar panel content.
  *
- * Platform differences (governed by {@link isWindowsPlatform}):
+ * Platform differences (governed by {@link usesWindowsChrome}):
  *  - **Windows**: renders the app logo + name header, an inline collapse toggle
  *    in that header row, and the "Chats" nav item.
  *  - **macOS**: renders none of those (the macOS window uses the OS title bar
@@ -35,7 +35,7 @@ interface ChatSidebarProps {
 export function ChatSidebar({ onNavigate, collapsed, onToggleCollapsed }: ChatSidebarProps) {
   const navigate = useNavigate();
   const onChats = useMatch(ROUTES.CHAT_HISTORY);
-  const isWindows = isWindowsPlatform();
+  const isWindows = usesWindowsChrome();
 
   const go = (to: string) => {
     navigate(to);
