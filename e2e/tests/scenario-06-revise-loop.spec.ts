@@ -36,7 +36,7 @@ import {
   seedFlow,
 } from '../helpers/flow-author';
 
-const HAS_REAL_KEY = Boolean(process.env.E2E_ANTHROPIC_API_KEY);
+const HAS_REAL_KEY = Boolean(process.env.E2E_LLM_API_KEY ?? process.env.E2E_ANTHROPIC_API_KEY ?? process.env.E2E_OPENAI_API_KEY ?? process.env.E2E_GOOGLE_API_KEY);
 
 const FLOW_API_NAME = 'revise-loop';
 const SLASH_NAME = 'revise';
@@ -55,10 +55,18 @@ test.describe('Scenario 6 — Revise loop (agent → decision router)', () => {
 
   test.skip(
     !HAS_REAL_KEY,
-    'requires E2E_ANTHROPIC_API_KEY (the seeded test model carries a dummy key → live LLM 401)',
+    'requires a real LLM key (E2E_LLM_API_KEY or E2E_<PROVIDER>_API_KEY) (the seeded test model carries a dummy key → live LLM 401)',
   );
 
   test.beforeEach(() => {
+    // Clear episodes that RESTRICT-reference the flow (a prior /revise dispatch
+    // creates a conversation_episodes row pinned to flow_id) BEFORE deleting the
+    // flow — otherwise the flow DELETE fails the FK and the next seedFlow hits
+    // uq_flows_user_name. Makes the spec re-runnable against a persistent DB.
+    psql(
+      `DELETE FROM conversation_episodes
+       WHERE flow_id IN (SELECT id FROM flows WHERE api_name = '${FLOW_API_NAME}');`,
+    );
     psql(`DELETE FROM flows WHERE api_name = '${FLOW_API_NAME}';`);
   });
 
