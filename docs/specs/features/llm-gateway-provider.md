@@ -3,7 +3,7 @@
 > **Status**: Implemented
 > **Author**: Suman Gummalla
 > **Created**: 2026-06-12
-> **Last Updated**: 2026-06-12
+> **Last Updated**: 2026-06-15
 
 ---
 
@@ -34,6 +34,8 @@ gateways at once, each with a distinct label.
   the modal; the tile pill is single-instance only).
 - Gateways that speak a non-OpenAI wire protocol (Anthropic/Bedrock-shaped) —
   backend deferred (pragna2-api tech-debt #57).
+- Storing the CA certificate as a file path (path is inaccessible inside the
+  Docker container; the PEM content itself is stored instead).
 
 ## 3. User Stories
 
@@ -43,6 +45,8 @@ gateways at once, each with a distinct label.
 | user | connect several gateways, each named | I can run prod and staging gateways side by side |
 | user | manage the models under each gateway | I can enable just the models I need per gateway |
 | user | disconnect one gateway | I can remove it without touching the others |
+| user | paste (or browse for) my gateway's CA certificate | I can connect to a gateway with a self-signed or private-CA cert |
+| user | disable SSL verification for a gateway | I can connect during development without a CA cert |
 
 ## 4. Acceptance Criteria
 
@@ -56,6 +60,16 @@ gateways at once, each with a distinct label.
       **Manage** (model grid), **Refresh**, or **Disconnect** each independently.
 - [x] Given a single-instance provider (Anthropic, etc.), when I open it, then
       the form and connected panel are exactly as before (no label, one row).
+- [x] Given the gateway connect form, the **Verify SSL certificate** toggle is
+      on by default; turning it off and connecting sends `verifySsl: false`
+      (native boolean) in the credential blob.
+- [x] Given the CA Certificate field, clicking **Browse…** opens a file picker
+      filtered to `.pem/.crt/.cer/.ca-bundle`; selecting a file populates the
+      textarea with its text content. The PEM text can also be pasted directly.
+- [x] Given a CA Certificate is pasted/browsed, when the user connects, the PEM
+      string is stored encrypted in the backend credential blob.
+- [x] Given neither CA Certificate nor SSL toggle is changed, the credential
+      blob is identical to before (no new keys — full backward compatibility).
 
 ## 5. Edge Cases & Error Scenarios
 
@@ -66,6 +80,8 @@ gateways at once, each with a distinct label.
 | Disconnect the only gateway | List view shows the connect form again (zero registrations) |
 | Gateway exposes no `/v1/models` | Backend discovery 422 → inline connect error (gateway needs the deferred adapter) |
 | Unsaved model edits | Modal close stays blocked by the existing dirty-guard |
+| CA cert file is binary / unreadable | `FileReader` reads as text; garbled content is sent as-is — backend rejects it at discovery time with a clear TLS error |
+| SSL toggle off + CA cert both set | Backend prioritises CA cert: verifies with it, ignores `verifySsl: false` |
 
 ## 6. Out of Scope
 
