@@ -61,3 +61,76 @@ describe('serializeCredentials — gateway', () => {
     });
   });
 });
+
+describe('serializeCredentials — gateway SSL/TLS fields', () => {
+  it('omits caCert when blank or whitespace-only', () => {
+    const json = serializeCredentials('gateway', {
+      baseUrl: 'https://gw.example.com',
+      authToken: 'tok',
+      caCert: '   ',
+    });
+    const parsed = JSON.parse(json);
+    expect(parsed).not.toHaveProperty('caCert');
+    expect(parsed).not.toHaveProperty('verifySsl');
+  });
+
+  it('includes caCert as a string when provided', () => {
+    const pem = '-----BEGIN CERTIFICATE-----\nABCD\n-----END CERTIFICATE-----';
+    const json = serializeCredentials('gateway', {
+      baseUrl: 'https://gw.example.com',
+      authToken: 'tok',
+      caCert: pem,
+    });
+    expect(JSON.parse(json)).toMatchObject({
+      baseUrl: 'https://gw.example.com',
+      authToken: 'tok',
+      caCert: pem,
+    });
+  });
+
+  it('omits verifySsl when toggle is on (empty string, "true", or absent)', () => {
+    for (const v of ['', 'true', undefined as unknown as string]) {
+      const json = serializeCredentials('gateway', {
+        baseUrl: 'https://gw.example.com',
+        authToken: 'tok',
+        verifySsl: v,
+      });
+      expect(JSON.parse(json)).not.toHaveProperty('verifySsl');
+    }
+  });
+
+  it('serializes verifySsl as boolean false — not string — when toggle is off', () => {
+    const json = serializeCredentials('gateway', {
+      baseUrl: 'https://gw.example.com',
+      authToken: 'tok',
+      verifySsl: 'false',
+    });
+    const parsed = JSON.parse(json);
+    expect(parsed.verifySsl).toBe(false);
+    expect(typeof parsed.verifySsl).toBe('boolean');
+  });
+
+  it('includes both caCert and verifySsl:false when both are set', () => {
+    const pem = '-----BEGIN CERTIFICATE-----\nABCD\n-----END CERTIFICATE-----';
+    const json = serializeCredentials('gateway', {
+      baseUrl: 'https://gw.example.com',
+      authToken: 'tok',
+      caCert: pem,
+      verifySsl: 'false',
+    });
+    const parsed = JSON.parse(json);
+    expect(parsed.caCert).toBe(pem);
+    expect(parsed.verifySsl).toBe(false);
+  });
+
+  it('regression: no SSL fields → minimal { baseUrl, authToken } blob unchanged', () => {
+    const json = serializeCredentials('gateway', {
+      baseUrl: 'https://gw.example.com',
+      authToken: 'tok',
+    });
+    expect(JSON.parse(json)).toEqual({
+      baseUrl: 'https://gw.example.com',
+      authToken: 'tok',
+    });
+  });
+});
