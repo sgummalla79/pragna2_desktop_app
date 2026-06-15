@@ -20,7 +20,7 @@ import { type Page } from '@playwright/test';
 
 import { test, expect } from '../fixtures';
 
-const HAS_REAL_KEY = Boolean(process.env.E2E_ANTHROPIC_API_KEY);
+const HAS_REAL_KEY = Boolean(process.env.E2E_LLM_API_KEY ?? process.env.E2E_ANTHROPIC_API_KEY ?? process.env.E2E_OPENAI_API_KEY ?? process.env.E2E_GOOGLE_API_KEY);
 
 const PROMPT = `I want to book a meeting room. Please use ask_user to collect the room name, the meeting date, and how many people will attend, then confirm the details back to me.`;
 
@@ -44,7 +44,7 @@ async function formInputs(page: Page) {
 test.describe('Scenario 2 — Chat with ask_user form', () => {
   test.skip(
     !HAS_REAL_KEY,
-    'requires E2E_ANTHROPIC_API_KEY (the seeded test model carries a dummy key → live LLM 401)',
+    'requires a real LLM key (E2E_LLM_API_KEY or E2E_<PROVIDER>_API_KEY) (the seeded test model carries a dummy key → live LLM 401)',
   );
 
   test.beforeEach(async ({ page }) => {

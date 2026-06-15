@@ -227,9 +227,21 @@ export async function configureChatAgent(
   await page.getByRole('button', { name: /close panel/i }).click();
 }
 
-/** Click Save and wait for the success banner. */
+/** Click Save and wait for the persist to COMMIT, then the success banner.
+ *
+ *  Waiting only on the `role=status` banner is racy: a stale "Saved" toast from
+ *  a prior action can satisfy the matcher before this save's `from-yaml`
+ *  round-trip commits, so a test that reads the DB immediately after deterministically
+ *  sees the pre-commit state. We arm a `waitForResponse` on the `from-yaml`
+ *  POST/PUT BEFORE clicking, so `saveFlow` returns only once the topology is
+ *  persisted. (Matches `/from-yaml`, NOT `/validate-yaml`.) */
 export async function saveFlow(page: Page): Promise<void> {
+  const persisted = page.waitForResponse(
+    (r) => /\/from-yaml(\?|$)/.test(r.url()) && r.request().method() !== 'GET',
+    { timeout: 15_000 },
+  );
   await page.getByRole('button', { name: /^save$/i }).click();
+  await persisted;
   await expect(page.getByRole('status')).toContainText(/Created|Saved/, {
     timeout: 10_000,
   });

@@ -16,7 +16,7 @@
  */
 import { test, expect } from '../fixtures';
 
-const HAS_REAL_KEY = Boolean(process.env.E2E_ANTHROPIC_API_KEY);
+const HAS_REAL_KEY = Boolean(process.env.E2E_LLM_API_KEY ?? process.env.E2E_ANTHROPIC_API_KEY ?? process.env.E2E_OPENAI_API_KEY ?? process.env.E2E_GOOGLE_API_KEY);
 const PROMPT = `Explain the concept of quantum entanglement in 3 paragraphs covering its discovery, its experimental verification (e.g. Bell tests), and its modern applications in quantum computing.`;
 
 test.describe('Scenario 12 — Hard refresh during streaming', () => {
@@ -24,7 +24,7 @@ test.describe('Scenario 12 — Hard refresh during streaming', () => {
 
   test.skip(
     !HAS_REAL_KEY,
-    'requires E2E_ANTHROPIC_API_KEY — live streaming run needed (no in-flight run on a seeded conversation)',
+    'requires a real LLM key (E2E_LLM_API_KEY or E2E_<PROVIDER>_API_KEY) — live streaming run needed (no in-flight run on a seeded conversation)',
   );
 
   test('submit → reload mid-stream → return to chat → persisted reply is there', async ({
