@@ -23,7 +23,7 @@
 import { test, expect } from '../fixtures';
 import { unexposeSlashFlows } from '../helpers/db';
 
-const HAS_REAL_KEY = Boolean(process.env.E2E_ANTHROPIC_API_KEY);
+const HAS_REAL_KEY = Boolean(process.env.E2E_LLM_API_KEY ?? process.env.E2E_ANTHROPIC_API_KEY ?? process.env.E2E_OPENAI_API_KEY ?? process.env.E2E_GOOGLE_API_KEY);
 const LONG_PROMPT = `Write a 4-paragraph essay on the history of the printing press, covering its origins, Gutenberg's contribution, the social impact in Europe, and a comparison to digital publishing today.`;
 
 test.describe('Scenario 11 — Navigate away mid-response', () => {
@@ -31,7 +31,7 @@ test.describe('Scenario 11 — Navigate away mid-response', () => {
 
   test.skip(
     !HAS_REAL_KEY,
-    'requires E2E_ANTHROPIC_API_KEY — live streaming run needed (no in-flight run on a seeded conversation)',
+    'requires a real LLM key (E2E_LLM_API_KEY or E2E_<PROVIDER>_API_KEY) — live streaming run needed (no in-flight run on a seeded conversation)',
   );
 
   test.beforeEach(() => {

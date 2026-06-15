@@ -23,12 +23,12 @@ import { test, expect } from '../fixtures';
 import { assistantAttachments, type ApiMessage } from '../helpers/network';
 import { unexposeSlashFlows } from '../helpers/db';
 
-const HAS_REAL_KEY = Boolean(process.env.E2E_ANTHROPIC_API_KEY);
+const HAS_REAL_KEY = Boolean(process.env.E2E_LLM_API_KEY ?? process.env.E2E_ANTHROPIC_API_KEY ?? process.env.E2E_OPENAI_API_KEY ?? process.env.E2E_GOOGLE_API_KEY);
 
 test.describe('Scenario 19 — create_pdf document tool', () => {
   test.skip(
     !HAS_REAL_KEY,
-    'requires E2E_ANTHROPIC_API_KEY (the seeded test model carries a dummy key → live LLM 401)',
+    'requires a real LLM key (E2E_LLM_API_KEY or E2E_<PROVIDER>_API_KEY) (the seeded test model carries a dummy key → live LLM 401)',
   );
 
   test.beforeEach(async ({ page }) => {

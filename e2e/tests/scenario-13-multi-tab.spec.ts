@@ -26,7 +26,7 @@ import { test, expect } from '../fixtures';
 import { TOKEN_KEYS } from '../helpers/env';
 import { readTokens } from '../helpers/tokens';
 
-const HAS_REAL_KEY = Boolean(process.env.E2E_ANTHROPIC_API_KEY);
+const HAS_REAL_KEY = Boolean(process.env.E2E_LLM_API_KEY ?? process.env.E2E_ANTHROPIC_API_KEY ?? process.env.E2E_OPENAI_API_KEY ?? process.env.E2E_GOOGLE_API_KEY);
 const PROMPT = `Explain the photoelectric effect in 3 paragraphs covering Einstein's 1905 paper, the role of photons, and one modern application.`;
 
 /** Inject the seed token pair into a freshly-created tab so `bootstrap()`
@@ -48,7 +48,7 @@ test.describe('Scenario 13 — Multi-tab consistency', () => {
 
   test.skip(
     !HAS_REAL_KEY,
-    'requires E2E_ANTHROPIC_API_KEY — live streaming run needed in Tab A',
+    'requires a real LLM key (E2E_LLM_API_KEY or E2E_<PROVIDER>_API_KEY) — live streaming run needed in Tab A',
   );
 
   test('Tab A submits + completes, Tab B refreshes and sees the same reply', async ({

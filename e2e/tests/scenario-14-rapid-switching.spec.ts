@@ -23,7 +23,7 @@
  */
 import { test, expect } from '../fixtures';
 
-const HAS_REAL_KEY = Boolean(process.env.E2E_ANTHROPIC_API_KEY);
+const HAS_REAL_KEY = Boolean(process.env.E2E_LLM_API_KEY ?? process.env.E2E_ANTHROPIC_API_KEY ?? process.env.E2E_OPENAI_API_KEY ?? process.env.E2E_GOOGLE_API_KEY);
 
 const RAPID_PROMPTS = [
   'In one sentence, what is the largest planet in our solar system?',
@@ -36,7 +36,7 @@ test.describe('Scenario 14 — Rapid chat switching', () => {
 
   test.skip(
     !HAS_REAL_KEY,
-    'requires E2E_ANTHROPIC_API_KEY — live background runs needed',
+    'requires a real LLM key (E2E_LLM_API_KEY or E2E_<PROVIDER>_API_KEY) — live background runs needed',
   );
 
   test.fixme('3 rapid submits + new-chat clicks all persist replies', async ({
