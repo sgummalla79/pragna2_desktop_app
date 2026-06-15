@@ -1,6 +1,6 @@
 [package]
 name = "pragna2_desktop_app"
-version = "1.0.3"
+version = "1.0.4"
 description = "Pragna2 Desktop Application"
 authors = ["sgummalla"]
 edition = "2021"
