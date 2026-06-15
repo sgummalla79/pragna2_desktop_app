@@ -3,7 +3,7 @@
 > **Status**: Implemented
 > **Author**: Suman Gummalla
 > **Created**: 2026-06-12
-> **Last Updated**: 2026-06-12
+> **Last Updated**: 2026-06-15
 
 ---
 
@@ -69,9 +69,9 @@ src/
 |---|---|
 | **Purpose** | Serialise credential form values to the single `apiKey` string the API expects |
 | **Inputs** | `kind: CredentialKind`, `values: Record<string,string>` |
-| **Output** | `string` — for `'gateway'`, `JSON.stringify({ baseUrl, authToken })` |
+| **Output** | `string` — for `'gateway'`, JSON blob with required `{baseUrl, authToken}` plus optional `{modelsUrl?, awsRegion?, caCert?, verifySsl?}` |
 | **Errors** | None (missing fields default to `''`) |
-| **Invariants** | Exhaustive over `CredentialKind`; gateway shape is `{baseUrl, authToken}` |
+| **Invariants** | Exhaustive over `CredentialKind`; optional fields omitted when blank; `verifySsl` serialised as native boolean `false` (never `true`) |
 
 ### `MultiInstancePanel(props)` — new component
 
@@ -112,12 +112,34 @@ src/
 ## 8. Testing
 
 - `constants/providers.test.ts` — gateway field schema + `{baseUrl, authToken}`
-  serialization.
+  serialization; new assertions for `caCert` (optional, multiline) and `verifySsl`
+  (toggle type).
+- `__tests__/serializeCredentials.test.ts` — SSL/TLS field serialization: caCert
+  omitted when blank, included as PEM string when set; verifySsl omitted when on,
+  serialised as boolean `false` when off; both together; regression for minimal blob.
 - `ProvidersView.test.tsx` — multi-instance tile count badge, no single-instance
   pill, modal lists registrations by label, add-another form shows Label +
   Gateway URL + Auth Token.
 - Repository mapper tests cover the new fields via existing suites.
-- Full suite: 93 files / 487 tests green; `tsc --noEmit` clean.
+
+## 9. Backend Contract (feature requirement for `pragna2-api`)
+
+The backend decrypts `user_providers.api_key` and JSON-parses it. For
+`credential_kind = 'gateway'`, two new optional keys may appear:
+
+| Key | JSON type | Semantics |
+|---|---|---|
+| `caCert` | `string` (PEM) | Custom CA for TLS verification |
+| `verifySsl` | `boolean false` | Skip all TLS verification |
+
+**Priority rule the backend must implement:**
+1. `caCert` non-empty → build `SSLContext` from the PEM string; use it for all
+   outbound HTTPS calls to the gateway (`httpx`: `verify=ssl_ctx`).
+2. `verifySsl === false` (no `caCert`) → `verify=False`.
+3. Neither key present → system default trust store (`verify=True`).
+
+`verifySsl: true` is **never** sent by the frontend. Treat an absent key as `true`.
+The frontend does not send a file path — it sends the PEM content itself.
 
 ## 9. Responsiveness
 

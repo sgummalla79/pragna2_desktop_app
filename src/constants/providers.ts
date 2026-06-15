@@ -48,6 +48,14 @@ export interface CredentialFieldDef {
   /** When true, the field is not required; it may be left blank. Used for
    *  gateway fields that only apply to an Anthropic/Bedrock-shaped gateway. */
   optional?: boolean;
+  /**
+   * Controls which input widget is rendered.
+   * - 'text' (default): Input, PasswordInput, or Textarea depending on `secret`
+   *   and `multiline`. Existing fields omit this and get 'text' implicitly.
+   * - 'toggle': A labelled switch row. `values[key]` of '' or 'true' = on,
+   *   'false' = off. `secret`, `multiline`, and `placeholder` are unused.
+   */
+  type?: 'text' | 'toggle';
 }
 
 export const CREDENTIAL_FIELDS: Record<CredentialKind, CredentialFieldDef[]> = {
@@ -124,6 +132,24 @@ export const CREDENTIAL_FIELDS: Record<CredentialKind, CredentialFieldDef[]> = {
       secret:      false,
       optional:    true,
     },
+    {
+      key:         'caCert',
+      label:       'CA Certificate (optional)',
+      placeholder: '-----BEGIN CERTIFICATE-----\n…\n-----END CERTIFICATE-----',
+      hint:        'Optional. PEM-encoded CA certificate for a self-signed or private-CA gateway. When set, the backend uses it to verify the TLS connection instead of the system trust store.',
+      secret:      false,
+      multiline:   true,
+      optional:    true,
+    },
+    {
+      key:         'verifySsl',
+      label:       'Verify SSL certificate',
+      placeholder: '',
+      hint:        'Disable only for development when providing a CA certificate is not practical. Turning this off skips all TLS verification — do not use in production.',
+      secret:      false,
+      optional:    true,
+      type:        'toggle',
+    },
   ],
 };
 
@@ -135,10 +161,11 @@ export const CREDENTIAL_FIELDS: Record<CredentialKind, CredentialFieldDef[]> = {
  * - aws_credentials: JSON-encodes { accessKeyId, secretAccessKey, region }.
  * - gcp_credentials: returns the service-account JSON blob verbatim.
  * - gateway:         JSON-encodes { baseUrl, authToken } for an OpenAI-compatible
- *                    gateway. The optional { modelsUrl, awsRegion } are added
- *                    ONLY when filled — their presence (modelsUrl) is what tells
- *                    the backend to use the Anthropic/Bedrock-shaped path, so an
- *                    OpenAI gateway keeps the minimal { baseUrl, authToken } blob.
+ *                    gateway. Optional fields are added ONLY when filled:
+ *                    { modelsUrl, awsRegion } switch to the Anthropic/Bedrock path;
+ *                    { caCert } (PEM string) supplies a custom CA for TLS;
+ *                    { verifySsl: false } (native boolean) skips TLS verification.
+ *                    An absent verifySsl key is treated as true by the backend.
  */
 export function serializeCredentials(
   kind: CredentialKind,
@@ -156,7 +183,7 @@ export function serializeCredentials(
     case 'gcp_credentials':
       return values['serviceAccountJson'] ?? '';
     case 'gateway': {
-      const blob: Record<string, string> = {
+      const blob: Record<string, string | boolean> = {
         baseUrl:   values['baseUrl'] ?? '',
         authToken: values['authToken'] ?? '',
       };
@@ -164,6 +191,11 @@ export function serializeCredentials(
       if (modelsUrl) blob['modelsUrl'] = modelsUrl;
       const awsRegion = values['awsRegion']?.trim();
       if (awsRegion) blob['awsRegion'] = awsRegion;
+      const caCert = values['caCert']?.trim();
+      if (caCert) blob['caCert'] = caCert;
+      // Only serialize verifySsl when the toggle is explicitly off — the backend
+      // treats an absent key the same as true (verify normally).
+      if (values['verifySsl'] === 'false') blob['verifySsl'] = false;
       return JSON.stringify(blob);
     }
   }
