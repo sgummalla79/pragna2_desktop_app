@@ -56,8 +56,13 @@ export function LoginForm() {
       // loopback server. On success the auth store flips and the guard
       // redirects to the app — no manual navigation needed here.
       await loginWithSocial(connection);
-    } catch {
-      setError(ERRORS.AUTH_006.message);
+    } catch (err) {
+      // Surface the real error so the failure is diagnosable.
+      // Show the error message for any Error instance; fall back to AUTH_006 only for
+      // non-Error throws (extremely rare).
+      const msg = err instanceof Error ? err.message : ERRORS.AUTH_006.message;
+      setError(msg);
+      console.error('[social-login] error:', err);
     } finally {
       setSocialLoading(null);
     }
