@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:clean": "bash scripts/dev-clean.sh",
+    "dev:clean:win": "powershell -ExecutionPolicy Bypass -File scripts/dev-clean.ps1",
     "sync-version": "node scripts/sync-version.mjs",
     "release": "node scripts/release.mjs",
     "build": "node scripts/sync-version.mjs && tsc && vite build",
