@@ -343,3 +343,36 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
   has no `WindowsTitleBar` / Tauri window calls. If it has since copied any UA-based
   `isWindowsPlatform()` layout branching from the desktop, apply the same runtime-aware predicate;
   otherwise no action.
+
+---
+
+## CF-012 — First chat turn silently dropped in `tauri dev` ("Request cancelled", no reply)
+
+- **Date:** 2026-06-14
+- **Area / file:** `src/presentation/views/chat/hooks/useChatSession.ts` (subscriber-effect cleanup).
+- **Found by:** Manual use in `pnpm tauri dev`: New chat → send the **first** message → no
+  assistant reply, console shows `Agent execution failed: Error: Request cancelled`
+  (`tauriHttpRequest.ts:46` → AG-UI `agent.ts` `runAgent`). The 2nd message onward works.
+- **Bug:** On a brand-new chat the first turn is dispatched on mount, then **aborted mid-flight**, so
+  no reply ever renders. Sequence (dev only): `ChatSessionView` mounts → the `useChatSession`
+  subscriber effect subscribes, and the "fire pending first message" effect dispatches the run +
+  sets its `firedFirstMessage` guard + clears the stashed message. React **StrictMode** (ON in
+  `pnpm dev` / `tauri dev`, a no-op in prod) then synthetically tears the effects down → the
+  subscriber cleanup calls `agent.abortRun()` → kills the in-flight first-turn fetch
+  ("Request cancelled"). On the StrictMode re-mount the first-message effect sees its guard already
+  set → does **not** re-dispatch, and the stashed message is already cleared → the turn is lost.
+- **Root cause:** the cleanup aborted the run **synchronously on every effect teardown**, conflating
+  StrictMode's synthetic unmount (and any benign same-agent effect re-run) with a real unmount /
+  conversation switch. Latent since chat Phase 1 (commit `5613651`); never caught because the e2e
+  suite disables StrictMode (`VITE_E2E_NO_STRICT_MODE=1`, commit `4968281`) and runs the browser
+  transport, not the native `TauriHttpAgent` path — so neither the StrictMode teardown nor the
+  native abort is exercised (cf. CF-011, TD-028).
+- **Fix:** **Defer** the `abortRun()` one macrotask and **cancel** it if the SAME agent re-subscribes
+  immediately (StrictMode's synthetic remount, or a benign re-run). A real unmount / conversation
+  switch has no immediate same-agent re-subscribe, so the deferred abort still fires and stops the
+  client fetch exactly as before. Result: a single first-turn dispatch survives and renders — no
+  masking of the abort, no duplicate backend run. Tracked via a per-agent `pendingAbortRef`.
+- **Web-app applicability:** **CHECK — likely N/A in this exact form.** The web app uses the browser
+  transport (not `TauriHttpAgent`), but if it shares the `useChatSession` first-turn pattern
+  (mount-dispatch + `firedFirstMessage` guard + abort-on-cleanup) it has the same StrictMode-teardown
+  fragility on the first turn. Apply the same deferred-abort guard there if so.
