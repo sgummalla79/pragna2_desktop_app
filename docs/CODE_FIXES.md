@@ -376,3 +376,20 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
   transport (not `TauriHttpAgent`), but if it shares the `useChatSession` first-turn pattern
   (mount-dispatch + `firedFirstMessage` guard + abort-on-cleanup) it has the same StrictMode-teardown
   fragility on the first turn. Apply the same deferred-abort guard there if so.
+
+---
+
+## CF-013 — Second (and subsequent) user message wiped from UI until agent response arrives
+
+- **Date:** 2026-06-16
+- **Area / file:** `src/presentation/views/chat/ChatSessionView.tsx` (reconciliation effect, lines 178-187); extracted to `src/presentation/views/chat/hooks/useReconcileMessages.ts`.
+- **Found by:** Manual use — after a successful first turn, submitting a second message caused the user message to be invisible. When the agent response eventually arrived it briefly flashed, then cleared, then both user message and agent response appeared together.
+- **Bug:** `ChatConversation` had a reconciliation `useEffect` that swaps the in-memory message list for the persisted (server-fetched) snapshot whenever counts or last-message IDs differ. This reconciliation is necessary and correct for the tool-use / background-episode case, but it did not guard against the **optimistic-append window**: `send()` pushes the user message to `agent.messages` and calls `syncMessages()` while `status` is still `'idle'` (the `'running'` state arrives later via the backend's `RUN_INITIALIZED` event). The effect fires in the same React flush with `status === 'idle'` and sees `messages.length (N+1) !== persisted.length (N)`, triggering `replaceMessages()` — which wipes the just-appended user message. The run proceeds but the user message is invisible until the `/messages` refetch completes post-run.
+- **Root cause:** The `'running'` status guard only protects mid-stream; there is no guard for the pre-run optimistic-append window (between `send()` and `RUN_INITIALIZED`).
+- **Fix:** Extracted the reconciliation logic into `useReconcileMessages` hook. Added one guard before the mismatch check:
+  ```typescript
+  // CF-013: optimistic user message not yet persisted — run hasn't started; don't reconcile.
+  if (lastInMemory.role === 'user' && messages.length > persisted.length) return;
+  ```
+  This is safe: tool-use and background-episode turns always end with an assistant message, so the guard never suppresses legitimate reconciliation. Nine unit tests added in `useReconcileMessages.test.ts` covering the CF-013 regression, the tool-use reconciliation path, all existing guards (running, empty lists, matching state), and the running→idle transition.
+- **Web-app applicability:** **LIKELY AFFECTED — check.** If `pragna2_sgummalla_works` shares this reconciliation `useEffect` (same architecture, same `ChatConversation` pattern), it has the identical bug on every turn after the first. Apply the same `useReconcileMessages` hook (or the inline guard) to the web app.

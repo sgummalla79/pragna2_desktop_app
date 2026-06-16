@@ -47,6 +47,7 @@ import { ModelPicker } from './components/ModelPicker';
 import { ThinkingToggle } from './components/ThinkingToggle';
 import { ThinkingStrip } from './components/ThinkingStrip';
 import { useChatSession } from './hooks/useChatSession';
+import { useReconcileMessages } from './hooks/useReconcileMessages';
 import {
   clearPendingInitialMessage,
   readPendingInitialMessage,
@@ -168,23 +169,8 @@ function ChatConversation({
     replaceMessages,
   } = useChatSession({ threadId: conversationId, initialMessages, slashFlowNames });
 
-  // Reconcile in-memory → persisted once a run settles. A tool-using turn (e.g.
-  // create_pdf) or a buffered episode/attach stream leaves the final-assistant
-  // with its LangChain stream id, so per-message lookups keyed on BE UUIDs
-  // (attachments → the DocumentCard, model attribution) miss until a manual
-  // reload. Swapping to the persisted list (which carries the BE ids +
-  // attachments) fixes it. Never overwrite an in-flight stream (status guard),
-  // and never wipe a just-streamed reply before the /messages refetch lands.
-  useEffect(() => {
-    if (status === 'running') return;
-    if (messages.length === 0) return;
-    if (persisted.length === 0) return;
-    const lastInMemory = messages[messages.length - 1];
-    const lastPersisted = persisted[persisted.length - 1];
-    if (persisted.length !== messages.length || lastInMemory.id !== lastPersisted.id) {
-      replaceMessages(initialMessages);
-    }
-  }, [persisted, messages, status, initialMessages, replaceMessages]);
+  // Reconcile in-memory → persisted once a run settles (see useReconcileMessages).
+  useReconcileMessages(status, messages, persisted, initialMessages, replaceMessages);
 
   // ── Background document episode (create_pdf_long) ──────────────────────────
   // create_pdf_long acks instantly, then generates the document in a SEPARATE
