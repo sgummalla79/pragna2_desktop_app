@@ -420,7 +420,7 @@ src/
 | **Purpose** | Mutation calling `register`. |
 | **Inputs** | Variables: `RegisterProviderPayload`. |
 | **Output** | `UseMutationResult<ProviderWithModels, Error, RegisterProviderPayload>`. |
-| **Errors** | Rejects; `ProvidersView.handleConnect` maps a 409 → `PRV_002`, else prefers backend `detail` (`PRV_003` fallback) via `src/lib/httpError.ts` (TD-008). |
+| **Errors** | Rejects; `ProvidersView.handleConnect` maps a 409 → `PRV_002`, else prefers backend `detail` (`PRV_003` fallback) via `src/lib/httpError.ts` (pragna2-tracker TD-008). |
 | **Side Effects** | `onSuccess`: invalidates `['llm-providers-with-registrations']` AND `['models']`. |
 | **Invariants** | Cross-invalidation because registration creates models. |
 
@@ -431,9 +431,9 @@ src/
 | **Purpose** | Mutation calling `refreshModels`. |
 | **Inputs** | Variables: `providerId: string` (user_providers id). |
 | **Output** | `UseMutationResult<RefreshModelsResult, Error, string>`. |
-| **Errors** | Rejects; `ProvidersView.handleRefresh` catches → backend `detail` else `PRV_006` shown under the Refresh action (TD-008). |
+| **Errors** | Rejects; `ProvidersView.handleRefresh` catches → backend `detail` else `PRV_006` shown under the Refresh action (pragna2-tracker TD-008). |
 | **Side Effects** | `onSuccess`: invalidates `['models']` AND `['llm-providers-with-registrations']`. |
-| **Invariants** | The returned diff (`created`/`archived`/`unarchived`) is summarized in the UI via `summarizeRefresh` (TD-008). |
+| **Invariants** | The returned diff (`created`/`archived`/`unarchived`) is summarized in the UI via `summarizeRefresh` (pragna2-tracker TD-008). |
 
 #### `useToggleProvider()`
 
@@ -442,7 +442,7 @@ src/
 | **Purpose** | Mutation calling `toggle`. |
 | **Inputs** | Variables: `{ id: string; enabled: boolean }`. |
 | **Output** | `UseMutationResult<UserProvider, Error, { id, enabled }>`. |
-| **Errors** | Rejects; `ProvidersView.handleToggle` passes an `onError` that shows `PRV_007` (else backend `detail`) above the tile grid (TD-008). |
+| **Errors** | Rejects; `ProvidersView.handleToggle` passes an `onError` that shows `PRV_007` (else backend `detail`) above the tile grid (pragna2-tracker TD-008). |
 | **Side Effects** | `onSuccess`: invalidates `['llm-providers-with-registrations']` only. |
 | **Invariants** | Drives the per-tile enable/disable pill. |
 
@@ -502,22 +502,22 @@ src/
 
 ## 6. Error Handling Strategy
 
-Repositories let axios errors propagate (no swallowing). Hooks expose them via mutation/query rejection. Since TD-008 the Providers view surfaces the backend `detail` (via the shared `src/lib/httpError.ts` `detailOr`/`statusOf`), falling back to a `PRV_*`/`MDL_*` catalog message — on par with Connectors.
+Repositories let axios errors propagate (no swallowing). Hooks expose them via mutation/query rejection. Since pragna2-tracker TD-008 the Providers view surfaces the backend `detail` (via the shared `src/lib/httpError.ts` `detailOr`/`statusOf`), falling back to a `PRV_*`/`MDL_*` catalog message — on par with Connectors.
 
 | Error | Layer | Propagation |
 |---|---|---|
 | `PRV_001` "Failed to load providers." | Presentation (catalog) | Catalogued; **not referenced** in `ProvidersView` (reserved / for the flat providers list). |
-| `PRV_002` "This provider is already registered." | Presentation | Shown by `handleConnect` when the register call returns **409** (TD-008). |
+| `PRV_002` "This provider is already registered." | Presentation | Shown by `handleConnect` when the register call returns **409** (pragna2-tracker TD-008). |
 | `PRV_003` "Failed to add provider. Check your API key and try again." | Presentation | Connect fallback when no backend `detail` and not a 409 (`handleConnect`). |
 | `PRV_004` "Failed to remove provider." | Presentation | Shown in `ConnectedPanel` error slot when `useDeleteProvider` rejects (`handleDisconnect` catch). |
 | `PRV_005` "Failed to load provider catalogue." | Presentation (catalog) | Shown when `useLlmProvidersWithRegistrations` `isError`. |
 | `MDL_001` "Failed to load models." | Presentation (catalog) | Catalog message for `useModels` load failures; the page uses embedded models, so not rendered in this view. |
 | `MDL_002` "Failed to register model." | Presentation (catalog) | Catalogued; **not referenced** in this view. |
 | `MDL_003` "Failed to remove model." | Presentation (catalog) | Catalogued; **not referenced** in this view. |
-| `PRV_006` "Failed to refresh models." | Presentation | `handleRefresh` fallback when no backend `detail` (TD-008). |
-| `PRV_007` "Failed to update the provider." | Presentation | Tile toggle `onError` fallback when no backend `detail` (TD-008). |
-| `MDL_004` "Failed to save model changes…" | Presentation | `ConnectedPanel.handleSave` fallback; the edit buffer is retained for retry (TD-008). |
-| Backend `detail` (4xx/5xx) | Infrastructure → Presentation | **Surfaced** by the Providers handlers via `detailOr` (preferred over the catalog fallback) since TD-008. |
+| `PRV_006` "Failed to refresh models." | Presentation | `handleRefresh` fallback when no backend `detail` (pragna2-tracker TD-008). |
+| `PRV_007` "Failed to update the provider." | Presentation | Tile toggle `onError` fallback when no backend `detail` (pragna2-tracker TD-008). |
+| `MDL_004` "Failed to save model changes…" | Presentation | `ConnectedPanel.handleSave` fallback; the edit buffer is retained for retry (pragna2-tracker TD-008). |
+| Backend `detail` (4xx/5xx) | Infrastructure → Presentation | **Surfaced** by the Providers handlers via `detailOr` (preferred over the catalog fallback) since pragna2-tracker TD-008. |
 | HTTP status (401/403/404/409/500) | Infrastructure | Axios rejects; `NET_*` catalog entries exist for global handling. |
 
 ## 7. Configuration & Constants
@@ -567,11 +567,11 @@ Repositories let axios errors propagate (no swallowing). Hooks expose them via m
 
 ## 10. Open Questions / Risks
 
-> **Resolved (TD-008):** Providers handlers now surface backend `detail`
+> **Resolved (pragna2-tracker TD-008):** Providers handlers now surface backend `detail`
 > (shared `src/lib/httpError.ts`); connect maps 409 → `PRV_002`; refresh catches
 > (`PRV_006`) + shows a diff summary; the tile toggle surfaces failures
 > (`PRV_007`); bulk-save catches (`MDL_004`) keeping the buffer.
-- [ ] **Unused error codes.** `PRV_001` and `MDL_001..MDL_003` remain catalogued but unreferenced in this view (`PRV_002`/`PRV_006`/`PRV_007`/`MDL_004` are now wired — TD-008). Reserve for a future flow or prune.
+- [ ] **Unused error codes.** `PRV_001` and `MDL_001..MDL_003` remain catalogued but unreferenced in this view (`PRV_002`/`PRV_006`/`PRV_007`/`MDL_004` are now wired — pragna2-tracker TD-008). Reserve for a future flow or prune.
 - [ ] **Single-registration assumption.** The modal manages `userProviders[0]` only; multiple registrations per provider are not represented in the UI.
 
 ---

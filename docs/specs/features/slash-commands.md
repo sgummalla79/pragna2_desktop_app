@@ -19,7 +19,7 @@ the reply streams back over the same native transport as normal chat.
 This is the chat half of the **Chat ↔ Flows integration**; it builds on the
 Agent Flows settings area (which authors + exposes the flows) and the core
 streaming chat feature (see `chat.md`). HITL episodes (ask_user forms, flow
-proposals) remain a separate, deferred piece (`TD-014`).
+proposals) remain a separate, deferred piece (pragna2-tracker TD-014).
 
 ## 2. Goals & Non-Goals
 
@@ -33,7 +33,7 @@ proposals) remain a separate, deferred piece (`TD-014`).
       what was invoked.
 
 **Non-Goals**
-- HITL ask_user forms + flow proposals + episode resume (`TD-014`).
+- HITL ask_user forms + flow proposals + episode resume (pragna2-tracker TD-014).
 - A slash menu for non-flow commands (e.g. `/clear`); only flow dispatch.
 - Persisting a per-conversation "active flow" — dispatch is per-turn, re-parsed
   from the message text.
@@ -92,4 +92,4 @@ proposals) remain a separate, deferred piece (`TD-014`).
 ## 7. Deferred Scope
 
 HITL episodes — ask_user forms (`HITLFormCard`), flow proposals
-(`FlowProposalCard`), and episode resume — remain deferred (`TD-014`).
+(`FlowProposalCard`), and episode resume — remain deferred (pragna2-tracker TD-014).

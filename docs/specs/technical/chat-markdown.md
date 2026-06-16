@@ -27,7 +27,7 @@ ChatMessage(streaming) → MarkdownMessage(content, isStreaming)
   + .chat-markdown / --animate per-block fade-in
 ```
 
-## 2. Renderer decision (TD-017)
+## 2. Renderer decision (pragna2-tracker TD-017)
 
 Both apps use **Streamdown `^1.6.11`** — the same renderer (react-markdown is only
 Streamdown's transitive dep, never imported directly). "Switch to react-markdown"

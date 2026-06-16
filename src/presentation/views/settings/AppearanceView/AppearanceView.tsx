@@ -16,7 +16,7 @@ const MODE_META: Record<ThemeMode, { label: string; description: string; Icon: t
  *
  * A segmented control bound to {@link useThemeStore}; the store persists the
  * choice and toggles the `.dark` class on `<html>`. Palette/TweakCN import is
- * deferred (see `docs/TODO.md` TD-026); this page covers the mode toggle only.
+ * deferred (see pragna2-tracker TD-026); this page covers the mode toggle only.
  */
 export default function AppearanceView() {
   const mode = useThemeStore((s) => s.mode);

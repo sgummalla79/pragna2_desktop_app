@@ -74,5 +74,5 @@ viewer — images and PDFs inline, other types as a download.
 - **Landing-composer uploads;** drag-and-drop; persisted-image inline thumbnails;
   client-side model-capability gating.
 - **Live-verify (needs a desktop run + backend):** multipart upload through the
-  native HTTP adapter (also `TD-004`), blob GET through the adapter, and PDF
+  native HTTP adapter (also pragna2-tracker TD-004), blob GET through the adapter, and PDF
   rendering in the Tauri webview `<iframe>` via a blob URL.

@@ -21,7 +21,7 @@ export interface ConversationListParams {
  * Port for conversation persistence (`/api/conversations/*`).
  *
  * Surface: list / get / create / messages / update / delete / truncate-from /
- * branch (`TD-015`) / usage (`TD-016`).
+ * branch (pragna2-tracker TD-015) / usage (pragna2-tracker TD-016).
  */
 export interface IConversationRepository {
   /** List the authenticated user's conversations (newest first). */

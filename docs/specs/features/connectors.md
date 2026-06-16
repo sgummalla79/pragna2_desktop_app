@@ -9,7 +9,7 @@
 
 ## 1. Overview
 
-The Connectors settings page lets a user register and manage per-user **MCP (Model Context Protocol) connectors** — remote MCP servers whose tools become available to the user's agents. A user can add a connector from a curated preset gallery (e.g. Gmail, Tavily, Stripe, DeepWiki) or from a custom URL, choose an authentication method (none / bearer / api_key / custom headers / OAuth 2.1), and then opt individual discovered tools in or out. Connectors can be edited, refreshed (re-run upstream tool discovery), deactivated, or archived. OAuth-type connectors can begin the authorization flow (the system browser opens the authorization URL), but the callback round-trip is not yet wired on desktop — see TD-001.
+The Connectors settings page lets a user register and manage per-user **MCP (Model Context Protocol) connectors** — remote MCP servers whose tools become available to the user's agents. A user can add a connector from a curated preset gallery (e.g. Gmail, Tavily, Stripe, DeepWiki) or from a custom URL, choose an authentication method (none / bearer / api_key / custom headers / OAuth 2.1), and then opt individual discovered tools in or out. Connectors can be edited, refreshed (re-run upstream tool discovery), deactivated, or archived. OAuth-type connectors can begin the authorization flow (the system browser opens the authorization URL), but the callback round-trip is not yet wired on desktop — see pragna2-tracker TD-001.
 
 ## 2. Goals & Non-Goals
 
@@ -24,7 +24,7 @@ The Connectors settings page lets a user register and manage per-user **MCP (Mod
 - [x] Begin the OAuth 2.1 connect flow for `oauth` connectors by opening the authorization URL in the system browser, including a manual-client fallback for authorization servers without dynamic client registration.
 
 **Non-Goals**
-- Completing the OAuth callback round-trip on desktop (capturing the redirect and finishing the token exchange in-app) — deferred to TD-001.
+- Completing the OAuth callback round-trip on desktop (capturing the redirect and finishing the token exchange in-app) — deferred to pragna2-tracker TD-001.
 - The local `stdio` MCP transport (only `http` / HTTP-SSE and `streamable_http` are supported).
 - Editing a connector's URL or transport after creation (a different URL is a different server — re-add instead).
 - Serving the preset gallery from a backend endpoint (currently a curated local catalogue in `connectorPresets.ts`).
@@ -59,7 +59,7 @@ The Connectors settings page lets a user register and manage per-user **MCP (Mod
 - [x] Given a connector card, when the user opens Edit, then name/description/auth/credentials are editable while URL and transport render read-only; credential inputs start blank ("leave blank to keep").
 - [x] Given the Edit form, when auth is switched to `none` or `oauth`, then `clearCredentials` is sent so any stored static credentials are wiped.
 - [x] Given a connector card, when the user clicks Delete and confirms, then the connector is archived (soft-deleted) and its tools are cascade-disabled.
-- [x] Given an `oauth` connector, when the user clicks Connect, then the returned `authorizationUrl` opens in the **system browser** and an inline note instructs the user to complete it there and then Refresh. (The callback is not captured in-app — TD-001.)
+- [x] Given an `oauth` connector, when the user clicks Connect, then the returned `authorizationUrl` opens in the **system browser** and an inline note instructs the user to complete it there and then Refresh. (The callback is not captured in-app — pragna2-tracker TD-001.)
 - [x] Given an `oauth` connector whose authorization server lacks dynamic client registration, when Connect returns `requiresManualClient`, then the card shows fields to enter a Client ID (and optional Client Secret) and re-attempt.
 - [x] Given any mutation fails with a backend error carrying a `detail` string, when the error is shown, then the backend `detail` is surfaced; otherwise the relevant `CON_*` / `TOOL_*` catalog message is shown.
 - [x] The page and modals are responsive: layouts use fluid widths (`max-w-4xl`, `max-w-[calc(100vw-32px)]`), the gallery grid collapses from two columns to one on narrow widths, and badge rows wrap.
@@ -81,23 +81,23 @@ The Connectors settings page lets a user register and manage per-user **MCP (Mod
 | Preset brand icon fails to load (offline/CSP) | Falls back to a monogram chip. |
 | Search matches no presets | "No matching servers" hint with a pointer to "Custom server". |
 | OAuth: `requiresManualClient` returned | Card shows Client ID / Client Secret inputs; in the wizard, the user is directed to the card's Connect button to enter them. |
-| OAuth callback after browser auth | **Not captured on desktop** — no in-app redirect listener; user returns manually and clicks Refresh (TD-001). The `?oauth=success\|error` query handling is retained for web parity and never fires on desktop. |
+| OAuth callback after browser auth | **Not captured on desktop** — no in-app redirect listener; user returns manually and clicks Refresh (pragna2-tracker TD-001). The `?oauth=success\|error` query handling is retained for web parity and never fires on desktop. |
 | Unsaved details edits, then Escape / overlay click | The dirty-dialog guard intercepts to protect a typed token (wizard details step / edit modal). |
 
 ## 6. Out of Scope
 
-- OAuth callback round-trip / in-app token capture on desktop (TD-001).
+- OAuth callback round-trip / in-app token capture on desktop (pragna2-tracker TD-001).
 - Local `stdio` transport.
 - Changing URL or transport on an existing connector.
 - A backend-served preset catalogue.
 - Per-agent / per-flow tool binding.
 - Client-side credential validation beyond required name + URL.
-- Automated tests for the repos/mappers/hooks (tracked under TD-003).
+- Automated tests for the repos/mappers/hooks (tracked under pragna2-tracker TD-003).
 
 ## 7. Open Questions
 
-- [ ] **OAuth callback round-trip (TD-001).** How will desktop capture the OAuth redirect and finish the token exchange in-app? Candidate: a localhost loopback server (RFC 8252, `tauri-plugin-oauth`), reusing the login flow pattern in `auth0/tauriLoopbackAuthFlow.ts`.
-- [ ] **Desktop redirect_uri acceptance.** Will the backend / upstream authorization server accept a loopback `redirect_uri` (or a custom deep-link scheme) for desktop clients? The connector `redirect_uri` is set by the backend / registered upstream — must be confirmed before building the loopback path (TD-001).
+- [ ] **OAuth callback round-trip (pragna2-tracker TD-001).** How will desktop capture the OAuth redirect and finish the token exchange in-app? Candidate: a localhost loopback server (RFC 8252, `tauri-plugin-oauth`), reusing the login flow pattern in `auth0/tauriLoopbackAuthFlow.ts`.
+- [ ] **Desktop redirect_uri acceptance.** Will the backend / upstream authorization server accept a loopback `redirect_uri` (or a custom deep-link scheme) for desktop clients? The connector `redirect_uri` is set by the backend / registered upstream — must be confirmed before building the loopback path (pragna2-tracker TD-001).
 
 ---
 

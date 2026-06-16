@@ -83,7 +83,7 @@ export function ConnectorCard({ connector }: Props) {
         // Desktop: there is no browser navigation. Hand the authorization URL
         // to the system browser via the opener plugin.
         await openUrl(result.authorizationUrl);
-        // Callback round-trip not yet wired on desktop — see docs/TODO.md TD-001.
+        // Callback round-trip not yet wired on desktop — see pragna2-tracker TD-001.
         setOauthNote(
           'Complete the connection in your browser, then Refresh.',
         );

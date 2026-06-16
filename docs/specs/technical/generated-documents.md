@@ -44,7 +44,7 @@ runs before the proposal/badge branches — so a `create_pdf_short` /
 the message's attachment) is the representation. Mirrors the web app and the
 backend `TOOL_CREATE_PDF_*` names.
 
-## 3b. Async create_pdf_long surfacing (CF-005 / TD-030)
+## 3b. Async create_pdf_long surfacing (CF-005 / pragna2-tracker TD-030)
 
 `create_pdf_long` acks instantly and generates the document in a **background
 episode** (`seed_summary = LONG_PDF_EPISODE_SENTINEL = 'long_pdf'`), posting it

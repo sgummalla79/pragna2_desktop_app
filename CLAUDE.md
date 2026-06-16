@@ -234,7 +234,13 @@ Use the templates in `docs/specs/templates/` as the starting point for each new 
   present and up to date. If they are missing or stale, write/update them first —
   do not commit code ahead of its specs.
 
-## Deferred Work — `docs/TODO.md`
+## Deferred Work — the cross-project tracker
 - **Do not leave free-floating `TODO`/`FIXME` notes in code.** Record deferred work
-  as an entry in [`docs/TODO.md`](docs/TODO.md) with a stable ID, and reference that
-  ID from the code (e.g. `// see docs/TODO.md TD-001`).
+  as an issue in the cross-project tracker (GitLab `sgummalla79/pragna2-tracker`,
+  `type:tech-debt`/`type:feature`, `target:desktop-fe`) and reference it from the code
+  by a short, resolvable pointer (e.g. `// see pragna2-tracker TD-001`). A code comment
+  may document a *current limitation* at the call site as long as it links to the
+  tracked item — that is documentation, not an untracked TODO. (The former
+  `docs/TODO.md` backlog was migrated into the tracker on 2026-06-15; its `TD-NNN`
+  ids are preserved as issue titles + `fp:desktop-td-NNN` labels, so they still
+  resolve by search.)

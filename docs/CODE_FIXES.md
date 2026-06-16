@@ -147,9 +147,9 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
   `ChatSessionView` auto-attach effect + a "Generating your document…" label + the `LONG_PDF_*`
   constants. Unit tests added (`useEpisodes`, `useRefetchOpenEpisodeOnSettle`). **Validated live:**
   `scenario-21` ×2 un-`fixme`'d and green — the document card now surfaces with no manual reload.
-  Tracked as TD-030 (done).
+  Tracked as pragna2-tracker TD-030 (done).
 - **Discovery note:** the desktop had **deferred** this whole subsystem with only a generic
-  `useChatSession` comment ("episode attach … and attachments are deferred (see docs/TODO.md)") —
+  `useChatSession` comment ("episode attach … and attachments are deferred (see pragna2-tracker)") —
   **no stable TD-ID**, a gap vs the repo's TODO rule. The comment is now corrected.
 - **Web-app applicability:** **NONE — desktop-only gap.** The web app already has this subsystem
   (its `scenario-21` passes); CF-005 is the **desktop catching up to the web app** (same direction as
@@ -186,7 +186,7 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
   `src/infrastructure/platform/secureStore.ts` (`getRefreshToken`, `setRefreshToken`,
   `clearRefreshToken`)
 - **Bug:** macOS shows *"app wants to use your confidential information stored in com.pragna2.app
-  in your keychain"* on every launch (the startup refresh-token read, TD-009). If the user clicks
+  in your keychain"* on every launch (the startup refresh-token read, pragna2-tracker TD-009). If the user clicks
   **Deny/Cancel**, `secure_store_get` returned `Err`, which rejected the `invoke` promise and
   broke the session-restore / startup flow instead of just falling back to login. The prompt
   recurs every launch because dev builds are ad-hoc signed (no stable `signingIdentity` in
@@ -366,7 +366,7 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
   conversation switch. Latent since chat Phase 1 (commit `5613651`); never caught because the e2e
   suite disables StrictMode (`VITE_E2E_NO_STRICT_MODE=1`, commit `4968281`) and runs the browser
   transport, not the native `TauriHttpAgent` path — so neither the StrictMode teardown nor the
-  native abort is exercised (cf. CF-011, TD-028).
+  native abort is exercised (cf. CF-011, pragna2-tracker TD-028).
 - **Fix:** **Defer** the `abortRun()` one macrotask and **cancel** it if the SAME agent re-subscribes
   immediately (StrictMode's synthetic remount, or a benign re-run). A real unmount / conversation
   switch has no immediate same-agent re-subscribe, so the deferred abort still fires and stops the

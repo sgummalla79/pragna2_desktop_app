@@ -17,7 +17,7 @@ renderer is Streamdown (the same package + version the web app uses); this featu
 is about configuring it fully and adding the two pieces Streamdown doesn't ship:
 math-delimiter normalization and the `sketchon` plugin/component.
 
-Covers `TD-019` (KaTeX math + sketchon diagrams + smooth streaming) and `TD-017`
+Covers pragna2-tracker TD-019 (KaTeX math + sketchon diagrams + smooth streaming) and pragna2-tracker TD-017
 (the deliberate, documented decision to **keep Streamdown**).
 
 ## 2. Goals & Non-Goals
@@ -65,7 +65,7 @@ Covers `TD-019` (KaTeX math + sketchon diagrams + smooth streaming) and `TD-017`
 
 ## 5. Gating & Edge Cases
 
-- **Footprint (`TD-017`):** Streamdown's diagram/grammar chunks (mermaid,
+- **Footprint (pragna2-tracker TD-017):** Streamdown's diagram/grammar chunks (mermaid,
   cytoscape, wasm, wardley, Shiki grammars) are **code-split** — verified in a
   production build, the eager bundle is unaffected and a chunk loads only when such
   a block renders. Accepted as the cost of web-app parity.

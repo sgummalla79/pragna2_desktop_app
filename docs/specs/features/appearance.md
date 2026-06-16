@@ -1,6 +1,6 @@
 # Feature Spec: Appearance (light / dark / system theme)
 
-> **Status**: Implemented (theme toggle only; palette import deferred — TD-026)
+> **Status**: Implemented (theme toggle only; palette import deferred — pragna2-tracker TD-026)
 > **Author**: Suman Gummalla
 > **Created**: 2026-06-10
 > **Last Updated**: 2026-06-10
@@ -17,7 +17,7 @@ mode is persisted and applied app-wide by toggling the `.dark` class on `<html>`
 Before this, dark/light token sets both existed in `index.css` but **no UI
 toggled between them** — the desktop had no way for a user to change theme. The
 web app has a 235-LOC `AppearanceView` (mode toggle + TweakCN palette grid); this
-ships the **mode toggle** for parity now and tracks the palette grid as TD-026.
+ships the **mode toggle** for parity now and tracks the palette grid as pragna2-tracker TD-026.
 
 ## 2. Goals & Non-Goals
 
@@ -28,7 +28,7 @@ ships the **mode toggle** for parity now and tracks the palette grid as TD-026.
 - [x] `System` follows the OS preference and tracks live OS changes.
 
 **Non-Goals (this round)**
-- TweakCN palette grid + import/uninstall of custom palettes (→ **TD-026**).
+- TweakCN palette grid + import/uninstall of custom palettes (→ **pragna2-tracker TD-026**).
 - Per-component theme overrides, font/density settings.
 
 ## 3. User Flow

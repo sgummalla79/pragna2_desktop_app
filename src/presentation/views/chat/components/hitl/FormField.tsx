@@ -14,7 +14,7 @@ import type { AskUserField } from '@/domain/types/episode.types';
  * Polymorphic renderer for ONE field of an `ask_user` schema. The LLM picks
  * `field.type` per turn; this component picks the matching input. Eight types
  * render natively; `file` is unsupported in the desktop app (no attachment
- * upload yet — see docs/TODO.md TD-012) and renders a disabled hint. An unknown
+ * upload yet — see pragna2-tracker TD-012) and renders a disabled hint. An unknown
  * type degrades to a text input so a mistyped schema never blanks the form.
  */
 export interface FormFieldProps {
@@ -216,7 +216,7 @@ function renderInput({ field, value, onChange, disabled, id }: RenderInputProps)
     }
 
     case 'file':
-      // Desktop has no attachment upload yet (TD-012). Surface a hint rather
+      // Desktop has no attachment upload yet (pragna2-tracker TD-012). Surface a hint rather
       // than a broken picker; a required file field will block submit, which is
       // the correct (if blunt) signal until uploads land.
       return (

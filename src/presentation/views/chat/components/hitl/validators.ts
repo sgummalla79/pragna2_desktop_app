@@ -129,7 +129,7 @@ export function validateField(field: AskUserField, value: unknown): string | nul
       return null;
     case 'file': {
       // Value is the attachment_id once uploaded. Desktop has no attachment
-      // upload yet (see docs/TODO.md TD-012); the field renders disabled, so
+      // upload yet (see pragna2-tracker TD-012); the field renders disabled, so
       // this guard just keeps the type honest.
       if (typeof value !== 'string') return `${field.label}: file not yet uploaded.`;
       return null;

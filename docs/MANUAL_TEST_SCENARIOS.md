@@ -5,8 +5,7 @@ Companion to the automated suites (Tier 1 component-integration in
 behaviours that the automated tiers **cannot** cover — either a *visual/timing*
 quality an assertion can't judge (animation smoothness), an OS-level capability
 the browser tier doesn't control (keychain, system browser, OS file dialogs), or
-the native Tauri seam that has no macOS WebDriver (deferred — see `docs/TODO.md`
-TD-028).
+the native Tauri seam that has no macOS WebDriver (deferred — see pragna2-tracker TD-028).
 
 Each scenario lists **why it's manual**, the **prerequisites**, the **steps**,
 and the **checks**. Tick the checks; if one fails, note what you saw and report
@@ -146,7 +145,7 @@ supports it).
 
 **Why manual:** desktop-only native seam — the refresh token persists in the OS
 keychain (`secureStore`); browser mode (and the e2e seed-token path) never
-exercises it. No macOS Tauri WebDriver (TD-028).
+exercises it. No macOS Tauri WebDriver (pragna2-tracker TD-028).
 
 **Prerequisites:** a packaged/`pnpm tauri dev` build; real login.
 
@@ -199,5 +198,5 @@ narrow widths is gated at commit time per CLAUDE.md; this is the native *feel*.)
 ---
 
 > **Promotion rule:** any behavior a future spec author finds automatable (a
-> runtime primitive ships, or a Tauri WebDriver lands for TD-028) should move
+> runtime primitive ships, or a Tauri WebDriver lands for pragna2-tracker TD-028) should move
 > from here into an automated spec, and its `M<n>` entry deleted.

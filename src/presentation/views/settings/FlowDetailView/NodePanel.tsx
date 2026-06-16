@@ -51,7 +51,7 @@ export function NodePanel() {
   const updateNode = useFlowEditorStore((s) => s.updateNode);
   const updateAgent = useFlowEditorStore((s) => s.updateAgent);
 
-  // Enabled tools (by api_name) power the agent-tools autocomplete (TD-010).
+  // Enabled tools (by api_name) power the agent-tools autocomplete (pragna2-tracker TD-010).
   const { data: tools } = useTools();
   const toolSuggestions = useMemo(
     () => (tools ?? []).filter((t) => t.enabled).map((t) => t.apiName),

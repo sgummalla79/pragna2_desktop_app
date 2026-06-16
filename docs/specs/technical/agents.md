@@ -245,7 +245,7 @@ from the backend's `default-template`.
 | `useAgents` & mutation hooks | unit | query keys + invalidation sets |
 | handle validation | unit | `API_NAME_RE` accepts/rejects boundary cases |
 
-(Tests are TD-003 scope — tracked, to be delivered with the testing pass.)
+(Tests are pragna2-tracker TD-003 scope — tracked, to be delivered with the testing pass.)
 
 ## 9. Dependencies & External Integrations
 
@@ -259,8 +259,8 @@ attach pickers (`useMcpConnectors`, `useTools`, `useKnowledgeLibraries`).
 - [x] **Resolved:** Onboarding default-agent affordance enforces nothing for now
       (chat is the next feature).
 - [x] **Resolved:** Tool entry stays a free-form chip input; autocomplete vs
-      `/api/tools` tracked as [TD-010](../../TODO.md#td-010--agent-tool-entry-autocomplete-against-apitools).
-- [ ] Model / temperature selection deferred — [TD-011](../../TODO.md#td-011--model--temperature-selection-on-standalone-agents).
+      `/api/tools` tracked as [pragna2-tracker TD-010](../../pragna2-tracker#td-010--agent-tool-entry-autocomplete-against-apitools).
+- [ ] Model / temperature selection deferred — [pragna2-tracker TD-011](../../pragna2-tracker#td-011--model--temperature-selection-on-standalone-agents).
 - [ ] Backend `detail` envelope shape (`response.data.detail`) is assumed consistent
       with the other features.
 

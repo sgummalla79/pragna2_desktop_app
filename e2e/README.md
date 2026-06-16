@@ -18,7 +18,7 @@ plain browser via `pnpm dev` (Vite on **:1420**). In the browser:
 
 So these tests carry the full web-parity coverage on every platform incl. the
 dev Mac. The native seam (keychain, native HTTP, loopback OAuth) that only a
-real Tauri window can exercise is **deferred** — see `docs/TODO.md` **TD-028**
+real Tauri window can exercise is **deferred** — see pragna2-tracker **pragna2-tracker TD-028**
 (it can't run via the official `tauri-driver` on macOS).
 
 ## ⚠️ Browser-fallback runs with a WINDOWS user-agent
@@ -31,7 +31,7 @@ but `isTauriRuntime()` is `false`. Two consequences you MUST keep in mind:
    UI is gated on `usesWindowsChrome()` (= Windows **and** Tauri), which is `false`
    here. So the **Windows-native chrome/layout cannot be e2e-tested** — cover it with
    the component unit tests (mock `usesWindowsChrome` both ways) instead. The real
-   Windows window is TD-028.
+   Windows window is pragna2-tracker TD-028.
 2. **Never gate UI on a UA-only check** (`isWindowsPlatform()` alone) and never call a
    Tauri-only API at render unguarded — a Windows-UA browser with no Tauri runtime will
    crash to a blank page (this is what **CF-011** fixed; the whole suite went blank).

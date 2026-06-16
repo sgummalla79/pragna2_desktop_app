@@ -9,7 +9,7 @@
 
 ## 1. Overview
 
-The Connectors feature is implemented in the frontend (React + TypeScript) following Clean Architecture. Domain types model MCP connectors and tools; application-layer services (`McpConnectorService`, `ToolService`) sit behind ports (`IMcpConnectorRepository`, `IToolRepository`); axios-backed repositories in the infrastructure layer call the backend `/api/mcp-connectors/*` and `/api/tools` endpoints and translate snake_case ↔ camelCase through dedicated mappers. The presentation layer exposes TanStack Query hooks (`useMcpConnectors` family + `useTools` family) consumed by the `ConnectorsView` page and its child components. The two query caches (`['mcp-connectors']` and `['tools']`) are cross-invalidated because connector mutations change the tool inventory and tool toggles change a connector's enabled count. OAuth authorization URLs are opened in the system browser via `@tauri-apps/plugin-opener`; the callback round-trip is deferred (TD-001).
+The Connectors feature is implemented in the frontend (React + TypeScript) following Clean Architecture. Domain types model MCP connectors and tools; application-layer services (`McpConnectorService`, `ToolService`) sit behind ports (`IMcpConnectorRepository`, `IToolRepository`); axios-backed repositories in the infrastructure layer call the backend `/api/mcp-connectors/*` and `/api/tools` endpoints and translate snake_case ↔ camelCase through dedicated mappers. The presentation layer exposes TanStack Query hooks (`useMcpConnectors` family + `useTools` family) consumed by the `ConnectorsView` page and its child components. The two query caches (`['mcp-connectors']` and `['tools']`) are cross-invalidated because connector mutations change the tool inventory and tool toggles change a connector's enabled count. OAuth authorization URLs are opened in the system browser via `@tauri-apps/plugin-opener`; the callback round-trip is deferred (pragna2-tracker TD-001).
 
 ## 2. Architecture & Layer Placement
 
@@ -37,7 +37,7 @@ OAuth start:
 ConnectorCard.handleConnect / Wizard.handleOAuthConnect -> useStartConnectorOAuth.mutateAsync({id, StartOAuthPayload})
   -> McpConnectorService.startOAuth -> McpConnectorRepository.startOAuth: POST /mcp-connectors/{id}/oauth-authorization
   -> if requiresManualClient: show client-id form; else openUrl(authorizationUrl) [@tauri-apps/plugin-opener]
-  -> callback NOT captured in-app (TD-001); user returns and Refreshes
+  -> callback NOT captured in-app (pragna2-tracker TD-001); user returns and Refreshes
 ```
 
 ## 4. Module & File Layout
@@ -408,7 +408,7 @@ src/
 | **Inputs** | Variables: `{ id: string; payload: StartOAuthPayload }`. |
 | **Output** | `UseMutationResult<StartOAuthResult, Error, {id, payload}>`. |
 | **Errors** | Rejects; caller surfaces `detail` else `CON_006`. |
-| **Side Effects** | **No cache invalidation** (tokens would land via the callback round-trip, which is not wired — TD-001). Caller opens `authorizationUrl` via `openUrl`. |
+| **Side Effects** | **No cache invalidation** (tokens would land via the callback round-trip, which is not wired — pragna2-tracker TD-001). Caller opens `authorizationUrl` via `openUrl`. |
 | **Invariants** | Caller branches on `requiresManualClient` vs `authorizationUrl`. |
 
 ### Presentation hooks — `useTools.ts`
@@ -471,7 +471,7 @@ function detailOr(err, fallback) {
 
 ## 8. Testing Plan
 
-> No automated tests shipped with this feature — tracked under TD-003. Planned coverage:
+> No automated tests shipped with this feature — tracked under pragna2-tracker TD-003. Planned coverage:
 
 | Test | Type | What It Verifies |
 |---|---|---|
@@ -500,9 +500,9 @@ function detailOr(err, fallback) {
 
 ## 10. Open Questions / Risks
 
-- [ ] **OAuth callback round-trip (TD-001, P1).** No in-app listener captures the OAuth redirect, so OAuth connectors cannot be fully connected without the user manually returning and clicking Refresh. `useStartConnectorOAuth` deliberately performs no cache invalidation for this reason. Proposed fix: a localhost loopback server (RFC 8252, `tauri-plugin-oauth`) reusing the login flow in `auth0/tauriLoopbackAuthFlow.ts`.
-- [ ] **Desktop `redirect_uri` acceptance.** The connector `redirect_uri` is set by the backend / registered with the upstream authorization server. Must confirm the backend accepts a loopback `redirect_uri` (or a custom deep-link scheme) for desktop clients before building the loopback path (TD-001).
-- [ ] **`?oauth=success|error` query handling** in `ConnectorsView` is retained for web-app parity but never fires on desktop (no browser redirect into the app). Harmless today; revisit when TD-001 lands.
+- [ ] **OAuth callback round-trip (pragna2-tracker TD-001, P1).** No in-app listener captures the OAuth redirect, so OAuth connectors cannot be fully connected without the user manually returning and clicking Refresh. `useStartConnectorOAuth` deliberately performs no cache invalidation for this reason. Proposed fix: a localhost loopback server (RFC 8252, `tauri-plugin-oauth`) reusing the login flow in `auth0/tauriLoopbackAuthFlow.ts`.
+- [ ] **Desktop `redirect_uri` acceptance.** The connector `redirect_uri` is set by the backend / registered with the upstream authorization server. Must confirm the backend accepts a loopback `redirect_uri` (or a custom deep-link scheme) for desktop clients before building the loopback path (pragna2-tracker TD-001).
+- [ ] **`?oauth=success|error` query handling** in `ConnectorsView` is retained for web-app parity but never fires on desktop (no browser redirect into the app). Harmless today; revisit when pragna2-tracker TD-001 lands.
 - [ ] **Preset catalogue** is local data, not backend-served — changing it requires a redeploy (acceptable interim; flagged in `connectorPresets.ts`).
 
 ---

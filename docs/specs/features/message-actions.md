@@ -17,7 +17,7 @@ new fork, **regenerate** an assistant reply (optionally with a different model),
 truncate-then-resend primitive; branch forks a new conversation.
 
 This also wires the **Configuration → Chat actions** toggles (`branchEnabled`,
-`regenWithModelEnabled`) that previously had no consumer (`TD-006`).
+`regenWithModelEnabled`) that previously had no consumer (pragna2-tracker TD-006).
 
 ## 2. Goals & Non-Goals
 
