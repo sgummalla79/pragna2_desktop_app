@@ -84,6 +84,6 @@ unaffected — slash still rewrites the URL; episodes use `runRaw`.)
 - **Deferred:** landing uploads (no conversation row yet); drag-and-drop;
   persisted-image inline thumbnails; client capability gating.
 - **Live-verify (needs desktop + backend):** multipart upload through the native
-  adapter (`TD-004`), blob GET through the adapter, PDF in the webview `<iframe>`
+  adapter (pragna2-tracker TD-004), blob GET through the adapter, PDF in the webview `<iframe>`
   via blob URL. If blob-in-iframe fails in the packaged webview, fall back to a
   Tauri temp-file + `convertFileSrc`.

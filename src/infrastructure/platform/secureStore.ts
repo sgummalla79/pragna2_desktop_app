@@ -5,7 +5,7 @@ import { isTauriRuntime } from './runtime';
  * Frontend wrapper over the Rust `secure_store_*` Tauri commands — the OS
  * keychain (macOS Keychain / Windows Credential Manager via the `keyring`
  * crate). Used to persist the auth **refresh token** across app restarts so the
- * session survives a relaunch (TD-009).
+ * session survives a relaunch (pragna2-tracker TD-009).
  *
  * Outside the Tauri runtime (e.g. the `pnpm dev` browser shell) every call is a
  * safe no-op: there's no secure store, so persistence simply doesn't happen and

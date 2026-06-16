@@ -166,25 +166,25 @@ change.
 
 ## 7. Deferred / known gaps
 
-See `docs/TODO.md`. **Shipped since Phase 1:** `TD-013` slash/flow dispatch
-(per-turn URL dispatch, see `slash-commands.md`); `TD-014` HITL `ask_user`
+See pragna2-tracker. **Shipped since Phase 1:** pragna2-tracker TD-013 slash/flow dispatch
+(per-turn URL dispatch, see `slash-commands.md`); pragna2-tracker TD-014 HITL `ask_user`
 pause/resume **and** flow proposals — the run streams natively via
 `TauriHttpAgent.runRaw` through ag-ui's `apply`/`processApplyEvents`, so it does
 **not** use the web app's `replaceMessages` resync (see `hitl-episodes.md`); and
-`TD-018` historical tool-call rehydration (`persistedToAGUIMessage` carries
+pragna2-tracker TD-018 historical tool-call rehydration (`persistedToAGUIMessage` carries
 `tool_calls`; `toChatMessage` rebuilds badges from the seed — name + args; the
-persisted result string isn't on the AG-UI shape); and `TD-012` **attachments +
+persisted result string isn't on the AG-UI shape); and pragna2-tracker TD-012 **attachments +
 viewer** (session view — upload + `forwardedProps.attachment_ids` + persisted-turn
 chips + an authed-blob image/PDF viewer; needed a `blob` `responseType` in the
 native adapter — see `attachments.md`; landing-composer uploads deferred).
-and `TD-015` **message actions** (edit/branch/regenerate/continue — `truncateFrom`
+and pragna2-tracker TD-015 **message actions** (edit/branch/regenerate/continue — `truncateFrom`
 + `branch` conversation methods, `sendWithModel`, `MessageActions`; also wires the
-`TD-006` chat-action prefs — see `message-actions.md`); and the **full markdown
-renderer** — `TD-019` KaTeX math + Mermaid/`sketchon` diagrams + smooth-streaming
-reveal, with `TD-017` resolved as **keep Streamdown** (the heavy diagram/grammar
+pragna2-tracker TD-006 chat-action prefs — see `message-actions.md`); and the **full markdown
+renderer** — pragna2-tracker TD-019 KaTeX math + Mermaid/`sketchon` diagrams + smooth-streaming
+reveal, with pragna2-tracker TD-017 resolved as **keep Streamdown** (the heavy diagram/grammar
 chunks are code-split — verified: the eager `index` bundle is unaffected; mermaid,
 cytoscape, wasm, wardley, and language grammars each build as separate lazy
-chunks; see `chat-markdown.md`); and `TD-016` **usage + cost** (see
+chunks; see `chat-markdown.md`); and pragna2-tracker TD-016 **usage + cost** (see
 `conversation-usage.md`) — `ConversationUsage`/`UsageRecord` types,
 `mapConversationUsage` (snake→camel; `cost_usd`/`total_cost_usd` kept as strings to
 preserve `Decimal` precision), `getUsage` on the port/service/repo (404 → zero-state
@@ -195,6 +195,6 @@ running-total chip via `formatUsd` (already present), shown only when cost > 0 a
 faded on hover/focus. Usage is **not** invalidated on run-finalize (matches the web
 app — the chip catches up within the staleness window rather than refetching every
 cached row per turn). **Nothing from the Phase-1 chat non-goals remains deferred.**
-Unit tests for the new repo/mappers/hooks fold into `TD-003`. Live end-to-end SSE
+Unit tests for the new repo/mappers/hooks fold into pragna2-tracker TD-003. Live end-to-end SSE
 verification requires the running backend + a valid Auth0 token (cannot be exercised
 from the dev box).

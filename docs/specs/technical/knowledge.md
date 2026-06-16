@@ -250,7 +250,7 @@ Constructed with `(http: AxiosInstance)`. Implements `IKnowledgeRepository`. Req
 | **Output** | `Promise<KnowledgeSource>` via `mapKnowledgeSource(data)`. |
 | **Errors** | Axios error (e.g. 415 unsupported type, 413 too large, 422 validation). |
 | **Side Effects** | HTTP POST (multipart/form-data body). |
-| **Invariants** | Builds a `FormData` with fields `slug`, `display_name`, optional `summary`, and `file` (the `File`), then passes the `FormData` straight through as the axios body. **No `Content-Type` is set by the repository.** The native-HTTP adapter strips any caller/transformer-set JSON `Content-Type` for `FormData` bodies so the HTTP plugin generates the `multipart/form-data; boundary=…` header itself. See §9 and TD-004. |
+| **Invariants** | Builds a `FormData` with fields `slug`, `display_name`, optional `summary`, and `file` (the `File`), then passes the `FormData` straight through as the axios body. **No `Content-Type` is set by the repository.** The native-HTTP adapter strips any caller/transformer-set JSON `Content-Type` for `FormData` bodies so the HTTP plugin generates the `multipart/form-data; boundary=…` header itself. See §9 and pragna2-tracker TD-004. |
 
 #### `deleteSource(libraryId, sourceId)`
 
@@ -436,7 +436,7 @@ Transport errors surface as axios `AxiosError`s (the native-HTTP adapter constru
 
 ## 8. Testing Plan
 
-Unit tests for the Knowledge layer are deferred under TD-003 (not yet shipped). Planned coverage:
+Unit tests for the Knowledge layer are deferred under pragna2-tracker TD-003 (not yet shipped). Planned coverage:
 
 | Test | Type | What It Verifies |
 |------|------|-----------------|
@@ -458,8 +458,8 @@ Unit tests for the Knowledge layer are deferred under TD-003 (not yet shipped). 
 
 ## 10. Open Questions / Risks
 
-- [ ] **TD-004** — The multipart upload path (FormData → native-HTTP adapter → backend) has not been verified end-to-end against the running backend from the dev environment. Risk: an undiscovered boundary/streaming issue in the packaged build. Done when a real document uploads successfully on a packaged macOS build and the source appears in the library.
-- [x] **TD-005** *(Done 2026-06-09.)* `validateKnowledgeFile` (extension vs the
+- [ ] **pragna2-tracker TD-004** — The multipart upload path (FormData → native-HTTP adapter → backend) has not been verified end-to-end against the running backend from the dev environment. Risk: an undiscovered boundary/streaming issue in the packaged build. Done when a real document uploads successfully on a packaged macOS build and the source appears in the library.
+- [x] **pragna2-tracker TD-005** *(Done 2026-06-09.)* `validateKnowledgeFile` (extension vs the
   accept list + size vs `KNOWLEDGE_MAX_FILE_BYTES` = 25 MB) runs in
   `LibraryDocumentsManager.handleFilePick` on **both** the picker and drag-drop
   paths; rejected files aren't accepted and show an inline message. The backend

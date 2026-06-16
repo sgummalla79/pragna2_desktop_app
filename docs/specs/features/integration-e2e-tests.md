@@ -18,7 +18,7 @@ mock services, fast and cross-platform) and **Tier 2** browser end-to-end tests
 (Playwright driving the real frontend against a real local backend). A
 desktop-owned `docs/MANUAL_TEST_SCENARIOS.md` captures what automation can't
 reach. True Tauri-window e2e (the native seam) is explicitly deferred to a
-documented TODO (TD-028) because the official `tauri-driver` has no macOS
+documented TODO (pragna2-tracker TD-028) because the official `tauri-driver` has no macOS
 support.
 
 ## 2. Goals & Non-Goals
@@ -37,7 +37,7 @@ support.
 
 **Non-Goals**
 - True Tauri-window e2e (keychain, native HTTP, loopback OAuth) — deferred to
-  TD-028 (Windows/Linux only; no official macOS WKWebView driver).
+  pragna2-tracker TD-028 (Windows/Linux only; no official macOS WKWebView driver).
 - Visual-regression / pixel snapshot diffing.
 - Automated multi-provider LLM sweeps beyond the documented keyed run.
 
@@ -79,7 +79,7 @@ support.
 
 ## 6. Out of Scope
 
-- Tauri-window automation (TD-028), visual regression, CI wiring, parallel
+- Tauri-window automation (pragna2-tracker TD-028), visual regression, CI wiring, parallel
   multi-worker DB sharding (the suite serializes on one DB for now).
 
 ## 7. Open Questions

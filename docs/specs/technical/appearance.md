@@ -1,6 +1,6 @@
 # Technical Spec: Appearance (light / dark / system theme)
 
-> **Status**: Implemented (theme toggle only; palette import deferred — TD-026)
+> **Status**: Implemented (theme toggle only; palette import deferred — pragna2-tracker TD-026)
 > **Author**: Suman Gummalla
 > **Created**: 2026-06-10
 > **Last Updated**: 2026-06-10
@@ -85,4 +85,4 @@ explicit light/dark ignore the OS. `addEventListener` is preferred with an
   desktop adds `'system'`. Recorded in `docs/web-app-parity.md`.
 - **Separate `themeStore`** rather than the web app's combined `uiStore` theme
   slice — keeps the desktop `uiStore`'s stated boundary intact.
-- **Palette / TweakCN import not ported** this round — tracked as **TD-026**.
+- **Palette / TweakCN import not ported** this round — tracked as **pragna2-tracker TD-026**.

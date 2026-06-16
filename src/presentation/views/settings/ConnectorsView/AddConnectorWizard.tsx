@@ -184,7 +184,7 @@ export function AddConnectorWizard({ open, onOpenChange, onRegistered }: Props) 
       if (result.authorizationUrl) {
         // Desktop: open the authorization URL in the system browser.
         await openUrl(result.authorizationUrl);
-        // Callback round-trip not yet wired on desktop — see docs/TODO.md TD-001.
+        // Callback round-trip not yet wired on desktop — see pragna2-tracker TD-001.
         setOauthNote('Complete the connection in your browser, then Refresh.');
       }
     } catch (err) {

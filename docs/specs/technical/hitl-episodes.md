@@ -97,7 +97,7 @@ New option: none (uses `threadId` as the conversation id). New return members:
   friendly inline messages (server remains source of truth).
 - **`FormField.tsx`** — polymorphic renderer; text/textarea/number/select use
   shadcn primitives, multiselect/checkbox/date/daterange use native inputs,
-  `file` renders an unsupported hint (TD-012), unknown → text fallback.
+  `file` renders an unsupported hint (pragna2-tracker TD-012), unknown → text fallback.
 - **`HITLFormCard.tsx`** — self-contained, internally controlled (values/touched/
   free-text seeded from the schema). On submit: marks all touched, validates,
   and calls `onSubmit(coerceForSubmit(values), allow_text_input ? text : '')`.
@@ -138,6 +138,6 @@ transcript; disables the composer (`disabled={Boolean(pendingInterrupt)}`) with 
   `RUN_STARTED` (else relax `verifyEvents`), and how the form-submission user
   turn is echoed in the resumed stream (the post-run message-log invalidation is
   the safety net).
-- **File-upload fields** (`TD-012`); **episode cancel** from the UI;
+- **File-upload fields** (pragna2-tracker TD-012); **episode cancel** from the UI;
   historical proposal-card rehydration on reload (tool-call badges aren't
-  rehydrated — `TD-018`).
+  rehydrated — pragna2-tracker TD-018).

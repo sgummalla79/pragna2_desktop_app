@@ -18,7 +18,7 @@ match the web app **unless**:
 3. **UI / presentation** differs — explicitly acceptable per the project owner.
 
 Anything else is **drift to be closed**. Functional gaps (web app does X, desktop
-doesn't yet) are tracked here and in `docs/TODO.md`.
+doesn't yet) are tracked here and in pragna2-tracker.
 
 **Legend** — 🟰 functionally identical · ⭐ deliberate improvement (approved) ·
 🧩 platform-forced · 🎨 UI/UX only · ❌ functional gap (not yet at parity).
@@ -117,16 +117,16 @@ These are genuine functional differences to close for full parity.
 
 | Capability | Web app | Desktop | Tracking |
 |---|---|---|---|
-| **Cancel a paused episode** | `EpisodeRepository.cancel` + `useCancelEpisode` + a Cancel button on the form card (status → `cancelled`) | **Not implemented.** A user must complete the form (or navigate away); no in-UI cancel | `TD-014` (deferred note) |
-| **`file` ask_user field** | Uploads via the attachments system, stores the `attachment_id` as the field value | **Unsupported** — renders a "not supported yet" hint (attachments now exist (`TD-012`); wiring the form field to them is the remaining step) | `TD-014`/`TD-012` |
+| **Cancel a paused episode** | `EpisodeRepository.cancel` + `useCancelEpisode` + a Cancel button on the form card (status → `cancelled`) | **Not implemented.** A user must complete the form (or navigate away); no in-UI cancel | pragna2-tracker TD-014 (deferred note) |
+| **`file` ask_user field** | Uploads via the attachments system, stores the `attachment_id` as the field value | **Unsupported** — renders a "not supported yet" hint (attachments now exist (pragna2-tracker TD-012); wiring the form field to them is the remaining step) | pragna2-tracker TD-014/pragna2-tracker TD-012 |
 
-> **Now shipped (were gaps):** attachments + viewer (`TD-012`, session view),
+> **Now shipped (were gaps):** attachments + viewer (pragna2-tracker TD-012, session view),
 > message actions — edit / branch / regenerate (+ with-model) / continue
-> (`TD-015`), the **full markdown renderer** — KaTeX math + Mermaid/`sketchon`
-> diagrams + smooth-streaming reveal (`TD-019`; faithful port of the web app's
+> (pragna2-tracker TD-015), the **full markdown renderer** — KaTeX math + Mermaid/`sketchon`
+> diagrams + smooth-streaming reveal (pragna2-tracker TD-019; faithful port of the web app's
 > `MarkdownMessage`, see §4 for the one adaptation), the **per-conversation
-> usage + cost** sidebar chip (`TD-016`, see §4/§5), and the **account menu**
-> (chat sidebar avatar → email + Settings + Sign out — `TD-022`; closes the
+> usage + cost** sidebar chip (pragna2-tracker TD-016, see §4/§5), and the **account menu**
+> (chat sidebar avatar → email + Settings + Sign out — pragna2-tracker TD-022; closes the
 > "no in-app sign-out" gap, see §4 for the one deviation).
 
 > **Not a gap (verified):** neither app re-attaches to a *live, in-flight* episode
@@ -160,23 +160,23 @@ The event-parsing + state machinery (`transformHttpEventStream`, `transformChunk
 | **`HITLFormCard` state ownership** | Fully parent-controlled (values/touched/textValue lifted to the chat view) | **Self-contained** — owns its values/touched/free-text, remounted per pause (keyed by episode id) | Implementation simplification; identical behavior |
 | **Form schema types** | Re-declared locally in `form/validators.ts` | Centralised in `domain/types/episode.types.ts` (imported by the validators) | No behavior change |
 | **`multiselect` / `checkbox` / `date` controls** | same | Native inputs (no kit primitive) | UI only |
-| **Branch handoff (`TD-015`)** | Stashes `{ text, agent }` before navigating to the fork | Stashes `{ text }` only — desktop's handoff has no `agent` field; the fork inherits `flow_id`/`user_model_id` server-side and the session view resolves the agent from the conversation | No functional impact (desktop chat conversations are non-flow; the inherited model/flow drives the re-send) |
-| **`sendWithModel` (`TD-015`)** | Standalone hook method | Thin wrapper over `sendWithOverrides(text, { userModelId })` — same `?user_model_id` query param | Identical behavior |
-| **Regen-with-model gating (`TD-015`)** | Gated on `agentName === DEFAULT_AGENT_NAME` | Gated on `!conversation.flowId` | Equivalent (desktop has no flow-agent resolution; `flowId` null = default chat) |
-| **Continue prompt (`TD-015`)** | Inline literal `'continue'` | `CONTINUE_PROMPT` constant (`constants/chat.ts`) | Same value; externalised per the no-hardcoding rule |
-| **Sketchon diagram theme signal (`TD-019`)** | `SketchonDiagram` reads light/dark from `<html data-theme>` | Reads the **`.dark` class** on the root element (`document.documentElement.classList.contains('dark')`), observed via a `class`-attribute `MutationObserver` | The desktop signals dark via the `.dark` class (`@custom-variant dark` in `index.css`), not a `data-theme` attribute. Same outcome — diagrams re-theme live on mode change |
-| **KaTeX CSS dependency (`TD-019`)** | `katex` resolves transitively (hoisted node_modules) | `katex` pinned as an **explicit dep** (`^0.16.47`, the version Streamdown bundles) so `katex/dist/katex.min.css` resolves under pnpm's strict layout | Packaging only; same bundled KaTeX Streamdown already uses |
-| **Streamdown `@source` glob (`TD-019`)** | `dist/*.js` | `dist/*.js` (was `dist/index.js`) | Widened to scan all Streamdown dist files so mermaid/controls utility classes generate — matches the web app |
-| **Usage chip layout (`TD-016`)** | Chip `absolute right-2.5`, fades on hover so an absolutely-positioned kebab takes the slot | Chip `absolute` inside a `relative` trailing wrapper, fades on `group-hover`/`group-focus-within` so the desktop's **inline** action row takes the slot | Desktop sidebar rows reveal actions inline (no kebab); same "chip ↔ actions share the trailing slot, no layout shift" behaviour |
-| **Usage 404 guard location (`TD-016`)** | Zero-state mapped in the `useConversationUsage` **hook** | Zero-state mapped in the **repository** `getUsage` (matches the desktop's `get`→`null` / `getMessages`→`[]` convention) | Same outcome (a 404 row shows no cost, never an error); guard lives one layer lower |
-| **Usage staleTime (`TD-016`)** | Inline `staleTime: 60_000` | `USAGE_STALE_MS` constant (`constants/chat.ts`) | Same 60s; externalised per the no-hardcoding rule |
-| **Connector inline-register (`TD-021`)** | A single inline `RegisterConnectorForm` (wraps `ConnectorDetailsForm`) inside the ConnectorPanel's add modal | The add dialog's "Register a new connector" opens the shared `AddConnectorWizard` (gallery → details → tools/OAuth) — the **same** create flow as Settings → Connectors — with a new `onRegistered` callback that attaches the result to the node | Both register a connector without leaving the editor; desktop reuses its richer wizard so there's one connector-create path app-wide (no second divergent form). Functionally equivalent |
-| **Dispatch "blocked" note styling (`TD-021`)** | amber hard-coded note (`amber-300/50/900`) | theme-token note (`border-border bg-muted/50 text-muted-foreground` + `Info` icon) | UI only, per the theme-tokens rule; same copy/behaviour |
+| **Branch handoff (pragna2-tracker TD-015)** | Stashes `{ text, agent }` before navigating to the fork | Stashes `{ text }` only — desktop's handoff has no `agent` field; the fork inherits `flow_id`/`user_model_id` server-side and the session view resolves the agent from the conversation | No functional impact (desktop chat conversations are non-flow; the inherited model/flow drives the re-send) |
+| **`sendWithModel` (pragna2-tracker TD-015)** | Standalone hook method | Thin wrapper over `sendWithOverrides(text, { userModelId })` — same `?user_model_id` query param | Identical behavior |
+| **Regen-with-model gating (pragna2-tracker TD-015)** | Gated on `agentName === DEFAULT_AGENT_NAME` | Gated on `!conversation.flowId` | Equivalent (desktop has no flow-agent resolution; `flowId` null = default chat) |
+| **Continue prompt (pragna2-tracker TD-015)** | Inline literal `'continue'` | `CONTINUE_PROMPT` constant (`constants/chat.ts`) | Same value; externalised per the no-hardcoding rule |
+| **Sketchon diagram theme signal (pragna2-tracker TD-019)** | `SketchonDiagram` reads light/dark from `<html data-theme>` | Reads the **`.dark` class** on the root element (`document.documentElement.classList.contains('dark')`), observed via a `class`-attribute `MutationObserver` | The desktop signals dark via the `.dark` class (`@custom-variant dark` in `index.css`), not a `data-theme` attribute. Same outcome — diagrams re-theme live on mode change |
+| **KaTeX CSS dependency (pragna2-tracker TD-019)** | `katex` resolves transitively (hoisted node_modules) | `katex` pinned as an **explicit dep** (`^0.16.47`, the version Streamdown bundles) so `katex/dist/katex.min.css` resolves under pnpm's strict layout | Packaging only; same bundled KaTeX Streamdown already uses |
+| **Streamdown `@source` glob (pragna2-tracker TD-019)** | `dist/*.js` | `dist/*.js` (was `dist/index.js`) | Widened to scan all Streamdown dist files so mermaid/controls utility classes generate — matches the web app |
+| **Usage chip layout (pragna2-tracker TD-016)** | Chip `absolute right-2.5`, fades on hover so an absolutely-positioned kebab takes the slot | Chip `absolute` inside a `relative` trailing wrapper, fades on `group-hover`/`group-focus-within` so the desktop's **inline** action row takes the slot | Desktop sidebar rows reveal actions inline (no kebab); same "chip ↔ actions share the trailing slot, no layout shift" behaviour |
+| **Usage 404 guard location (pragna2-tracker TD-016)** | Zero-state mapped in the `useConversationUsage` **hook** | Zero-state mapped in the **repository** `getUsage` (matches the desktop's `get`→`null` / `getMessages`→`[]` convention) | Same outcome (a 404 row shows no cost, never an error); guard lives one layer lower |
+| **Usage staleTime (pragna2-tracker TD-016)** | Inline `staleTime: 60_000` | `USAGE_STALE_MS` constant (`constants/chat.ts`) | Same 60s; externalised per the no-hardcoding rule |
+| **Connector inline-register (pragna2-tracker TD-021)** | A single inline `RegisterConnectorForm` (wraps `ConnectorDetailsForm`) inside the ConnectorPanel's add modal | The add dialog's "Register a new connector" opens the shared `AddConnectorWizard` (gallery → details → tools/OAuth) — the **same** create flow as Settings → Connectors — with a new `onRegistered` callback that attaches the result to the node | Both register a connector without leaving the editor; desktop reuses its richer wizard so there's one connector-create path app-wide (no second divergent form). Functionally equivalent |
+| **Dispatch "blocked" note styling (pragna2-tracker TD-021)** | amber hard-coded note (`amber-300/50/900`) | theme-token note (`border-border bg-muted/50 text-muted-foreground` + `Info` icon) | UI only, per the theme-tokens rule; same copy/behaviour |
 | **Slash popover, form fields, cards** | web-app styling | theme tokens (tweakcn) + shadcn primitives | UI only, per the standing theme rule |
-| **Account menu collapsed mode (`TD-022`)** | `AvatarMenu` takes a `collapsed` prop (icon-only) for the web app's collapsible sidebar rail | Prop omitted — the desktop chat rail is fixed-width (260px) / drawer (280px) and not collapsible, so there is no collapsed state to render | No functional change; the menu's identity/Settings/Sign-out contents are identical |
-| **Theme default + scope (`TD-023`)** | `Theme = 'light' \| 'dark'`, default `dark`, stored in the combined `uiStore`; Appearance page also has a TweakCN palette grid | `ThemeMode = 'light' \| 'dark' \| 'system'`, default **`system`** (follows the OS, desktop convention), in a dedicated `themeStore`; Appearance ships the **mode toggle only** (palette grid deferred → `TD-026`) | Same `.dark`-class mechanism; desktop adds a `system` mode and tracks OS changes live. Palette parity tracked separately |
-| **History browser entry (`TD-024`)** | `ChatView` toggles a `browseMode` flag and renders `ChatsBrowserView` in place; "New chat" clears the flag | A nested **`/chat/history`** route renders `ChatsBrowserView`; reached from the sidebar's "All chats"; "New chat" navigates to `/chat` | Route-based shell vs. in-place flag; identical list/search/infinite-scroll behaviour. `relativeTime` also extracted to `domain/utils` (web app inlines it) for testability |
-| **Generated-document reader (`TD-025`)** | `DocumentCard` opens a dedicated `PdfCanvas` slide-over driven by `uiStore.openPdfDocument`; bytes via `usePdfDocument` | `DocumentCard` opens the existing full-screen `AttachmentViewer` (PDF `<iframe>` via `useAttachmentBlob`); no `PdfCanvas`/`usePdfDocument`/`uiStore` action added | Same card + open-to-read + download behaviour; desktop reuses its one attachment-viewer path (DRY) instead of a second reader. `create_pdf_long` background-episode live progress not ported (the doc still appears as a card once attached) |
+| **Account menu collapsed mode (pragna2-tracker TD-022)** | `AvatarMenu` takes a `collapsed` prop (icon-only) for the web app's collapsible sidebar rail | Prop omitted — the desktop chat rail is fixed-width (260px) / drawer (280px) and not collapsible, so there is no collapsed state to render | No functional change; the menu's identity/Settings/Sign-out contents are identical |
+| **Theme default + scope (pragna2-tracker TD-023)** | `Theme = 'light' \| 'dark'`, default `dark`, stored in the combined `uiStore`; Appearance page also has a TweakCN palette grid | `ThemeMode = 'light' \| 'dark' \| 'system'`, default **`system`** (follows the OS, desktop convention), in a dedicated `themeStore`; Appearance ships the **mode toggle only** (palette grid deferred → pragna2-tracker TD-026) | Same `.dark`-class mechanism; desktop adds a `system` mode and tracks OS changes live. Palette parity tracked separately |
+| **History browser entry (pragna2-tracker TD-024)** | `ChatView` toggles a `browseMode` flag and renders `ChatsBrowserView` in place; "New chat" clears the flag | A nested **`/chat/history`** route renders `ChatsBrowserView`; reached from the sidebar's "All chats"; "New chat" navigates to `/chat` | Route-based shell vs. in-place flag; identical list/search/infinite-scroll behaviour. `relativeTime` also extracted to `domain/utils` (web app inlines it) for testability |
+| **Generated-document reader (pragna2-tracker TD-025)** | `DocumentCard` opens a dedicated `PdfCanvas` slide-over driven by `uiStore.openPdfDocument`; bytes via `usePdfDocument` | `DocumentCard` opens the existing full-screen `AttachmentViewer` (PDF `<iframe>` via `useAttachmentBlob`); no `PdfCanvas`/`usePdfDocument`/`uiStore` action added | Same card + open-to-read + download behaviour; desktop reuses its one attachment-viewer path (DRY) instead of a second reader. `create_pdf_long` background-episode live progress not ported (the doc still appears as a card once attached) |
 | **"Developer" (local MCP servers) settings page** | **No equivalent** — the web app can't run client-delegated stdio MCP servers (browser sandbox) | A desktop-only Settings page (renamed from "Local MCP servers" → **"Developer"**, slate `EntityIcon` tile, moved last in the rail). Config now edits via an **"Edit Config" flyout `Sheet`** (rounded, inset like the sidebar) that refreshes the Configured-servers list on save, with a collapsible **"Example config"** accordion mirroring the connector cards | **Desktop-only feature — nothing to backport.** Already a platform deviation (`CF-008` family); the recent UI restructure has no web counterpart. The new `Sheet` primitive (`src/components/ui/sheet.tsx`) is a desktop addition |
 | **Settings "Back to Chat" icon** | lucide `MessagesSquare` | Circular back-arrow badge (`bg-foreground`/`text-background`, so white-circle/dark-arrow in dark mode) | UI-only, owner's choice — web may keep `MessagesSquare`. The row's **alignment + text-color** sync (separate from the icon) **is** a real fix to backport — see `CODE_FIXES.md` `CF-010` |
 
@@ -184,27 +184,27 @@ The event-parsing + state machinery (`transformHttpEventStream`, `transformChunk
 
 ## 5. 🟰 Faithful ports — no functional or structural deviation
 
-- **Slash dispatch** (`TD-013`): per-turn URL override to `…/flows/{name}`, restored
+- **Slash dispatch** (pragna2-tracker TD-013): per-turn URL override to `…/flows/{name}`, restored
   on finalize — same mechanism as the web app's `useChatSession`.
 - **Conversation data layer** (list/get/create/messages/update/delete), **chat
   streaming** core, **model/thinking** controls.
 - **Agent Flows editor core**: `buildEditorGraph` / `graphToYaml` / the zustand
   editor store / connection rules — ported faithfully; YAML stays the source of
   truth.
-- **Flow editor advanced sub-features** (`TD-021`): the EdgePanel **dynamic
+- **Flow editor advanced sub-features** (pragna2-tracker TD-021): the EdgePanel **dynamic
   fan-out** editor (toggle + items-slot/item-slot dropdowns + the
   source/target validity gates) and the NodePanel **inputs/outputs** context
   slots are ported field-for-field; the only deviation is the connector
   inline-register UI host (§4).
 - **HITL form validation logic** (`validators.ts`): ported field-for-field.
-- **Conversation usage + cost** (`TD-016`): same `GET …/usage` contract,
+- **Conversation usage + cost** (pragna2-tracker TD-016): same `GET …/usage` contract,
   `ConversationUsage`/`UsageRecord` types, snake→camel mapper (cost kept as a
   string), `getUsage` on port/service/repo, `useConversationUsage`
   (`['conversations', id, 'usage']`, 60s stale), the `formatUsd` tiers, and a
   total-cost sidebar chip hidden at `$0` — functionally identical to the web app
   (deviations in §4 are layout/guard-location/constant only).
-- **Chat markdown renderer** (`TD-017`/`TD-019`): both apps use **Streamdown
-  `^1.6.11`** — the same renderer (TD-017's "switch to react-markdown" was a
+- **Chat markdown renderer** (pragna2-tracker TD-017/pragna2-tracker TD-019): both apps use **Streamdown
+  `^1.6.11`** — the same renderer (pragna2-tracker TD-017's "switch to react-markdown" was a
   hypothetical, never the web app's choice; react-markdown is only Streamdown's
   transitive dep). `MarkdownMessage`, `normalizeMathDelimiters`, `rehypeSketchon`,
   and `SketchonDiagram` are ported faithfully; the diagram theme-signal read is the

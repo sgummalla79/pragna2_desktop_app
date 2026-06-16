@@ -28,7 +28,7 @@ are fetched but not displayed.
 - A per-model or per-call breakdown view (records are fetched, not rendered —
   matches the web app).
 - Token-count display (input/output totals are available but not shown).
-- A chat-header usage panel (the TD-016 TODO text suggested one; the web app
+- A chat-header usage panel (the pragna2-tracker TD-016 TODO text suggested one; the web app
   does not have it, so it was not built — see `docs/web-app-parity.md`).
 - Live per-turn refresh (the chip catches up within the staleness window).
 

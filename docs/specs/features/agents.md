@@ -110,10 +110,10 @@ backend contract.
       is the next feature after this).
 - [x] **Resolved:** Tool entry stays a free-form chip input this round. Upgrading it
       to an autocomplete/picker sourced from `/api/tools` is tracked as
-      [TD-010](../../TODO.md#td-010--agent-tool-entry-autocomplete-against-apitools).
+      [pragna2-tracker TD-010](../../pragna2-tracker#td-010--agent-tool-entry-autocomplete-against-apitools).
 - [ ] Model / temperature selection on standalone agents is intentionally excluded
       (not in the `/api/agents` contract). Tracked as a future enhancement:
-      [TD-011](../../TODO.md#td-011--model--temperature-selection-on-standalone-agents).
+      [pragna2-tracker TD-011](../../pragna2-tracker#td-011--model--temperature-selection-on-standalone-agents).
 
 ---
 

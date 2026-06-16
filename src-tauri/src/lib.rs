@@ -12,7 +12,7 @@ fn greet(name: &str) -> String {
 // ── Secure store (OS keychain) ──────────────────────────────────────────────
 // A thin cross-platform wrapper over the `keyring` crate (macOS Keychain /
 // Windows Credential Manager) used to persist the auth refresh token across
-// app restarts. See docs/TODO.md TD-009. The frontend (`secureStore.ts`)
+// app restarts. See pragna2-tracker TD-009. The frontend (`secureStore.ts`)
 // invokes these; all values are namespaced under one service.
 //
 // The KEYRING_SERVICE constant and any future platform-specific logic live in
@@ -48,7 +48,7 @@ fn secure_store_set(key: String, value: String) -> Result<(), String> {
 /// store denied/locked access. Those cases are treated as **"no saved session"**
 /// (`Ok(None)`) rather than a hard error, so the app falls back to interactive
 /// login instead of failing startup. The degradation is logged, not silent.
-/// Genuinely malformed-entry errors still propagate. See docs/TODO.md TD-009.
+/// Genuinely malformed-entry errors still propagate. See pragna2-tracker TD-009.
 #[tauri::command]
 fn secure_store_get(key: String) -> Result<Option<String>, String> {
     let entry = keyring::Entry::new(platform::KEYRING_SERVICE, &key).map_err(|e| e.to_string())?;

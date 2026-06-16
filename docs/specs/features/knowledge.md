@@ -28,7 +28,7 @@ The Knowledge settings page lets a user manage reusable document libraries (corp
 - Attaching/referencing a library from an agent or a flow (not ported here — see Out of Scope).
 - Viewing or editing the stored document text after ingestion (the API never returns it).
 - Editing an existing library's name/slug/description, or editing a document after creation.
-- *(Implemented in TD-005 — no longer out of scope.)* Client-side file size/type
+- *(Implemented in pragna2-tracker TD-005 — no longer out of scope.)* Client-side file size/type
   pre-validation before upload; see Edge Cases.
 
 ## 3. User Stories
@@ -77,9 +77,9 @@ The Knowledge settings page lets a user manage reusable document libraries (corp
 | Add (paste text) rejected | Backend `detail` if present, else `KNW_005`. |
 | Add (file upload) rejected | Backend `detail` if present, else `KNW_006`. |
 | Delete document rejected | Backend `detail` if present, else `KNW_007`. |
-| Unsupported file type chosen | Rejected client-side before upload by `validateKnowledgeFile` (extension vs the accept list) on **both** the picker and drag-drop paths, with an inline message (TD-005). The backend stays the real gate (415 via `detail` / `KNW_006`). |
-| Oversized file uploaded | Rejected client-side when over `KNOWLEDGE_MAX_FILE_BYTES` (25 MB) with an inline message, before the round-trip (TD-005). The backend remains the real cap (413). |
-| Multipart upload not yet verified live | The FormData/multipart upload path through the native-HTTP adapter has not been exercised end-to-end against the running backend from the dev environment. See TD-004. |
+| Unsupported file type chosen | Rejected client-side before upload by `validateKnowledgeFile` (extension vs the accept list) on **both** the picker and drag-drop paths, with an inline message (pragna2-tracker TD-005). The backend stays the real gate (415 via `detail` / `KNW_006`). |
+| Oversized file uploaded | Rejected client-side when over `KNOWLEDGE_MAX_FILE_BYTES` (25 MB) with an inline message, before the round-trip (pragna2-tracker TD-005). The backend remains the real cap (413). |
+| Multipart upload not yet verified live | The FormData/multipart upload path through the native-HTTP adapter has not been exercised end-to-end against the running backend from the dev environment. See pragna2-tracker TD-004. |
 | Slug/title left as filename default | Accepted as-is; pre-fill only fills empty fields and is user-editable. |
 
 ## 6. Out of Scope
@@ -91,8 +91,8 @@ The Knowledge settings page lets a user manage reusable document libraries (corp
 
 ## 7. Open Questions
 
-- [ ] TD-004 — Verify the multipart Knowledge upload end-to-end against the live backend (a real pdf/txt/md/csv/docx/xlsx upload succeeds on a packaged macOS build and the source appears in the library).
-- [x] TD-005 — *(Done 2026-06-09.)* Client-side size/type validation
+- [ ] pragna2-tracker TD-004 — Verify the multipart Knowledge upload end-to-end against the live backend (a real pdf/txt/md/csv/docx/xlsx upload succeeds on a packaged macOS build and the source appears in the library).
+- [x] pragna2-tracker TD-005 — *(Done 2026-06-09.)* Client-side size/type validation
   (`validateKnowledgeFile`, picker + drag-drop) rejects oversized/unsupported
   files before upload. The 25 MB cap (`KNOWLEDGE_MAX_FILE_BYTES`) is a named
   constant with a comment (the API exposes no limit; backend stays the real gate).

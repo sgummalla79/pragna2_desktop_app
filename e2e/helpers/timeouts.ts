@@ -2,7 +2,7 @@
  * Centralized e2e timeouts — single source of truth (no inline magic numbers).
  *
  * The values are split deliberately so generous bounds DON'T MASK app problems
- * (see docs/TODO.md TD-027 measurement, 2026-06-11):
+ * (see pragna2-tracker TD-027 measurement, 2026-06-11):
  *
  *   • APP-CONTROLLED phases stay TIGHT. Measured at single-digit ms, so these
  *     bounds keep large margin yet still TRIP if the app regresses to seconds —
@@ -15,7 +15,7 @@
  *
  * NOTE: e2e timeouts are CORRECTNESS guards ("does it eventually work"), not
  * performance guards. True latency-regression / scaling detection belongs to a
- * dedicated phase-timing or load test (TD-029), not to these numbers.
+ * dedicated phase-timing or load test (pragna2-tracker TD-029), not to these numbers.
  */
 export const TIMEOUTS = {
   // ── App-controlled (TIGHT) ──────────────────────────────────────────────

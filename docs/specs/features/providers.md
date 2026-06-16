@@ -73,13 +73,13 @@ The Providers settings page lets a user connect their own **LLM providers** (e.g
 |----------|------------------|
 | Catalogue fails to load | `PRV_005` message shown in place of the tile grid (the page's load-error path). |
 | Connect fails (bad API key, network) | Prefers the backend `detail`, falling back to `PRV_003`; shown inline in the connect form. |
-| Connect fails — already registered (409) | Surfaces `PRV_002` ("This provider is already registered."), distinct from a bad-key error (TD-008). |
+| Connect fails — already registered (409) | Surfaces `PRV_002` ("This provider is already registered."), distinct from a bad-key error (pragna2-tracker TD-008). |
 | Disconnect fails | `PRV_004` ("Failed to remove provider.") shown in the connected panel error slot; the modal stays open. |
-| Refresh fails | Surfaces the backend `detail` (else `PRV_006`) under the Refresh action (TD-008). |
-| Refresh succeeds | Shows a diff summary — "N added · N archived · N restored" (or "No changes") under the Refresh action (TD-008). |
+| Refresh fails | Surfaces the backend `detail` (else `PRV_006`) under the Refresh action (pragna2-tracker TD-008). |
+| Refresh succeeds | Shows a diff summary — "N added · N archived · N restored" (or "No changes") under the Refresh action (pragna2-tracker TD-008). |
 | Provider returns no models (empty discovery) | The grid shows "No models yet — click Refresh to discover models." |
-| Toggle-provider (tile pill) fails | Surfaces `PRV_007` (else backend `detail`) above the tile grid (TD-008). |
-| Bulk model save fails | The whole batch rejects all-or-nothing; the buffer is **retained** so the user can retry, and `MDL_004` (else backend `detail`) is shown in the panel (TD-008). |
+| Toggle-provider (tile pill) fails | Surfaces `PRV_007` (else backend `detail`) above the tile grid (pragna2-tracker TD-008). |
+| Bulk model save fails | The whole batch rejects all-or-nothing; the buffer is **retained** so the user can retry, and `MDL_004` (else backend `detail`) is shown in the panel (pragna2-tracker TD-008). |
 | Model row is archived | Its toggles are disabled and the row renders at reduced opacity; archived rows are excluded from the embedded model list anyway (server excludes them). |
 | Display-name edited to empty / whitespace | The grid's `isValid` rejects it and reverts the cell to its saved value; nothing is buffered. |
 | User closes the modal mid-edit | `useDirtyDialog` blocks Escape / overlay dismissal while `modelEditsDirty` is true; the explicit ✕ / Close still works. |
@@ -97,7 +97,7 @@ The Providers settings page lets a user connect their own **LLM providers** (e.g
 
 ## 7. Open Questions
 
-> **Resolved (TD-008, 2026-06-09):** error surfacing is now on par with Connectors
+> **Resolved (pragna2-tracker TD-008, 2026-06-09):** error surfacing is now on par with Connectors
 > — connect prefers backend `detail` and maps 409 → `PRV_002`; refresh catches
 > failures (`PRV_006`) and shows a created/archived/restored diff summary; the tile
 > toggle surfaces failures (`PRV_007`); bulk model save catches and shows `MDL_004`

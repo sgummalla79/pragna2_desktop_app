@@ -1,6 +1,6 @@
 /**
  * Boundary mappers for conversations + messages (snake_case API ↔ camelCase
- * domain). Message `attachments` are mapped via {@link mapAttachment} (TD-012).
+ * domain). Message `attachments` are mapped via {@link mapAttachment} (pragna2-tracker TD-012).
  */
 
 import type {

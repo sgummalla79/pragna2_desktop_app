@@ -61,11 +61,11 @@ continue      → send(CONTINUE_PROMPT)   // when finishReason==='length' on las
   comes from the **persisted** log (the live AG-UI message doesn't carry it),
   refreshed when the run finalizes.
 
-## 5. TD-006 (chat-action preferences) — now consumed
+## 5. pragna2-tracker TD-006 (chat-action preferences) — now consumed
 
 `useChatPreferences` (`pragna:chat-prefs`: `branchEnabled`, `regenWithModelEnabled`),
 previously only written by Configuration, is now read by `ChatSessionView` to gate
-the Branch button and the regenerate-with-model dropdown. Closes `TD-006`.
+the Branch button and the regenerate-with-model dropdown. Closes pragna2-tracker TD-006.
 
 ## 6. Deviations from the web app
 
