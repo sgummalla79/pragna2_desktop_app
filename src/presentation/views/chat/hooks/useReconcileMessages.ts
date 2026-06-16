@@ -13,9 +13,10 @@ import type { ChatMessage, ChatStatus } from './useChatSession';
  *
  * Guards that prevent incorrect replacement:
  * 1. Never replace while a run is in flight (`status === 'running'`).
- * 2. Never replace when the mismatch is just an optimistic user message that
- *    has been pushed locally but whose run has not yet started — doing so wipes
- *    the user message from the UI until the backend responds (CF-013).
+ * 2. Never replace when in-memory count exceeds persisted count — the persisted
+ *    snapshot is stale (either an optimistic user message pre-run, or a just-
+ *    completed turn whose /messages refetch hasn't resolved yet). Wiping in
+ *    either window removes content the user can see (CF-013 / CF-013b).
  * 3. Skip when either list is empty (nothing to reconcile).
  *
  * @param status       Current run status from {@link useChatSession}.
@@ -39,9 +40,11 @@ export function useReconcileMessages(
     const lastInMemory = messages[messages.length - 1];
     const lastPersisted = persisted[persisted.length - 1];
 
-    // CF-013: optimistic user message not yet persisted — the run hasn't started
-    // yet (status is still 'idle'). Reconciling here would wipe the message.
-    if (lastInMemory.role === 'user' && messages.length > persisted.length) return;
+    // CF-013 / CF-013b: in-memory is ahead of persisted — either an optimistic
+    // user message (pre-run, status='idle') or a just-completed turn whose
+    // /messages refetch hasn't resolved yet (post-run, status='idle' again).
+    // In both cases the persisted snapshot is stale; wait for it to catch up.
+    if (messages.length > persisted.length) return;
 
     if (persisted.length !== messages.length || lastInMemory.id !== lastPersisted.id) {
       replaceMessages(initialMessages);
