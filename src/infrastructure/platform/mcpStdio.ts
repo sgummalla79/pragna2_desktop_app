@@ -85,6 +85,19 @@ export const mcpStdio = {
     }
   },
 
+  /** Run `<command> auth` to trigger the mcp-adaptor OAuth browser flow.
+   *
+   *  Call this when a save fails with an error starting with
+   *  {@link MCP_AUTH_EXPIRED_PREFIX}, then retry the save. The subprocess opens a
+   *  browser window, handles the OAuth callback, and stores fresh tokens in the OS
+   *  keyring before exiting. Resolves when the flow completes successfully; rejects
+   *  (with the Rust error string) if the subprocess cannot be launched or exits
+   *  non-zero (user cancelled, gateway rejected). */
+  async auth(command: string): Promise<void> {
+    if (!isTauriRuntime()) throw new NotInTauriError();
+    await invoke('mcp_stdio_auth', { command });
+  },
+
   /** Load the whole-config editor blob (the `mcpServers` JSON the user authors)
    *  from the keychain — the authoring source of truth. `null` when never saved
    *  / not in Tauri. Reuses the generic `secure_store_*` commands. */

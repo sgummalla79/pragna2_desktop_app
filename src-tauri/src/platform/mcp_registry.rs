@@ -98,9 +98,7 @@ async fn spawn_service(cfg: &StdioLaunchConfig) -> Result<ClientService, McpHost
     }
     cmd.kill_on_drop(true);
     let transport = TokioChildProcess::new(cmd).map_err(|e| McpHostError::Spawn(e.to_string()))?;
-    ().serve(transport)
-        .await
-        .map_err(|e| McpHostError::Protocol(e.to_string()))
+    ().serve(transport).await.map_err(|e| McpHostError::Protocol(e.to_string()))
 }
 
 fn tool_to_schema(tool: rmcp::model::Tool) -> ToolSchema {

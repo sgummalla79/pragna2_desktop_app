@@ -412,3 +412,38 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
   ```
   Still safe for the original tool-use / stream-id-mismatch case: in that scenario counts are **equal** (same number of messages, just different IDs), so the guard never suppresses legitimate reconciliation. Added one CF-013b regression test to `useReconcileMessages.test.ts` (10 tests total, all passing).
 - **Web-app applicability:** **LIKELY AFFECTED — check.** Same as CF-013.
+
+---
+
+## CF-014 — MCP "Failed to save local servers" hides the real Tauri/Rust error
+
+- **Date:** 2026-06-16
+- **Area / file:** `src/presentation/views/settings/LocalServersView/LocalServersView.tsx` (`handleSave` catch block, lines 159–168); new helper `src/infrastructure/errors/extractErrorMessage.ts`.
+- **Found by:** Manual use — saving a local MCP server config always showed the generic "Failed to save local servers." message with no further detail, making it impossible to diagnose the actual failure.
+- **Bug:** Tauri's `invoke()` rejects with a **plain string** (the Rust `Err(String)` value), not a JS `Error` object. The catch block checked `e instanceof Error` before reading `.message`, so for every Rust-originated error the `instanceof` check returned `false` and the generic fallback was shown instead of the real message (spawn failure, auth error, keychain error, backend 4xx, etc.).
+- **Root cause:** Consistent pattern mismatch between how Tauri surfaces errors (plain string) and how the catch block expected them (Error instance). The `logger.fromError` call did wrap the string into an `Error`, but only after the user-visible `setError` had already discarded it.
+- **Fix:** Extracted `extractErrorMessage(e, fallback)` helper to `src/infrastructure/errors/extractErrorMessage.ts` — handles `Error`, plain string, and unknown. Used in `handleSave`:
+  ```typescript
+  const msg = extractErrorMessage(e, 'Failed to save local servers.');
+  setError(msg);
+  logger.fromError('LSV_001:save', e instanceof Error ? e : new Error(msg));
+  ```
+  9 unit tests in `extractErrorMessage.test.ts` covering all branches, all passing.
+- **Web-app applicability:** **CHECK — same pattern likely present.** Any catch block in `pragna2_sgummalla_works` that does `e instanceof Error ? e.message : fallback` after a `fetch`/API call has the same risk if the API layer throws plain strings. Apply `extractErrorMessage` wherever Tauri `invoke()` or fetch errors are caught.
+
+---
+
+## FEAT-001 — MCP auth re-authentication from within the app (GitLab #108)
+
+- **Date:** 2026-06-16 (revised 2026-06-16)
+- **Area / files:** `src-tauri/src/domain/mcp.rs`, `src-tauri/src/platform/mcp_registry.rs`, `src-tauri/src/application/mcp_host.rs`, `src-tauri/src/adapters/mcp_commands.rs`, `src-tauri/src/lib.rs`, `src/infrastructure/platform/mcpStdio.ts`, `src/presentation/views/settings/LocalServersView/LocalServersView.tsx`.
+- **Feature:** Each configured local MCP server card now shows an **"Authenticate"** button. Clicking it runs `<binary> auth` (the mcp-adaptor OAuth browser flow) via a new Tauri command and shows a success or error inline on the card — no terminal required. This is always-visible (proactive re-auth), not conditional on a save error, because the expired-token error only appears in child-process stderr and is never reachable via the rmcp protocol-level error string.
+- **Implementation:**
+  - `mcp_host::auth(command)` use case — spawns `<command> auth` via `tokio::process::Command`, waits for exit-0.
+  - `mcp_stdio_auth` Tauri command registered in `lib.rs`.
+  - `mcpStdio.auth(command)` TypeScript wrapper.
+  - `LocalServersView`: `commandByName` map (editorText → displayName → command); per-card `authenticatingId` + `authResult` state; `handleAuthenticate` callback; Authenticate button shown when command is known; success/error status rendered below the card row.
+  - Removed `McpHostError::AuthExpired` domain variant and `AUTH_EXPIRED_SENTINEL` — the sentinel approach cannot work because rmcp's error is `"connection closed: initialize response"` (protocol level), never the child's stderr text `"failed to ensure valid token"`.
+  - Spec docs: `docs/specs/features/mcp-auth-refresh.md` + `docs/specs/technical/mcp-auth-refresh.md`.
+  - 7 TS component tests in `LocalServersView.test.tsx`; 583 total tests pass.
+- **Web-app applicability:** N/A — local stdio MCP servers are desktop-only.
