@@ -61,3 +61,12 @@ pub fn mcp_stdio_clear_config(connector_id: String) -> Result<(), String> {
     let id = parse_id(&connector_id)?;
     mcp_host::clear_config(id).map_err(|e| e.to_string())
 }
+
+/// Run `<command> auth` and wait for the mcp-adaptor OAuth browser flow to
+/// complete. Call this when a save fails with [`McpHostError::AuthExpired`], then
+/// retry the save. The subprocess opens a browser window and stores fresh tokens
+/// in the OS keyring before exiting.
+#[tauri::command]
+pub async fn mcp_stdio_auth(command: String) -> Result<(), String> {
+    mcp_host::auth(&command).await.map_err(|e| e.to_string())
+}

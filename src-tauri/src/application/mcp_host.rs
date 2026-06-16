@@ -39,3 +39,34 @@ pub fn save_config(id: Uuid, cfg: &StdioLaunchConfig) -> Result<(), McpHostError
 pub fn clear_config(id: Uuid) -> Result<(), McpHostError> {
     mcp_registry::clear_config(id)
 }
+
+/// Run `<command> auth` as a plain subprocess and wait for it to exit.
+///
+/// The mcp-adaptor's `auth` subcommand opens a browser for an OAuth login flow
+/// and stores fresh tokens in the OS keyring. This is NOT an MCP session — it is
+/// a plain process invocation with no rmcp involvement. Call this when a
+/// [`McpHostError::AuthExpired`] is returned by `discover` or `call`, then retry
+/// the original operation.
+///
+/// # Errors
+///
+/// - [`McpHostError::Spawn`] — the binary could not be launched (not found, not
+///   executable, or the OS denied the spawn).
+/// - [`McpHostError::Protocol`] — the process launched but exited with a non-zero
+///   status code (auth was cancelled or the gateway rejected the credentials).
+pub async fn auth(command: &str) -> Result<(), McpHostError> {
+    let status = tokio::process::Command::new(command)
+        .arg("auth")
+        .status()
+        .await
+        .map_err(|e| McpHostError::Spawn(e.to_string()))?;
+
+    if status.success() {
+        Ok(())
+    } else {
+        Err(McpHostError::Protocol(format!(
+            "mcp-adaptor auth exited with {}",
+            status.code().map_or("unknown status".to_string(), |c| c.to_string())
+        )))
+    }
+}
