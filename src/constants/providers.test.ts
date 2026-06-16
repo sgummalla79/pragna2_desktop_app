@@ -6,9 +6,9 @@ describe('CREDENTIAL_FIELDS.gateway', () => {
     const fields = CREDENTIAL_FIELDS.gateway;
     const keys = fields.map((f) => f.key);
     // baseUrl + authToken are required; modelsUrl + awsRegion are optional and
-    // only apply to an Anthropic/Bedrock-shaped gateway; caCert + verifySsl are
-    // optional SSL/TLS settings.
-    expect(keys).toEqual(['baseUrl', 'authToken', 'modelsUrl', 'awsRegion', 'caCert', 'verifySsl']);
+    // only apply to an Anthropic/Bedrock-shaped gateway. verifySsl precedes
+    // caCert so the toggle reads as the gate above the CA-cert input it controls.
+    expect(keys).toEqual(['baseUrl', 'authToken', 'modelsUrl', 'awsRegion', 'verifySsl', 'caCert']);
 
     const baseUrl = fields.find((f) => f.key === 'baseUrl')!;
     const authToken = fields.find((f) => f.key === 'authToken')!;
@@ -28,13 +28,18 @@ describe('CREDENTIAL_FIELDS.gateway', () => {
     expect(awsRegion.secret).toBe(false);
   });
 
-  it('marks caCert as optional, non-secret, multiline text field', () => {
+  it('marks caCert as an optional, non-secret file-upload field', () => {
     const fields = CREDENTIAL_FIELDS.gateway;
     const caCert = fields.find((f) => f.key === 'caCert')!;
     expect(caCert.optional).toBe(true);
     expect(caCert.secret).toBe(false);
-    expect(caCert.multiline).toBe(true);
-    expect(caCert.type).toBeUndefined();
+    // Rendered as a click-to-select file-upload control with a "Paste"
+    // fallback — no longer a bare multiline textarea.
+    expect(caCert.type).toBe('file');
+    expect(caCert.multiline).toBeUndefined();
+    // Enabled only while SSL verification is on (a custom CA has no effect
+    // when verification is disabled).
+    expect(caCert.enabledWhenToggleOn).toBe('verifySsl');
   });
 
   it('marks verifySsl as optional toggle field (not secret, not multiline)', () => {

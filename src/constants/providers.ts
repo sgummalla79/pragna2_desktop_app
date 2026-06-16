@@ -48,15 +48,31 @@ export interface CredentialFieldDef {
   /** When true, the field is not required; it may be left blank. Used for
    *  gateway fields that only apply to an Anthropic/Bedrock-shaped gateway. */
   optional?: boolean;
+  /** Key of a sibling `type:'toggle'` field that gates this one: the field is
+   *  only enabled while that toggle is ON. Used so the CA Certificate input is
+   *  disabled when SSL verification is off (a custom CA has no effect with
+   *  verification disabled). The component reads this generically — it never
+   *  hardcodes which fields gate which. */
+  enabledWhenToggleOn?: string;
   /**
    * Controls which input widget is rendered.
    * - 'text' (default): Input, PasswordInput, or Textarea depending on `secret`
    *   and `multiline`. Existing fields omit this and get 'text' implicitly.
    * - 'toggle': A labelled switch row. `values[key]` of '' or 'true' = on,
    *   'false' = off. `secret`, `multiline`, and `placeholder` are unused.
+   * - 'file': A click-to-select file-upload control with a secondary "Paste"
+   *   toggle that falls back to a textarea. Both modes write the file's text
+   *   content to `values[key]`. Used for the CA certificate, which is naturally
+   *   a `.pem`/`.crt` file artifact. (Drag-drop is intentionally not offered:
+   *   Tauri's default `dragDropEnabled: true` intercepts OS file drops before
+   *   the webview, so DOM drop events never fire on desktop.)
    */
-  type?: 'text' | 'toggle';
+  type?: 'text' | 'toggle' | 'file';
 }
+
+/** Accepted file extensions when uploading a CA certificate. Kept here (not
+ *  inlined in the form) so the picker filter is configured in one place. */
+export const CA_CERT_FILE_ACCEPT = '.pem,.crt,.cer,.ca-bundle';
 
 export const CREDENTIAL_FIELDS: Record<CredentialKind, CredentialFieldDef[]> = {
   api_key: [
@@ -133,15 +149,6 @@ export const CREDENTIAL_FIELDS: Record<CredentialKind, CredentialFieldDef[]> = {
       optional:    true,
     },
     {
-      key:         'caCert',
-      label:       'CA Certificate (optional)',
-      placeholder: '-----BEGIN CERTIFICATE-----\n…\n-----END CERTIFICATE-----',
-      hint:        'Optional. PEM-encoded CA certificate for a self-signed or private-CA gateway. When set, the backend uses it to verify the TLS connection instead of the system trust store.',
-      secret:      false,
-      multiline:   true,
-      optional:    true,
-    },
-    {
       key:         'verifySsl',
       label:       'Verify SSL certificate',
       placeholder: '',
@@ -149,6 +156,17 @@ export const CREDENTIAL_FIELDS: Record<CredentialKind, CredentialFieldDef[]> = {
       secret:      false,
       optional:    true,
       type:        'toggle',
+    },
+    {
+      key:                 'caCert',
+      label:               'CA Certificate (optional)',
+      placeholder:         '-----BEGIN CERTIFICATE-----\n…\n-----END CERTIFICATE-----',
+      hint:                'Optional. PEM-encoded CA certificate for a self-signed or private-CA gateway. When set, the backend uses it to verify the TLS connection instead of the system trust store.',
+      secret:              false,
+      type:                'file',
+      optional:            true,
+      // Only meaningful while TLS verification is on; disabled when it's off.
+      enabledWhenToggleOn: 'verifySsl',
     },
   ],
 };
