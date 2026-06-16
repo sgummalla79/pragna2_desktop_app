@@ -393,3 +393,22 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
   ```
   This is safe: tool-use and background-episode turns always end with an assistant message, so the guard never suppresses legitimate reconciliation. Nine unit tests added in `useReconcileMessages.test.ts` covering the CF-013 regression, the tool-use reconciliation path, all existing guards (running, empty lists, matching state), and the running→idle transition.
 - **Web-app applicability:** **LIKELY AFFECTED — check.** If `pragna2_sgummalla_works` shares this reconciliation `useEffect` (same architecture, same `ChatConversation` pattern), it has the identical bug on every turn after the first. Apply the same `useReconcileMessages` hook (or the inline guard) to the web app.
+- **Follow-up:** CF-013b — the role-specific guard (`role === 'user'`) was insufficient; see below.
+
+---
+
+## CF-013b — User message and agent response wipe and re-appear together after run completes
+
+- **Date:** 2026-06-16
+- **Area / file:** `src/presentation/views/chat/hooks/useReconcileMessages.ts` (CF-013 guard, line 44).
+- **Found by:** Manual use — after CF-013 fix: user message 2 shown immediately (fixed), but once agent response arrived the user message briefly disappeared, then both user message and agent response appeared together.
+- **Bug:** The CF-013 guard was `lastInMemory.role === 'user' && messages.length > persisted.length`. After `onRunFinalized` fires: `status` flips `'running'` → `'idle'`, the in-memory list is `[u1, a1, u2, a2]` (4), persisted is still `[u1, a1]` (2 — the `/messages` refetch has been invalidated but not resolved). The last in-memory message is `a2` (role `'assistant'`) — the CF-013 guard does **not** fire. `persisted.length (2) !== messages.length (4)` → `replaceMessages([u1, a1])` executes, wiping the just-completed turn from the UI.
+- **Root cause:** The CF-013 guard checked the role of the last message; it needed to check only whether in-memory count exceeds persisted count (stale snapshot, regardless of what the last message is).
+- **Fix:** Broadened the guard to count-only:
+  ```typescript
+  // CF-013 / CF-013b: in-memory is ahead of persisted — either optimistic pre-run
+  // or a just-completed turn whose /messages refetch hasn't resolved yet. Wait.
+  if (messages.length > persisted.length) return;
+  ```
+  Still safe for the original tool-use / stream-id-mismatch case: in that scenario counts are **equal** (same number of messages, just different IDs), so the guard never suppresses legitimate reconciliation. Added one CF-013b regression test to `useReconcileMessages.test.ts` (10 tests total, all passing).
+- **Web-app applicability:** **LIKELY AFFECTED — check.** Same as CF-013.

@@ -60,6 +60,25 @@ describe('useReconcileMessages', () => {
     expect(replaceMessages).not.toHaveBeenCalled();
   });
 
+  it('CF-013b: does NOT replace when run just finished and /messages refetch has not resolved yet (last message is assistant, in-memory ahead of persisted)', () => {
+    // Scenario: user1+assistant1 persisted; user2+assistant2 in memory (run just
+    // finished, status flipped to idle, but the /messages refetch hasn't landed).
+    // Before the CF-013b fix this wiped [u2, a2] because the CF-013 guard only
+    // checked role === 'user' on the last message.
+    const messages: ChatMessage[] = [
+      userMsg('u1'), assistantMsg('a1'),
+      userMsg('u2'), assistantMsg('a2'),
+    ];
+    const persisted = [persistedMsg('u1'), persistedMsg('a1')];
+    const initialMessages = [aguiMsg('u1'), aguiMsg('a1', 'assistant')];
+
+    renderHook(() =>
+      useReconcileMessages('idle', messages, persisted, initialMessages, replaceMessages),
+    );
+
+    expect(replaceMessages).not.toHaveBeenCalled();
+  });
+
   // ── Normal reconciliation (tool-use turn / stream id mismatch) ─────────────
 
   it('replaces when last message is assistant and IDs differ (stream id vs BE UUID)', () => {
