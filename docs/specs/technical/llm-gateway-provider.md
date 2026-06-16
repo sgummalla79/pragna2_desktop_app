@@ -57,7 +57,7 @@ src/
     ProvidersView.tsx                             (label + selectedRegistrationId state; id-based handlers)
     ProviderModal.tsx                             (dispatch: multi -> MultiInstancePanel)
     MultiInstancePanel.tsx                        (NEW — master-detail)
-    ProviderConnectForm.tsx                       (optional label field)
+    ProviderConnectForm.tsx                       (optional label field; Optional-settings accordion; file-type CA-cert control + toggle gating)
     ProviderTile.tsx                              (connectedLabel; pill only when handler present)
 ```
 
@@ -108,12 +108,28 @@ src/
   capability surfaced per provider — **no provider-name comparison** in the FE
   (satisfies the no-hardcoding / SOLID-O rule).
 - Error copy is sourced from `constants/errors.ts` (`PRV_*`).
+- **Field-driven rendering** (`ProviderConnectForm.renderField`): the form splits
+  `CREDENTIAL_FIELDS[kind]` into required vs `optional` fields; optional fields
+  render inside one collapsible **Optional settings** accordion shown last. Three
+  config-driven `CredentialFieldDef` properties keep the component generic (no
+  field-key branching, satisfying SOLID-O):
+  - `type: 'file'` → an **Upload file | Paste** control. Upload is a compact
+    click-to-select `Choose file…` button (no drag-drop — Tauri's default
+    `dragDropEnabled: true` swallows webview DOM drop events). The picker filter
+    is the `CA_CERT_FILE_ACCEPT` constant. Both modes read the file's text into
+    `values[key]`; serialization is unchanged.
+  - `enabledWhenToggleOn: <toggleKey>` → the field is disabled (with an inline
+    note naming the gating toggle) while that toggle is off. `caCert` is gated on
+    `verifySsl`; `verifySsl` is ordered immediately before `caCert`.
+  - The mono-placeholder hint is suppressed for `type:'file'` fields (the
+    placeholder is a multi-line cert block, not a one-line hint).
 
 ## 8. Testing
 
-- `constants/providers.test.ts` — gateway field schema + `{baseUrl, authToken}`
-  serialization; new assertions for `caCert` (optional, multiline) and `verifySsl`
-  (toggle type).
+- `constants/providers.test.ts` — gateway field schema (field order asserts
+  `verifySsl` precedes `caCert`) + `{baseUrl, authToken}` serialization;
+  assertions for `caCert` (optional, `type:'file'`, `enabledWhenToggleOn:
+  'verifySsl'`) and `verifySsl` (toggle type).
 - `__tests__/serializeCredentials.test.ts` — SSL/TLS field serialization: caCert
   omitted when blank, included as PEM string when set; verifySsl omitted when on,
   serialised as boolean `false` when off; both together; regression for minimal blob.
@@ -145,4 +161,7 @@ The frontend does not send a file path — it sends the PEM content itself.
 
 Modal `max-w-[calc(100vw-32px)] max-h-[90vh]`; panel `flex-1 min-h-0
 overflow-y-auto`; registration rows `truncate` + shrink-0 action; detail header
-`flex-wrap`. Verify a visual narrow-width pass before final merge.
+`flex-wrap`. The Optional-settings accordion and CA-cert control are fluid by
+construction: full-width body, `self-start` toggles/buttons, and a `truncate`
+file-name span (no fixed widths). Verify a visual narrow-width pass before final
+merge.
