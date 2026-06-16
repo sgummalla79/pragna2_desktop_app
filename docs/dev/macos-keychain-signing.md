@@ -12,7 +12,7 @@ On macOS, launching the dev app repeatedly shows:
 ## Why it happens
 
 The app stores the Auth0 **refresh token** in the OS keychain to keep you logged
-in across restarts (TD-009). At startup it reads that token back — which is the
+in across restarts (pragna2-tracker TD-009). At startup it reads that token back — which is the
 operation macOS guards with the prompt.
 
 macOS ties a keychain item's "trusted apps" list (its ACL) to the requesting

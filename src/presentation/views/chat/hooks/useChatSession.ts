@@ -180,7 +180,7 @@ export interface UseChatSessionOptions {
  * Supports default-agent chat, per-turn `/slash` flow dispatch (see
  * `slashFlowNames`), HITL episodes (`startEpisode`/`submitInterrupt`), and
  * background-run {@link UseChatSession.attach} — used to surface an async
- * `create_pdf_long` document into the transcript (see `docs/TODO.md` TD-030 /
+ * `create_pdf_long` document into the transcript (see pragna2-tracker TD-030 /
  * `docs/CODE_FIXES.md` CF-005). Streamed turns are reconciled to their persisted
  * BE ids via {@link UseChatSession.replaceMessages} so attachment / model lookups
  * resolve.
@@ -896,7 +896,7 @@ function toChatMessage(
   if (m.role === 'assistant') {
     // Prefer the live-accumulated call (carries streamed args + result); fall
     // back to building from the message's own tool calls so a hydrated/resumed
-    // turn still renders its historical badges (TD-018).
+    // turn still renders its historical badges (pragna2-tracker TD-018).
     const calls = m.toolCalls
       ?.map((tc) => toolCalls.get(tc.id) ?? aguiToolCallToChatToolCall(tc))
       .filter((tc): tc is ChatToolCall => Boolean(tc));

@@ -18,7 +18,7 @@ The Login / Authentication feature lets a user sign in to the Pragna desktop app
 - [x] Social/enterprise sign-in via the system browser + localhost loopback redirect (RFC 8252), with a branded "Signed in" callback page.
 - [x] Dynamic discovery of which social connections are enabled on the tenant (no hardcoded provider list in UI).
 - [x] Self-service registration (Auth0 database connection signup), followed by an automatic sign-in.
-- [x] Session bootstrap on app start, persistence across in-tab reloads, and across full app restarts via a keychain-stored refresh token (TD-009).
+- [x] Session bootstrap on app start, persistence across in-tab reloads, and across full app restarts via a keychain-stored refresh token (pragna2-tracker TD-009).
 - [x] Protected routes (require auth) and guest-only routes (redirect away when authed); post-login landing is `/chat`.
 - [x] Sign-out that clears the session locally.
 - [x] Typed, catalogued error handling (`AUTH_001`..`AUTH_010`).
@@ -29,7 +29,7 @@ The Login / Authentication feature lets a user sign in to the Pragna desktop app
 - Password reset / forgot-password, email verification, and MFA enrollment UI (handled by Auth0 directly; no in-app screens).
 - Server-side session management or cookies.
 
-**Cross-restart session (TD-009, implemented):** when Auth0 issues a refresh
+**Cross-restart session (pragna2-tracker TD-009, implemented):** when Auth0 issues a refresh
 token (`offline_access`), it is stored in the **OS keychain** (macOS Keychain /
 Windows Credential Manager via the `keyring` crate). On app start, if no
 in-memory access token exists, `bootstrap()` exchanges the stored refresh token
@@ -82,7 +82,7 @@ degrades to sign-in-each-launch.
 | `me()` has no usable ID token and no access token | Throws `AUTH_001` ("No active session. Please sign in."). |
 | Authenticated backend call returns `401` | Session cleared, user redirected to `/login` (no silent refresh). |
 | Window reload mid-session | Token persists in `sessionStorage`; bootstrap restores the session within the same tab. |
-| Full app restart | The keychain refresh token is exchanged for a fresh access token at bootstrap; the user stays signed in (TD-009). Falls back to sign-in when no refresh token is stored or it's expired. |
+| Full app restart | The keychain refresh token is exchanged for a fresh access token at bootstrap; the user stays signed in (pragna2-tracker TD-009). Falls back to sign-in when no refresh token is stored or it's expired. |
 
 ## 6. Out of Scope
 
@@ -94,7 +94,7 @@ degrades to sign-in-each-launch.
 
 ## 7. Open Questions
 
-- [x] **Session lifetime across restarts.** *(Resolved — TD-009.)* The refresh
+- [x] **Session lifetime across restarts.** *(Resolved — pragna2-tracker TD-009.)* The refresh
   token is persisted in the OS keychain (`keyring`) and exchanged at bootstrap,
   so the session survives restarts. Requires the Auth0 app/API to be configured
   to issue refresh tokens (Native app + Refresh Token grant + API "Allow Offline

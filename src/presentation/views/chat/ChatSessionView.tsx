@@ -58,7 +58,7 @@ const UNTITLED = 'New chat';
 
 /** Map a persisted message to the AG-UI seed shape (content + reasoning +
  *  tool calls). Carrying `tool_calls` lets the chat surface rehydrate historical
- *  tool-call badges on resume (TD-018). */
+ *  tool-call badges on resume (pragna2-tracker TD-018). */
 function persistedToAGUIMessage(m: PersistedMessage): Message {
   const base: Record<string, unknown> = {
     id: m.id,
@@ -190,7 +190,7 @@ function ChatConversation({
   // create_pdf_long acks instantly, then generates the document in a SEPARATE
   // background episode and posts it back as a later assistant turn + PDF. We
   // discover that episode and attach to its live stream so the document surfaces
-  // with no manual reload (CF-005 / TD-030). Refetch the open-episode query when
+  // with no manual reload (CF-005 / pragna2-tracker TD-030). Refetch the open-episode query when
   // the ack run settles (the doc episode is spawned just before RUN_FINISHED).
   const openEpisode = useOpenEpisode(conversationId);
   useRefetchOpenEpisodeOnSettle(status, conversationId);

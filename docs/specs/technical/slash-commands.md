@@ -134,10 +134,10 @@ if (slashName && slashFlowNamesRef.current?.has(slashName)) {
 
 ## 7. Out of scope / deferred
 
-HITL episodes (`TD-014`): `EpisodeRepository` + `episode.types.ts`, `useEpisodes`,
+HITL episodes (pragna2-tracker TD-014): `EpisodeRepository` + `episode.types.ts`, `useEpisodes`,
 `HITLFormCard` / `FlowProposalCard`, and resume over
 `POST /api/conversations/{id}/episodes/{eid}/resume`. The backend signals a pause
 in-stream via `CustomEvent(name="on_interrupt", value={schema})`, which this
 app's `useChatSession` CUSTOM handler is positioned to detect natively (vs. the
-web app's buffer-and-poll approach) — a design decision to settle when TD-014 is
+web app's buffer-and-poll approach) — a design decision to settle when pragna2-tracker TD-014 is
 built.

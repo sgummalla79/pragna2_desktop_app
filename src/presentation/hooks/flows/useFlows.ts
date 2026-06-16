@@ -7,7 +7,7 @@ import type {
 
 const FLOWS_KEY = ['flows'] as const;
 const flowKey = (id: string) => ['flows', id] as const;
-/** Reserved for the chat slash popover (deferred — see docs/TODO.md TD-013). */
+/** Reserved for the chat slash popover (deferred — see pragna2-tracker TD-013). */
 const PRAGNA_FLOWS_KEY = ['pragna', 'flows'] as const;
 
 /** List the user's flows. */

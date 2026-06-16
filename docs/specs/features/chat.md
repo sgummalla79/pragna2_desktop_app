@@ -17,7 +17,7 @@ conversation).
 
 Phase 1 delivers **core streaming chat** only. Attachments, slash commands, HITL
 forms / flow proposals, message actions (edit/branch/regenerate/continue), usage
-& cost, and a dedicated chats-browser are deferred (see §7 and `docs/TODO.md`).
+& cost, and a dedicated chats-browser are deferred (see §7 and pragna2-tracker).
 
 ## 2. Goals & Non-Goals
 
@@ -105,25 +105,25 @@ forms / flow proposals, message actions (edit/branch/regenerate/continue), usage
 ## 7. Deferred Scope (later phases)
 
 Nothing from the Phase-1 non-goals remains deferred. **Shipped since Phase 1:**
-slash commands + flow dispatch (`TD-013`, see `slash-commands.md`), HITL `ask_user`
-pause/resume **and** flow proposals (`TD-014`, see `hitl-episodes.md`), historical
-tool-call rehydration (`TD-018`), **attachments + viewer** (`TD-012`, session
+slash commands + flow dispatch (pragna2-tracker TD-013, see `slash-commands.md`), HITL `ask_user`
+pause/resume **and** flow proposals (pragna2-tracker TD-014, see `hitl-episodes.md`), historical
+tool-call rehydration (pragna2-tracker TD-018), **attachments + viewer** (pragna2-tracker TD-012, session
 view — see `attachments.md`), **message actions** edit/branch/regenerate/
-continue (`TD-015`, see `message-actions.md` — also wires the Configuration
-chat-action toggles, `TD-006`), the **full markdown renderer** — KaTeX math,
-Mermaid + `sketchon` diagrams, smooth-streaming reveal (`TD-019`), with the
-**keep-Streamdown** decision recorded (`TD-017`); now at parity with the web app's
+continue (pragna2-tracker TD-015, see `message-actions.md` — also wires the Configuration
+chat-action toggles, pragna2-tracker TD-006), the **full markdown renderer** — KaTeX math,
+Mermaid + `sketchon` diagrams, smooth-streaming reveal (pragna2-tracker TD-019), with the
+**keep-Streamdown** decision recorded (pragna2-tracker TD-017); now at parity with the web app's
 `MarkdownMessage` (see `chat-markdown.md`). Also **per-conversation usage + cost**
-(`TD-016`, see `conversation-usage.md`): each sidebar row shows a quiet
+(pragna2-tracker TD-016, see `conversation-usage.md`): each sidebar row shows a quiet
 running-total-cost chip (hidden at `$0`, fades on hover so the row actions take the
 slot) sourced from `GET /api/conversations/{id}/usage`.
 
 **Shipped via the 2026-06-10 chat parity round:** an **account menu** in the
-sidebar footer (avatar → email + Settings + Sign out — `TD-022`, see
+sidebar footer (avatar → email + Settings + Sign out — pragna2-tracker TD-022, see
 `account-menu.md`), a full-width **conversation history browser** at
-`/chat/history` with search + infinite scroll + relative timestamps (`TD-024`,
+`/chat/history` with search + infinite scroll + relative timestamps (pragna2-tracker TD-024,
 see `conversation-history.md`), and **generated-document cards** for `create_pdf`
 outputs (prominent card + open-in-viewer + download; document-tool badges
-suppressed — `TD-025`, see `generated-documents.md`). The app-wide
+suppressed — pragna2-tracker TD-025, see `generated-documents.md`). The app-wide
 light/dark/system **theme toggle** lives on the new Appearance settings page
-(`TD-023`, see `appearance.md`).
+(pragna2-tracker TD-023, see `appearance.md`).

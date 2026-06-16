@@ -33,7 +33,7 @@ a tiny `AttachmentChip`, and the `create_pdf` tool showed a raw-JSON tool badge.
   and generates in a background episode, then posts back as a later assistant
   turn; the chat auto-attaches to that episode's stream so the card appears with
   no manual reload, showing a "Generating your document…" label meanwhile
-  (CF-005 / TD-030).
+  (CF-005 / pragna2-tracker TD-030).
 
 **Non-Goals**
 - A dedicated split-view "canvas" reader pane (the desktop reuses its existing

@@ -47,7 +47,7 @@ export function AppRoutes() {
           <Route path={ROUTES.SETTINGS_FLOWS} element={<FlowsView />} />
           <Route path={ROUTES.SETTINGS_FLOW_DETAIL} element={<FlowDetailView />} />
           <Route path={ROUTES.SETTINGS_APPEARANCE} element={<AppearanceView />} />
-          {/* Profile page not yet implemented — see docs/TODO.md TD-031. */}
+          {/* Profile page not yet implemented — see pragna2-tracker TD-031. */}
           <Route path={ROUTES.SETTINGS_PROFILE} element={<PlaceholderView />} />
         </Route>
 

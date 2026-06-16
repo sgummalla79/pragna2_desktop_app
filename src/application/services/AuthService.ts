@@ -50,7 +50,7 @@ export class AuthService {
    * Restores the session on app start. First tries the in-memory access token
    * (survives a same-session reload). If that's gone (a fresh launch — the token
    * lives in sessionStorage) it falls back to a refresh token persisted in the
-   * OS keychain, silently exchanging it for a new access token (TD-009). Returns
+   * OS keychain, silently exchanging it for a new access token (pragna2-tracker TD-009). Returns
    * `null` (sign-in required) when neither path yields a valid session.
    *
    * Single-flight: concurrent calls (StrictMode's dev double-invoke, or any

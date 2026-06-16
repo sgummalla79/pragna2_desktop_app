@@ -5,8 +5,8 @@
  * snake_case; mappers in `infrastructure/repositories/mappers/mapConversation.ts`
  * translate at the boundary. UI code only sees the camelCase shapes here.
  *
- * Message attachments are mapped (TD-012); per-conversation usage/cost is
- * mapped (TD-016).
+ * Message attachments are mapped (pragna2-tracker TD-012); per-conversation usage/cost is
+ * mapped (pragna2-tracker TD-016).
  */
 
 import type { Attachment } from '@/domain/types/attachment.types';

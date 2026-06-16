@@ -38,8 +38,8 @@ form). Both are now implemented.
       starts that flow as an episode (Phase B).
 
 **Non-Goals**
-- File-upload fields (depends on attachments, `TD-012`).
-- Cancelling a paused episode from the UI (`TD-014` follow-up).
+- File-upload fields (depends on attachments, pragna2-tracker TD-012).
+- Cancelling a paused episode from the UI (pragna2-tracker TD-014 follow-up).
 
 ## 3. User Flows
 
@@ -78,7 +78,7 @@ form). Both are now implemented.
 
 ## 5. Gating & Edge Cases
 
-- **File fields:** desktop has no attachment upload yet (`TD-012`); a `file`
+- **File fields:** desktop has no attachment upload yet (pragna2-tracker TD-012); a `file`
   field renders a "not supported yet" hint. A *required* file field will block
   submit (correct, if blunt) until uploads land.
 - **No episode id in the pause event:** the `on_interrupt` payload carries the
@@ -100,8 +100,8 @@ form). Both are now implemented.
 
 ## 7. Deferred Scope
 
-- **Episode cancel from the UI** (`TD-014` follow-up — the web app has it).
-- **File-upload fields** (`TD-012` attachments).
+- **Episode cancel from the UI** (pragna2-tracker TD-014 follow-up — the web app has it).
+- **File-upload fields** (pragna2-tracker TD-012 attachments).
 - **Live-verification items** (need a running backend): that the resume SSE
   opens with `RUN_STARTED` (the stream parser expects the standard envelope),
   and how the user's form-submission turn is echoed in the resumed stream.

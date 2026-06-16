@@ -60,7 +60,7 @@ function hydrate(nodes: Node[], edges: Edge[]) {
 
 beforeEach(() => useFlowEditorStore.getState().reset());
 
-describe('EdgePanel — dynamic fan-out (TD-021)', () => {
+describe('EdgePanel — dynamic fan-out (pragna2-tracker TD-021)', () => {
   it('offers the "Send per item" toggle for an agent → agent edge', () => {
     hydrate([agentNode('a'), agentNode('b'), endNode()], [edge('a', 'b')]);
     render(<EdgePanel />);

@@ -2,7 +2,7 @@
 
 > **Status (2026-06-10):** Approved, not yet started. No branch created, no files changed.
 > **Resume at:** Phase 1 — `git checkout -b integration-e2e-tests`, scaffold the `e2e/` harness.
-> **Tracked as:** TD-027 (Tiers 1 & 2 + manual doc, active) and TD-028 (Tier 3 Tauri window e2e, deferred).
+> **Tracked as:** pragna2-tracker TD-027 (Tiers 1 & 2 + manual doc, active) and pragna2-tracker TD-028 (Tier 3 Tauri window e2e, deferred).
 >
 > **Gating risk RESOLVED (verified):** seed-token auth works in browser mode.
 > `AuthService.bootstrap()` (`src/application/services/AuthService.ts:45-70`) reads
@@ -14,7 +14,7 @@
 
 ## Context
 
-`pragna2_desktop_app`'s unit suite (56 files, 242 tests — TD-003, closed) thoroughly covers the
+`pragna2_desktop_app`'s unit suite (56 files, 242 tests — pragna2-tracker TD-003, closed) thoroughly covers the
 logic/data/hook layers but leaves **~10,448 LOC of view/orchestration components at 0%** — exactly
 the files unit tests *shouldn't* cover (mocked-glue tautologies). The sibling web app proves the
 right answer: a mature **Playwright `e2e/` sub-workspace (32 specs)** driving the real frontend
@@ -33,8 +33,8 @@ run on every platform incl. the dev Mac and carry **all** the parity work; the n
 would cover (keychain, native HTTP, loopback OAuth) is already unit-tested, so deferring it loses no
 real coverage today.
 
-This closes a new TODO: **TD-027 — Integration/E2E test suite (Tiers 1 & 2 + manual doc)**, and
-opens **TD-028 — Tier 3 Tauri window e2e (Windows), deferred**.
+This closes a new TODO: **pragna2-tracker TD-027 — Integration/E2E test suite (Tiers 1 & 2 + manual doc)**, and
+opens **pragna2-tracker TD-028 — Tier 3 Tauri window e2e (Windows), deferred**.
 
 ---
 
@@ -44,11 +44,11 @@ opens **TD-028 — Tier 3 Tauri window e2e (Windows), deferred**.
 |---|---|:--:|:--:|:--:|---|
 | **1. Component-integration** | Vitest + jsdom (existing harness) | ✅ | ✅ | ✅ | View wiring, conditional render, form state, error/loading branches, mutation calls |
 | **2. Browser e2e** (PRIMARY) | Playwright vs local API | ✅ | ✅ | ✅ | Real Chromium: layout/responsive gate, navigation, real streaming, real backend data — full user journeys |
-| **3. Tauri window e2e** *(DEFERRED → TD-028)* | `tauri-driver` | ❌ | ✅ | ✅ | The native seam: keychain, native HTTP, loopback OAuth |
+| **3. Tauri window e2e** *(DEFERRED → pragna2-tracker TD-028)* | `tauri-driver` | ❌ | ✅ | ✅ | The native seam: keychain, native HTTP, loopback OAuth |
 | **Manual doc** | Human | ✅ | ✅ | ✅ | Streaming cadence, reduced-motion, OAuth consent, PDF fidelity, OS drag/drop |
 
 > The `❌` is **macOS only** — Tier 3 runs fine on **Windows** and Linux; it just can't run on the
-> dev Mac. It is deferred regardless, to be built for Windows later (TD-028).
+> dev Mac. It is deferred regardless, to be built for Windows later (pragna2-tracker TD-028).
 
 ---
 
@@ -129,9 +129,9 @@ Mirror the web app's `e2e/` sub-workspace 1:1, adapted for the desktop's browser
 
 ---
 
-## Tier 3 — True Tauri window e2e (DEFERRED — TD-028, build for Windows later)
+## Tier 3 — True Tauri window e2e (DEFERRED — pragna2-tracker TD-028, build for Windows later)
 
-- **Not built in this project.** Recorded as **TD-028** with clear documentation so it can be picked
+- **Not built in this project.** Recorded as **pragna2-tracker TD-028** with clear documentation so it can be picked
   up cleanly later. The intended shape when built: a `tauri-driver` + WebdriverIO (or
   `@crabnebula/tauri-driver`) harness under `e2e-tauri/`, run on **Windows** (and Linux), covering the
   native seam the browser tier can't reach — keychain persistence (`secureStore`), native HTTP
@@ -139,7 +139,7 @@ Mirror the web app's `e2e/` sub-workspace 1:1, adapted for the desktop's browser
 - **Why safe to defer:** those seams are already **unit-tested**, and the manual doc covers their
   user-visible behavior. So Tiers 1 & 2 + the manual doc give complete practical coverage on the Mac
   today; Tier 3 is a future hardening layer, not a gap.
-- **TD-028 documentation must state:** the macOS limitation (no WKWebView WebDriver in official
+- **pragna2-tracker TD-028 documentation must state:** the macOS limitation (no WKWebView WebDriver in official
   `tauri-driver`), that it targets Windows/Linux, the exact seams it covers, and the candidate
   tooling — so a future session needs no re-research.
 
@@ -166,9 +166,9 @@ Mirror the web app's `e2e/` sub-workspace 1:1, adapted for the desktop's browser
   with each view.
 - `src/**` view components: additive `data-testid` attributes only (no behavior change).
 - `docs/MANUAL_TEST_SCENARIOS.md` (new).
-- `docs/TODO.md`: open **TD-027** (Tiers 1 & 2 + manual doc); open **TD-028** (Tier 3, deferred,
+- pragna2-tracker: open **pragna2-tracker TD-027** (Tiers 1 & 2 + manual doc); open **pragna2-tracker TD-028** (Tier 3, deferred,
   with the documentation above). `CLAUDE.md` Commands: add `e2e` run instructions.
-- *(No `e2e-tauri/**` in this project — that's TD-028.)*
+- *(No `e2e-tauri/**` in this project — that's pragna2-tracker TD-028.)*
 - Spec pair per CLAUDE.md gate: `docs/specs/features/integration-e2e-tests.md` +
   `docs/specs/technical/integration-e2e-tests.md`.
 
@@ -178,7 +178,7 @@ Mirror the web app's `e2e/` sub-workspace 1:1, adapted for the desktop's browser
 2. **Tier 1 component-integration** — shared renderer + view tests; report new coverage %.
 3. **Tier 2 parity** — port the 32 specs in the 5 groups, adding `data-testid`s as needed.
 4. **Manual doc** — author `MANUAL_TEST_SCENARIOS.md` from the un-automatable residue.
-5. Docs: close-out **TD-027**, open **TD-028** (deferred Tier 3, fully documented), spec pair,
+5. Docs: close-out **pragna2-tracker TD-027**, open **pragna2-tracker TD-028** (deferred Tier 3, fully documented), spec pair,
    CLAUDE.md commands.
 
 ## Verification

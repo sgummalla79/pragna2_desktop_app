@@ -9,7 +9,7 @@
 
 ## 1. Overview
 
-Authentication is implemented in the frontend (React + TypeScript) following Clean Architecture, with a small amount of Tauri/Rust configuration to enable the native flows. The application layer defines two ports — `IAuthRepository` (the auth use cases the UI depends on) and `IExternalAuthorizationFlow` (an abstract OAuth-in-external-browser flow) — and a thin `AuthService` facade. The infrastructure layer provides `Auth0Repository` (the concrete Auth0 integration) and `TauriLoopbackAuthFlow` (the RFC 8252 loopback implementation injected into the repository). Email/password sign-in uses Auth0's **Resource Owner Password Grant** (ROPG); social/enterprise sign-in uses **authorization code + PKCE** through the **system browser**, with the redirect captured on a temporary localhost server started by `tauri-plugin-oauth`. All direct Auth0 HTTP calls (signup, ROPG, token exchange, `/userinfo`) and all Pragna-backend calls run through Tauri's **native HTTP** plugin, so the webview's CORS policy never applies. Session state lives in a Zustand store (`authStore`), is bootstrapped on app start from a `sessionStorage` token — or, on a fresh launch, from a refresh token kept in the OS keychain (macOS Keychain / Windows Credential Manager via the Rust `keyring` crate + `secure_store_*` Tauri commands, wrapped by `secureStore.ts`) exchanged through `Auth0Repository.refresh()` (TD-009) — and gates routing through `ProtectedRoute` / `GuestOnlyRoute`.
+Authentication is implemented in the frontend (React + TypeScript) following Clean Architecture, with a small amount of Tauri/Rust configuration to enable the native flows. The application layer defines two ports — `IAuthRepository` (the auth use cases the UI depends on) and `IExternalAuthorizationFlow` (an abstract OAuth-in-external-browser flow) — and a thin `AuthService` facade. The infrastructure layer provides `Auth0Repository` (the concrete Auth0 integration) and `TauriLoopbackAuthFlow` (the RFC 8252 loopback implementation injected into the repository). Email/password sign-in uses Auth0's **Resource Owner Password Grant** (ROPG); social/enterprise sign-in uses **authorization code + PKCE** through the **system browser**, with the redirect captured on a temporary localhost server started by `tauri-plugin-oauth`. All direct Auth0 HTTP calls (signup, ROPG, token exchange, `/userinfo`) and all Pragna-backend calls run through Tauri's **native HTTP** plugin, so the webview's CORS policy never applies. Session state lives in a Zustand store (`authStore`), is bootstrapped on app start from a `sessionStorage` token — or, on a fresh launch, from a refresh token kept in the OS keychain (macOS Keychain / Windows Credential Manager via the Rust `keyring` crate + `secure_store_*` Tauri commands, wrapped by `secureStore.ts`) exchanged through `Auth0Repository.refresh()` (pragna2-tracker TD-009) — and gates routing through `ProtectedRoute` / `GuestOnlyRoute`.
 
 ## 2. Architecture & Layer Placement
 
@@ -141,7 +141,7 @@ src-tauri/
 
 | Field | Detail |
 |-------|--------|
-| **Purpose** | Restore a session on app start. (1) If a `sessionStorage` access token exists, resolve `me()`. (2) Else fall back to a keychain-stored **refresh token** — `authRepository.refresh()` for a fresh access token, persist, resolve `me()` (TD-009). |
+| **Purpose** | Restore a session on app start. (1) If a `sessionStorage` access token exists, resolve `me()`. (2) Else fall back to a keychain-stored **refresh token** — `authRepository.refresh()` for a fresh access token, persist, resolve `me()` (pragna2-tracker TD-009). |
 | **Inputs** | None. |
 | **Output** | `{ user, accessToken }` if a valid session is restored (via token or refresh); `null` otherwise. |
 | **Errors** | Swallows `me()`/`refresh()` failures: clears storage (and the keychain refresh token when refresh fails) and returns `null` (no throw). |
@@ -390,13 +390,13 @@ All Auth0 env reads are centralised in `src/constants/auth0.ts` (no other file t
 ## 10. Open Questions / Risks
 
 - [ ] **Unused `AUTH_002`/`AUTH_003`/`AUTH_004`/`AUTH_005`.** Defined in the catalog but never thrown — reserve for planned refresh/popup/cancel handling or prune.
-- [x] **Refresh-token usage** *(done — TD-009).* The refresh token is now stored
+- [x] **Refresh-token usage** *(done — pragna2-tracker TD-009).* The refresh token is now stored
   (OS keychain) and exchanged at bootstrap. **Startup** refresh only — a
   mid-session `401` still logs out (no transparent refresh-and-retry in the axios
   interceptor). **Depends on Auth0 config:** the app/API must issue refresh tokens
   (Native app + Refresh Token grant + API "Allow Offline Access"); otherwise it
   degrades to sign-in-each-launch. Not yet verified against the live tenant.
-- [x] **Session persistence** *(done — TD-009).* Cross-restart persistence via the
+- [x] **Session persistence** *(done — pragna2-tracker TD-009).* Cross-restart persistence via the
   keychain refresh token (`keyring` → macOS Keychain / Windows Credential Manager).
 - [ ] **Loopback port registration.** Every port in the pool (default `8788–8791`, or any `VITE_OAUTH_LOOPBACK_PORTS` override) must be registered as an Auth0 Allowed Callback URL; mismatch causes a silent Auth0-side rejection (surfaced only as `AUTH_006`).
 - [ ] **Social login requires the desktop runtime.** Loopback social login cannot work in a plain browser (`pnpm dev`) — it throws `AUTH_006` there; only ROPG works outside Tauri.
