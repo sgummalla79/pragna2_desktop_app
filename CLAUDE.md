@@ -80,6 +80,58 @@ src-tauri/
 - **Start each new UI feature/part on its own git branch** (e.g. `settings-providers`). Never build a
   new UI area directly on `main`. Branch first, implement, then commit/push/merge when the user asks.
 
+### Git Branch & Release Workflow — STANDING RULE (all 3 repos)
+
+This is the authoritative, machine-independent branching/release process. It is checked into the
+repo on purpose so it applies on **every** machine, not just the one where it was first set up. It
+governs **all three repos identically**: `pragna2-api` (backend), this Desktop FE
+(`pragna2_desktop_app`), and the web FE (`pragna2_sgummalla_works`).
+
+1. **Branch off `Releases/V1`.** For **any** fix or **any** feature, create a new branch **from
+   `Releases/V1`** (not `main`) and do the work there. Never commit work directly onto `Releases/V1`
+   or `main`.
+2. **Test against the Docker `pragna2-api`.** Before the work is considered done, verify it against
+   `pragna2-api` running from its Docker container. A change is not "done" until it has been
+   exercised against that real backend.
+3. **Do NOT commit + push + merge until the user explicitly says so.** Finishing and testing the
+   work does **not** grant permission to commit. Wait for an explicit "commit" / "push" / "merge"
+   instruction. (Reinforces the global no-auto-commit rule.)
+4. **Merge target is `Releases/V1`.** When the user authorizes it, commit → push → merge the feature
+   branch **back into `Releases/V1`**.
+5. **Cherry-pick to `main` after merge.** Only **after** the change has been committed + pushed +
+   merged into `Releases/V1` are those changes cherry-picked onto `main`. `main` is never the place
+   work originates.
+6. **Delete the branch after merge.** Once merged + pushed, delete the feature branch both locally
+   and on the remote (`git branch -d <b>` + `git push origin --delete <b>`).
+
+This standing rule stays in force until the user explicitly changes it.
+
+### No Cross-Repo Changes — STANDING RULE (all 3 repos)
+
+This is an authoritative, machine-independent rule, checked into the repo on purpose so it applies on
+**every** machine where these repos are cloned and worked, not just the one where it was first set up.
+It governs **all three repos identically**: `pragna2-api` (backend), this Desktop FE
+(`pragna2_desktop_app`), and the web FE (`pragna2_sgummalla_works`).
+
+**A session stays in its repo lane. Never make changes outside the repo the session is about.**
+
+- **If the session is about this Desktop FE, only Desktop-FE changes may be made.** Do not edit the
+  backend or the web FE — not their code, tests, docs, or config.
+- **If the session is about `pragna2-api`, only `pragna2-api` changes may be made.**
+- **If the session is about the web FE, only web-FE changes may be made.**
+
+When work in one repo *implies* a change in another (e.g. an FE session reveals the backend needs a
+matching change, or vice-versa), **do not make that change.** Instead, surface it explicitly and
+record it as a tracked item (the cross-project tracker / a bug report), so the owning repo's own
+session picks it up. The only permitted exception is an **explicit, one-time user instruction** to
+bootstrap a shared governance change (such as recording this very rule) into the other repos.
+
+Rationale: the three repos are independent deployables on separate release lines; a session that
+silently touches a sibling repo produces untested, unreviewed drift in a project the session was not
+scoped to verify.
+
+This standing rule stays in force until the user explicitly changes it.
+
 ### Responsive Design — Required Before Every Commit
 - **Every UI page/screen MUST be built as a responsive web design.** Layouts must adapt
   gracefully across all viewport sizes — a narrow/resized desktop window, small displays, and
