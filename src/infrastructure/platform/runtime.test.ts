@@ -1,5 +1,11 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { isTauriRuntime, isWindowsPlatform, usesWindowsChrome } from './runtime';
+import {
+  isTauriRuntime,
+  isWindowsPlatform,
+  isMacPlatform,
+  usesWindowsChrome,
+  usesMacOverlayChrome,
+} from './runtime';
 
 /**
  * Platform-predicate contract tests.
@@ -88,5 +94,47 @@ describe('usesWindowsChrome — invariant: real apps are unchanged by the fix', 
     expect(usesWindowsChrome()).toBe(isWindowsPlatform());
     setUserAgent(MACOS_UA);
     expect(usesWindowsChrome()).toBe(isWindowsPlatform());
+  });
+});
+
+describe('isMacPlatform', () => {
+  it('is true for a macOS user-agent (OS detection, runtime-independent)', () => {
+    setUserAgent(MACOS_UA);
+    expect(isMacPlatform()).toBe(true);
+  });
+
+  it('is false for a Windows user-agent', () => {
+    setUserAgent(WINDOWS_UA);
+    expect(isMacPlatform()).toBe(false);
+  });
+
+  it('still reports macOS by UA even without the Tauri runtime', () => {
+    setUserAgent(MACOS_UA);
+    expect(isTauriRuntime()).toBe(false);
+    expect(isMacPlatform()).toBe(true);
+  });
+});
+
+describe('usesMacOverlayChrome — the 4-cell OS × runtime truth table', () => {
+  it('macOS UA + Tauri runtime → true (the real macOS desktop app, overlay lights present)', () => {
+    setUserAgent(MACOS_UA);
+    enterTauriRuntime();
+    expect(usesMacOverlayChrome()).toBe(true);
+  });
+
+  it('macOS UA + NO Tauri runtime → false (browser-fallback / e2e on macOS, no overlay)', () => {
+    setUserAgent(MACOS_UA);
+    expect(usesMacOverlayChrome()).toBe(false);
+  });
+
+  it('Windows UA + Tauri runtime → false (the real Windows desktop app, no mac lights)', () => {
+    setUserAgent(WINDOWS_UA);
+    enterTauriRuntime();
+    expect(usesMacOverlayChrome()).toBe(false);
+  });
+
+  it('Windows UA + NO Tauri runtime → false (browser-fallback / e2e Desktop Chrome, any UA)', () => {
+    setUserAgent(WINDOWS_UA);
+    expect(usesMacOverlayChrome()).toBe(false);
   });
 });

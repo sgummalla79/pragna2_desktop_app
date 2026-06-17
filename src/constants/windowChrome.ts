@@ -25,6 +25,25 @@
 export const TRAFFIC_LIGHT_X = 22;
 export const TRAFFIC_LIGHT_Y = 28;
 
+/** On-screen width of the three macOS traffic-light buttons as a group, measured
+ *  from {@link TRAFFIC_LIGHT_X}. macOS does not expose this; it is empirical
+ *  (≈3 × 12px lights + 2 gaps). Used only to derive the safe inset below. */
+const TRAFFIC_LIGHT_GROUP_WIDTH_PX = 52;
+
+/** Small breathing margin between the traffic lights and the first piece of
+ *  content placed to their right, px. */
+const TRAFFIC_LIGHT_CLEARANCE_PX = 10;
+
+/** Left inset that clears the overlay traffic lights for content anchored to the
+ *  window's TOP-LEFT — i.e. the header bar of a full-screen overlay surface that
+ *  draws over the app chrome (the agent editor, the attachment viewer, …). A
+ *  full-screen overlay covers the sidebar that normally hosts the lights, so its
+ *  own top-left content would sit under them without this inset. Applied ONLY on
+ *  macOS-overlay chrome (see `usesMacOverlayChrome`); the native frame / browser
+ *  needs no inset. Derived — never inline a literal at the call site. px. */
+export const TRAFFIC_LIGHT_SAFE_INSET_PX =
+  TRAFFIC_LIGHT_X + TRAFFIC_LIGHT_GROUP_WIDTH_PX + TRAFFIC_LIGHT_CLEARANCE_PX;
+
 /** Inset of each sidebar box from the window edge (left + top + bottom), px. */
 export const SIDEBAR_BOX_INSET_PX = 10;
 
