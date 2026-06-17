@@ -21,6 +21,7 @@ import {
   type DelegationResult,
   type ReauthAction,
   type ReauthEnvelope,
+  delegationResultFromOutcome,
   readDelegationEnvelope,
   readReauthEnvelope,
 } from '@/domain/types/mcpDelegation.types';
@@ -788,12 +789,16 @@ export function useChatSession(
       const results: DelegationResult[] = [];
       for (const call of envelope.calls) {
         try {
-          const result = await mcpStdio.call(
+          const outcome = await mcpStdio.call(
             call.connector_id,
             call.upstream_name,
             call.args,
           );
-          results.push({ tool_result: result });
+          // #124: an `auth_required` outcome (the aggregator's downstream-service
+          // token is dead) becomes the structured signal so the BE pauses for a
+          // per-service re-auth card instead of letting the LLM narrate the raw
+          // auth error; a normal outcome becomes a tool_result.
+          results.push(delegationResultFromOutcome(outcome));
         } catch (e) {
           results.push({
             tool_error: e instanceof Error ? e.message : String(e),

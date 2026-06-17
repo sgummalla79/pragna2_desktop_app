@@ -11,6 +11,42 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-020 — Delegated stdio `call` discarded `result.isError` → aggregator auth errors narrated by the LLM, never paused
+
+- **Date:** 2026-06-17
+- **Tracker:** pragna2-tracker #124 (`type:feature`, `target:desktop-fe`) — the per-service
+  re-auth feature; this is its bug-fix portion. BE counterpart #123; root cause #122.
+- **Area / files:** `src-tauri/src/platform/mcp_registry.rs` (`McpRegistry::call`),
+  `src-tauri/src/domain/mcp.rs` (`DelegatedCallOutcome`, `AUTH_ERROR_RESULT_SIGNALS`,
+  `is_auth_error_signal`, `service_from_args`), `src-tauri/src/application/mcp_host.rs`
+  (`call` enriches `service`), `src-tauri/src/adapters/mcp_commands.rs` (`mcp_stdio_call`
+  returns the tagged outcome); FE `src/presentation/views/chat/hooks/useChatSession.ts`
+  (`runDelegation`).
+- **Bug + root cause:** the client-delegated stdio tool path flattened the tool result with
+  `flatten_result(&result)` and **discarded `result.isError`**. So when an aggregator's
+  **downstream-service** token expired (e.g. GUS returns an `isError` body containing
+  `INVALID_SESSION_ID`/`401`), the desktop relayed it to the backend as a normal
+  `tool_result`; the agent then **narrated the auth error in prose** instead of the run
+  pausing for re-authentication — the exact #122 symptom, on the desktop side of the
+  delegated path. (This mirrors the backend's `_flatten_result_content` discarding `isError`,
+  the #122 root cause fixed in pragna2-api #123.)
+- **The fix:** `call` now **classifies** the outcome — an `isError` body (or a raised call
+  error) whose text matches the conservative `AUTH_ERROR_RESULT_SIGNALS` list (mirrored from
+  the BE) yields `DelegatedCallOutcome::AuthRequired { service, reason }`, with `service`
+  derived from the connector's stored `--server`/`--provider` launch arg. `runDelegation`
+  relays that as the structured `{ auth_required: { service, reason, authorization_url } }`
+  result on `/resume-tool`, so the backend pauses with a per-service `connector_reauth`
+  card. Non-auth `isError` bodies and normal results are unchanged (still relayed as
+  `tool_result`). A `[mcp_stdio_call]` diagnostic logs the raw classified outcome so a real
+  expired-token run confirms which channel carries the signal (see tech spec §10 / M10).
+- **Web-app applicability:** **N/A for `pragna2_sgummalla_works`** — the client-delegated
+  stdio host is a **desktop-only** capability (`mcpStdio` throws `NotInTauriError` in a
+  browser; the web FE never runs a local MCP server), so this exact Rust path does not exist
+  there. The analogous *backend* defect was already fixed in pragna2-api #123. No web-FE
+  action required.
+
+---
+
 ## FEAT-003 — Flow editor: description / YAML import-export / enable-disable + full-page
 
 - **Date:** 2026-06-16

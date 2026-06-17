@@ -104,7 +104,8 @@ pub fn run() {
             adapters::mcp_commands::mcp_stdio_call,
             adapters::mcp_commands::mcp_stdio_save_config,
             adapters::mcp_commands::mcp_stdio_clear_config,
-            adapters::mcp_commands::mcp_stdio_auth
+            adapters::mcp_commands::mcp_stdio_auth,
+            adapters::mcp_commands::mcp_stdio_reauth
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
