@@ -166,6 +166,15 @@ change.
   propagate.
 - `useChatSession`: `AbortError` (Stop/navigation) resets silently; other run
   failures set `status='error'` + an error string and log `CHT_004`.
+- Two distinct run-failure paths (CF-016): a *thrown* error (connection drop /
+  abort rejection) → `onRunFailed`; a backend-emitted **in-band `RUN_ERROR`
+  event** (a background run that failed mid-stream, e.g. an LLM 4xx) →
+  `onRunErrorEvent`. ag-ui delivers the latter as a non-throwing event, so it
+  must be handled separately or the turn goes silently idle with no reply.
+  `onRunErrorEvent` surfaces the backend's sanitized message (fallback
+  `CHT_004`); a `RUN_ERROR` with `code:'abort'` unwinds silently like the
+  thrown `AbortError`. The abort-vs-error decision is the pure
+  `utils/runError.classifyRunErrorEvent`.
 - Mutations log via the error catalog (`CHT_005` update, `CHT_006` delete) on
   `onError`; the delete flow navigates away first + invalidates only list keys to
   avoid 404-ing still-mounted per-conversation observers.
