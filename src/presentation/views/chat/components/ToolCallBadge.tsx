@@ -1,4 +1,8 @@
+import { useMemo } from 'react';
+import { Wrench } from 'lucide-react';
 import type { ChatToolCall } from '@/presentation/views/chat/hooks/useChatSession';
+import { ActivityDisclosure } from './ActivityDisclosure';
+import { toolArgEntries, toolArgSummary, toolDisplayLabel } from '../utils/toolDisplay';
 
 interface ToolCallBadgeProps {
   call: ChatToolCall;
@@ -7,43 +11,43 @@ interface ToolCallBadgeProps {
 /**
  * Inline renderer for a single tool call under an assistant turn.
  *
- * Shows the tool name, the (partial) JSON arguments as they stream in, and —
- * once the matching `ToolCallResultEvent` arrives — the string result. Kept
- * low-contrast so it doesn't dominate the assistant's prose.
+ * Renders through the shared {@link ActivityDisclosure} so a tool call reads
+ * exactly like a reasoning trace: a clean collapsed summary (friendly tool
+ * label + primary argument), expanding into the arguments as readable
+ * key/value lines and a "Working…/Done" footer. It NEVER shows the raw internal
+ * tool name, raw args JSON, or the raw result payload (pragna2-tracker — clean
+ * tool rendering); the model's prose answer conveys the outcome.
  */
 export function ToolCallBadge({ call }: ToolCallBadgeProps) {
-  const argsPreview =
-    call.args !== undefined
-      ? JSON.stringify(call.args)
-      : (call.argsBuffer || '…').trim();
+  const label = useMemo(() => toolDisplayLabel(call.name), [call.name]);
+  const argSummary = useMemo(() => toolArgSummary(call.args), [call.args]);
+  const entries = useMemo(() => toolArgEntries(call.args), [call.args]);
+
+  const summary = argSummary ? `${label} · ${argSummary}` : label;
 
   return (
-    <div
-      data-testid="tool-call-badge"
-      className="my-2 rounded-md border border-border bg-accent px-3 py-2 text-[12px]"
-    >
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-[11px] text-primary">tool</span>
-        <span className="font-mono text-[12px] font-semibold text-foreground">
-          {call.name}
-        </span>
-        {!call.complete && (
-          <span className="text-[11px] text-muted-foreground">running…</span>
+    <div data-testid="tool-call-badge">
+      <ActivityDisclosure
+        summary={summary}
+        openLabel={label}
+        status={call.complete ? 'done' : 'running'}
+        leadingIcon={
+          <Wrench className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+        }
+      >
+        {entries.length > 0 ? (
+          <dl className="space-y-0.5">
+            {entries.map((e) => (
+              <div key={e.key} className="flex gap-2">
+                <dt className="shrink-0 text-muted-foreground/70">{e.key}:</dt>
+                <dd className="min-w-0 break-words">{e.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <span>{label}</span>
         )}
-      </div>
-      <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap font-mono text-[11px] text-foreground">
-        {argsPreview}
-      </pre>
-      {call.result !== undefined && (
-        <div className="mt-2 border-t border-border pt-2">
-          <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
-            result
-          </span>
-          <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap font-mono text-[12px] text-foreground">
-            {call.result}
-          </pre>
-        </div>
-      )}
+      </ActivityDisclosure>
     </div>
   );
 }

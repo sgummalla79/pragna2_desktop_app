@@ -116,6 +116,22 @@ change.
   `ConversationList`, `ConversationListItem`, `ChatInput`, `ModelPicker` (shadcn
   `Select`), `ThinkingToggle`, `ChatMessage`, `MarkdownMessage` (Streamdown),
   `ReasoningPanel`, `ToolCallBadge`, `ModelBadge`, `ThinkingStrip`, `SetupBanner`.
+- **Agent-activity rendering (FEAT-002, claude.ai-style).** The transcript never
+  shows raw tool output. `ChatSessionView` groups the flat message list with
+  `utils/assistantTurns.groupChatMessages` into user/system messages + assistant
+  **turns**. `AssistantTurn` folds each turn's reasoning + interim narration +
+  every plain tool call into **one** collapsible `ActivityDisclosure` (the shared
+  summary → Clock → `Working…`/`Done` timeline; `ReasoningPanel` is a thin wrapper
+  over it). The **final answer** (last assistant text with no trailing tool call)
+  and **outputs/interactive cards** (generated-document PDFs, `FlowProposalCard`,
+  HITL forms) render **outside** the umbrella via `ChatMessage` (new
+  `hideReasoning` prop — reasoning lives in the umbrella). Tool names are
+  humanized by `utils/toolDisplay.toolDisplayLabel` (curated map in
+  `constants/toolLabels` + generic humanizer); args show as readable key/value
+  lines, never raw JSON; `tool`-role messages are suppressed (their content is the
+  raw result payload). Agent **flows** are out of scope — their stage UI is
+  unchanged. `ThinkingStrip` is **persistent** (CF-017): a static brand logo when
+  idle ("ready for your next message"), spinning + label while running.
 - **Markdown renderer** (`MarkdownMessage`, ported faithfully from the web app):
   Streamdown owns GFM + Shiki + KaTeX + Mermaid; we add two things and configure
   three:

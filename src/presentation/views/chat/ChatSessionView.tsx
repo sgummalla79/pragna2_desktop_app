@@ -46,7 +46,9 @@ import { ReauthCard } from './components/hitl/ReauthCard';
 import { ModelPicker } from './components/ModelPicker';
 import { ThinkingToggle } from './components/ThinkingToggle';
 import { ThinkingStrip } from './components/ThinkingStrip';
-import { useChatSession } from './hooks/useChatSession';
+import { useChatSession, type ChatMessage as ChatMessageModel } from './hooks/useChatSession';
+import { AssistantTurn } from './components/AssistantTurn';
+import { groupChatMessages } from './utils/assistantTurns';
 import { useReconcileMessages } from './hooks/useReconcileMessages';
 import {
   clearPendingInitialMessage,
@@ -245,6 +247,19 @@ function ChatConversation({
     return null;
   }, [messages]);
 
+  // Group the flat message list into user/system messages + assistant turns, so
+  // each turn's intermediate work folds into one activity umbrella (claude.ai
+  // style). The streaming turn is the last assistant turn while a run is live.
+  const groups = useMemo(() => groupChatMessages(messages), [messages]);
+  const streamingTurnKey = useMemo(() => {
+    if (status !== 'running') return null;
+    for (let i = groups.length - 1; i >= 0; i--) {
+      const g = groups[i];
+      if (g.kind === 'assistant-turn') return g.messages[0].id;
+    }
+    return null;
+  }, [groups, status]);
+
   // Models for the regenerate-with-model dropdown. Gated by the chat preference
   // and only for plain (non-flow) conversations — a flow runs its own model.
   const availableModels = useMemo(() => {
@@ -305,6 +320,39 @@ function ChatConversation({
     },
     onContinue: () => send(CONTINUE_PROMPT),
   };
+
+  // Render one message through the full `ChatMessage` with every per-message
+  // prop wired. Used directly for user/system messages and, via `AssistantTurn`,
+  // for a turn's "outside" messages (the answer + outputs) — those pass
+  // `hideReasoning` since the turn's reasoning is folded into the umbrella.
+  const renderMessage = (m: ChatMessageModel, opts: { hideReasoning: boolean }) => (
+    <ChatMessage
+      message={m}
+      streaming={streamingMessageIds.has(m.id)}
+      userModelId={
+        streamingModelByMessageId.get(m.id) ??
+        persistedModelById.get(m.id) ??
+        activeModelId
+      }
+      proposalFlows={proposalFlows}
+      proposalBusy={status === 'running'}
+      onAcceptProposal={(flowApiName, summary, additionalContext) =>
+        startEpisode({
+          flowApiName,
+          seedSummary: summary || null,
+          seedUserInput: additionalContext || null,
+        })
+      }
+      attachments={attachmentsByMessageId.get(m.id)}
+      onOpenAttachment={setViewingAttachment}
+      actions={messageActions}
+      branchEnabled={prefs.branchEnabled}
+      availableModels={availableModels}
+      isLastAssistant={m.id === lastAssistantId}
+      finishReason={finishReasonById.get(m.id) ?? null}
+      hideReasoning={opts.hideReasoning}
+    />
+  );
 
   // Fire the landing's pending first message exactly once on mount.
   const firedFirstMessage = useRef(false);
@@ -375,34 +423,22 @@ function ChatConversation({
       {/* Messages. */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6">
-          {messages.map((m) => (
-            <ChatMessage
-              key={m.id}
-              message={m}
-              streaming={streamingMessageIds.has(m.id)}
-              userModelId={
-                streamingModelByMessageId.get(m.id) ??
-                persistedModelById.get(m.id) ??
-                activeModelId
-              }
-              proposalFlows={proposalFlows}
-              proposalBusy={status === 'running'}
-              onAcceptProposal={(flowApiName, summary, additionalContext) =>
-                startEpisode({
-                  flowApiName,
-                  seedSummary: summary || null,
-                  seedUserInput: additionalContext || null,
-                })
-              }
-              attachments={attachmentsByMessageId.get(m.id)}
-              onOpenAttachment={setViewingAttachment}
-              actions={messageActions}
-              branchEnabled={prefs.branchEnabled}
-              availableModels={availableModels}
-              isLastAssistant={m.id === lastAssistantId}
-              finishReason={finishReasonById.get(m.id) ?? null}
-            />
-          ))}
+          {groups.map((g) =>
+            g.kind === 'message' ? (
+              <div key={g.message.id}>
+                {renderMessage(g.message, { hideReasoning: false })}
+              </div>
+            ) : (
+              <AssistantTurn
+                key={g.messages[0].id}
+                messages={g.messages}
+                renderMessage={renderMessage}
+                hasAttachment={(id) => (attachmentsByMessageId.get(id)?.length ?? 0) > 0}
+                streaming={g.messages[0].id === streamingTurnKey}
+                progressLabel={progressLabel}
+              />
+            ),
+          )}
           <ThinkingStrip
             active={status === 'running' || Boolean(isLongPdfEpisode)}
             label={progressLabel ?? (isLongPdfEpisode ? LONG_PDF_GENERATING_LABEL : null)}

@@ -65,10 +65,16 @@ forms / flow proposals, message actions (edit/branch/regenerate/continue), usage
 - [ ] With a connected provider + a chat-eligible model + a default agent, sending
       a message streams a reply token-by-token; the model attribution shows the
       producing model; Stop halts the stream.
-- [ ] When extended thinking is on and the model supports it, a collapsible
-      **Reasoning** panel renders (open while streaming).
-- [ ] When the agent calls a tool, a tool-call badge renders inline with its
-      (streaming) args and, when available, its result.
+- [ ] A turn's intermediate work — extended-thinking reasoning, interim narration,
+      and every tool call — folds into **one** collapsible activity umbrella
+      (claude.ai-style); only the final answer (plus generated documents / flow
+      proposals / HITL forms) stays in the transcript. The umbrella is open + live
+      while the turn streams, then collapses to **Done** (FEAT-002).
+- [ ] Tool calls show a **friendly name** + their query (e.g. "Tavily Search · …"),
+      never the raw internal name, raw args JSON, or raw result payload.
+- [ ] The Pragna brand logo stays at the bottom of the conversation: **static**
+      when idle ("ready for your next message"), **spinning** + a status label
+      while the agent works (CF-017).
 - [ ] The sidebar lists pinned then recent conversations; rename, pin/unpin, and
       delete take effect immediately.
 - [ ] Reopening a conversation shows its prior messages.

@@ -415,6 +415,63 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## FEAT-002 — Clean agent-activity rendering (one collapsible "umbrella" per turn, claude.ai-style)
+
+- **Date:** 2026-06-17
+- **Area / files:** `src/presentation/views/chat/components/ActivityDisclosure.tsx` (new, reusable),
+  `AssistantTurn.tsx` (new), `ToolCallBadge.tsx`, `ReasoningPanel.tsx`, `ChatMessage.tsx`,
+  `ChatSessionView.tsx`; utils `utils/toolDisplay.ts`, `utils/assistantTurns.ts` (new);
+  constants `constants/toolLabels.ts` (new), `constants/chat.ts` (`PROPOSE_FLOW_PREFIX`).
+- **Why:** The chat transcript dumped raw, developer-facing tool output — the internal tool name
+  (`mcp_tavily_tavily_search`), raw args JSON, **and the raw result payload** (a wall of JSON) — both
+  via the old `ToolCallBadge` (`call.result` in a `<pre>`) and via raw `tool`-role message content
+  (`ChatMessage` rendered `{message.content}` for `role === 'tool'`). The user wanted the claude.ai
+  model: all intermediate work folded under one collapsible umbrella, only the final answer in the
+  transcript.
+- **What shipped:**
+  1. **No raw output.** `tool`-role messages are suppressed entirely (their content is the raw result);
+     `ToolCallBadge` no longer renders the result, and shows a **friendly label** (`toolDisplayLabel`
+     strips the `mcp_` prefix, collapses the duplicate connector word, title-cases →
+     `mcp_tavily_tavily_search` → "Tavily Search") + the primary arg, with args as readable key/value
+     lines (arrays/objects summarized by count — never raw JSON).
+  2. **Reusable `ActivityDisclosure`** — the shared collapsible timeline (summary header → Clock node →
+     `Working…`/`Done`). `ReasoningPanel` is now a thin wrapper over it.
+  3. **`AssistantTurn` grouping** — `groupChatMessages` segments the flat list into user messages +
+     assistant turns; each turn folds its reasoning + interim narration + every plain tool call into
+     **one** `ActivityDisclosure`. The **final answer** (last assistant text with no trailing tool
+     call) and **outputs/interactive cards** (generated-document PDFs, flow-proposal cards, HITL
+     forms) render **outside** the umbrella via the existing `ChatMessage` (with a new `hideReasoning`
+     prop so reasoning isn't duplicated). The umbrella is open + live while streaming, collapses to
+     `Done` when finalized. Plain turns (no tools/reasoning) render no umbrella. **Agent flows are
+     untouched** — their stage UI (proposal cards, HITL, episode stages) stays as-is.
+- **Tests:** pure utils (`toolDisplay`, `assistantTurns`) + component render tests
+  (`ActivityDisclosure`, `ToolCallBadge`, `AssistantTurn`); full suite green.
+- **Web-app applicability:** **APPLIES — port to `pragna2_sgummalla_works`.** The web FE shares the
+  same `ChatMessage`/`ToolCallBadge`/`ReasoningPanel`/`useChatSession` architecture and currently has
+  the **identical** raw-JSON dump (its `ToolCallBadge` renders `call.result`; its `ChatMessage` likely
+  renders raw `tool`-role content). Bring over: `ActivityDisclosure`, `toolDisplay`, `assistantTurns`,
+  `AssistantTurn`, the `ChatMessage` tool-role suppression + `hideReasoning`, and the `ChatSessionView`
+  grouping. Tracked for the web FE in **pragna2-tracker** (`target:web-fe`).
+
+---
+
+## CF-017 — Brand logo vanished after a reply (no idle "ready" indicator) — web-FE/claude.ai parity
+
+- **Date:** 2026-06-17
+- **Area / file:** `src/presentation/views/chat/components/ThinkingStrip.tsx`.
+- **Bug:** The desktop `ThinkingStrip` returned `null` whenever `!active`, so the Pragna brand logo
+  disappeared the moment a reply finished — there was no persistent "ready for your next message"
+  indicator at the bottom of the conversation. The web FE (and claude.ai) keep the logo on screen: a
+  **static** logo when idle, a **spinning** logo + status label while thinking.
+- **Fix:** Made the strip persistent — always render; spin the logo + show the label only while
+  `active`; when idle, a static logo with `aria-label="Ready for your next message"` and no text.
+  (Matches the web FE's `ThinkingStrip` idle/thinking states; the desktop keeps its simpler styling —
+  parity is functional, not pixel-for-pixel.) 3 component tests added.
+- **Web-app applicability:** **N/A as a fix — the behavior ORIGINATES on the web FE** (this brought the
+  desktop up to parity). No web-FE change needed.
+
+---
+
 ## CF-016 — Agent silently "not responding" — FE ignored the backend's in-band `RUN_ERROR` event
 
 - **Date:** 2026-06-16
