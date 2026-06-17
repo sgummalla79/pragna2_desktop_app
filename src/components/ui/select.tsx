@@ -58,7 +58,11 @@ function SelectTrigger({
 function SelectContent({
   className,
   children,
-  position = "item-aligned",
+  // Open BELOW the trigger (popper), not overlaid on top of it. The Radix
+  // "item-aligned" default positions the selected item OVER the trigger, so the
+  // option list overlaps the control — the dropdown-overlap bug across every
+  // Select (model picker, MCP connector picker, active/inactive, …). See CF-018.
+  position = "popper",
   align = "center",
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>) {
@@ -76,7 +80,9 @@ function SelectContent({
         <SelectPrimitive.Viewport
           data-position={position}
           className={cn(
-            "data-[position=popper]:h-(--radix-select-trigger-height) data-[position=popper]:w-full data-[position=popper]:min-w-(--radix-select-trigger-width)",
+            // `min-h-` (not `h-`) so a multi-item list grows past the trigger
+            // height instead of being clipped to one row in popper mode (CF-018).
+            "data-[position=popper]:min-h-(--radix-select-trigger-height) data-[position=popper]:w-full data-[position=popper]:min-w-(--radix-select-trigger-width)",
             position === "popper" && ""
           )}
         >
