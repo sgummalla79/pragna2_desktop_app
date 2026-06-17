@@ -15,9 +15,8 @@ import { AttachmentChip } from './AttachmentChip';
 import { DocumentCard } from './DocumentCard';
 import { MessageActions, type ModelOption } from './MessageActions';
 import { DOCUMENT_TOOL_NAMES } from '@/constants/documentTools';
+import { PROPOSE_FLOW_PREFIX } from '@/constants/chat';
 
-/** Backend prefix for propose-flow tool names (`propose_flow_<api_name>`). */
-const PROPOSE_FLOW_PREFIX = 'propose_flow_';
 
 /** Per-message action callbacks (edit/branch on user; regen/continue on assistant). */
 export interface MessageActionHandlers {
@@ -66,6 +65,12 @@ interface ChatMessageProps {
   isLastAssistant?: boolean;
   /** Persisted finish reason; `'length'` on the last assistant turn shows Continue. */
   finishReason?: FinishReason | null;
+  /**
+   * Suppress this message's reasoning panel. The {@link AssistantTurn} grouping
+   * folds the whole turn's reasoning into one activity umbrella, so the answer
+   * message it renders must not also show its own reasoning strip.
+   */
+  hideReasoning?: boolean;
 }
 
 /**
@@ -90,6 +95,7 @@ export function ChatMessage({
   availableModels,
   isLastAssistant,
   finishReason,
+  hideReasoning,
 }: ChatMessageProps) {
   const [editing, setEditing] = useState(false);
   const [editDraft, setEditDraft] = useState('');
@@ -170,9 +176,16 @@ export function ChatMessage({
     );
   }
 
-  if (message.role === 'tool' || message.role === 'system') {
+  // Tool-result messages are represented by the assistant turn's clean tool
+  // activity badge (ToolCallBadge); their raw content is the tool's result
+  // payload (often a large JSON blob) and must never be dumped into the
+  // transcript. Suppress them entirely — the assistant's prose conveys the
+  // outcome (pragna2-tracker — clean tool rendering).
+  if (message.role === 'tool') return null;
+
+  if (message.role === 'system') {
     return (
-      <div data-role={message.role} className="text-[13px] text-muted-foreground">
+      <div data-role="system" className="text-[13px] text-muted-foreground">
         {message.content}
       </div>
     );
@@ -187,7 +200,7 @@ export function ChatMessage({
 
   return (
     <div data-role="assistant" className="group flex flex-col gap-1.5">
-      {message.reasoning && (
+      {message.reasoning && !hideReasoning && (
         <ReasoningPanel reasoning={message.reasoning} defaultOpen={streaming} />
       )}
       {message.content && (
