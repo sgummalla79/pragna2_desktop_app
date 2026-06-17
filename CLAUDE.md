@@ -106,6 +106,30 @@ governs **all three repos identically**: `pragna2-api` (backend), this Desktop F
 
 This standing rule stays in force until the user explicitly changes it.
 
+### Sync Latest Before Starting Work — STANDING RULE (all 3 repos)
+
+This is an authoritative, machine-independent rule, checked into the repo on purpose so it applies on
+**every** machine where these repos are cloned and worked. It governs **all three repos identically**:
+`pragna2-api` (backend), this Desktop FE (`pragna2_desktop_app`), and the web FE
+(`pragna2_sgummalla_works`).
+
+**Always fetch + sync the latest remote state BEFORE starting any code change.** These repos are worked
+on more than one machine and by more than one teammate, so the local clone is routinely stale — work
+started on a stale base produces avoidable merge conflicts and silent regressions (re-fixing something
+already fixed, or building on code that has since changed).
+
+1. **Fetch before branching.** Before creating the feature branch, run `git fetch origin` and base the
+   branch on the **freshly-fetched** `origin/Releases/V1` (`git checkout -b <branch> origin/Releases/V1`),
+   never on a local tip that may be behind.
+2. **Confirm you are current.** Verify the branch base equals `origin/Releases/V1`
+   (`git rev-parse HEAD` vs `git rev-parse origin/Releases/V1`, or `git log HEAD..origin/Releases/V1`
+   is empty). If `Releases/V1` advanced after you branched, rebase the feature branch onto the latest
+   `origin/Releases/V1` before continuing.
+3. **Re-fetch before push/merge.** Immediately before the authorized commit → push → merge, fetch again
+   and rebase if needed, so the merge target is still current.
+
+This standing rule stays in force until the user explicitly changes it.
+
 ### No Cross-Repo Changes — STANDING RULE (all 3 repos)
 
 This is an authoritative, machine-independent rule, checked into the repo on purpose so it applies on
