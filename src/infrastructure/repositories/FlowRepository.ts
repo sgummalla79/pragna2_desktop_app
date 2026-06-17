@@ -6,6 +6,7 @@ import type {
 import type {
   CreateFlowPayload,
   Flow,
+  UpdateFlowPayload,
   UpdateFlowSlashExposurePayload,
 } from '@/domain/types/flow.types';
 import type { YamlValidationResult } from '@/domain/types/flowYaml.types';
@@ -70,6 +71,15 @@ export class FlowRepository implements IFlowRepository {
       { definition },
     );
     return { flow: mapFlow(response.data), created: false };
+  }
+
+  async updateFlow(flowId: string, payload: UpdateFlowPayload): Promise<Flow> {
+    const body: Record<string, unknown> = {};
+    if (payload.displayName !== undefined) body.display_name = payload.displayName;
+    if (payload.description !== undefined) body.description = payload.description;
+    if (payload.enabled !== undefined) body.enabled = payload.enabled;
+    const { data } = await this.http.patch<ApiFlowResponse>(`/flows/${flowId}`, body);
+    return mapFlow(data);
   }
 
   async updateSlashExposure(

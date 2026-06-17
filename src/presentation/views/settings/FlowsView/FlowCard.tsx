@@ -8,10 +8,12 @@ import { ConfirmButton } from '@/components/ui/confirm-button';
 import { EntityIcon } from '@/presentation/components/icons/EntityIcon';
 import { ROUTES } from '@/constants/routes';
 import { ERRORS } from '@/constants/errors';
+import { FLOW_SLASH_NAME_RE } from '@/constants/flows';
 import { slugify } from '@/domain/utils/slugify';
 import { logger } from '@/infrastructure/logging/logger';
 import {
   useDeleteFlow,
+  useUpdateFlow,
   useUpdateFlowSlashExposure,
 } from '@/presentation/hooks/flows/useFlows';
 import type { Flow } from '@/domain/types/flow.types';
@@ -20,18 +22,19 @@ interface FlowCardProps {
   flow: Flow;
 }
 
-const SLASH_NAME_RE = /^[a-z][a-z0-9-]*$/;
-
 /**
- * One flow in the list: name + api_name, node/edge counts, enabled state, a
- * slash-exposure toggle row, Open, and a confirmed Delete. Slash exposure is
- * backed by `PATCH /api/flows/{id}/slash-exposure`; the backend requires a
- * non-empty description before a flow can be exposed, so a 4xx surfaces inline.
+ * One flow in the list: name + api_name, node/edge counts, an enable/disable
+ * toggle, a slash-exposure toggle row, Open, and a confirmed Delete. Enable
+ * (`PATCH /api/flows/{id}`) and slash exposure
+ * (`PATCH /api/flows/{id}/slash-exposure`) both apply immediately from the card
+ * — no need to open the editor; the backend requires a non-empty description
+ * before a flow can be exposed, so a 4xx surfaces inline.
  */
 export function FlowCard({ flow }: FlowCardProps) {
   const navigate = useNavigate();
   const remove = useDeleteFlow();
   const slash = useUpdateFlowSlashExposure();
+  const update = useUpdateFlow();
 
   const [slashName, setSlashName] = useState(flow.slashApiName ?? slugify(flow.apiName));
   const [error, setError] = useState<string | null>(null);
@@ -53,11 +56,22 @@ export function FlowCard({ flow }: FlowCardProps) {
     }
   };
 
+  const toggleEnabled = async () => {
+    setError(null);
+    try {
+      await update.mutateAsync({ flowId: flow.id, payload: { enabled: !flow.enabled } });
+    } catch (err) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setError(typeof detail === 'string' && detail ? detail : ERRORS.FLW_009.message);
+      logger.fromError('FLW_009:enabled', err instanceof Error ? err : new Error(String(err)));
+    }
+  };
+
   const toggleExposed = () => {
     if (flow.exposedAsSlash) {
       void runSlash({ exposedAsSlash: false });
     } else {
-      if (!SLASH_NAME_RE.test(slashName)) {
+      if (!FLOW_SLASH_NAME_RE.test(slashName)) {
         setError(ERRORS.FLW_008.message);
         return;
       }
@@ -83,15 +97,16 @@ export function FlowCard({ flow }: FlowCardProps) {
           </p>
           <p className="truncate font-mono text-[11px] text-muted-foreground">{flow.apiName}</p>
         </div>
-        {flow.enabled ? (
-          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-            Enabled
-          </span>
-        ) : (
-          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-            Disabled
-          </span>
-        )}
+        <Button
+          variant={flow.enabled ? 'default' : 'outline'}
+          size="xs"
+          className="min-w-[5rem] shrink-0 justify-center"
+          onClick={() => void toggleEnabled()}
+          disabled={update.isPending}
+          title={flow.enabled ? 'Disable (unload from the runtime)' : 'Enable (load into the runtime)'}
+        >
+          {flow.enabled ? 'Enabled' : 'Disabled'}
+        </Button>
       </div>
 
       <p className="text-[12px] text-muted-foreground">

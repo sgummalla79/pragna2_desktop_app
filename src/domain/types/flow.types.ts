@@ -79,6 +79,18 @@ export interface CreateFlowPayload {
   definition?: string;
 }
 
+/**
+ * Body for `PATCH /api/flows/{id}` — flow-level fields that live OUTSIDE the
+ * YAML graph (so they're not round-tripped through the editor's save-from-YAML
+ * path). Every field is optional; omit a field to leave it unchanged.
+ */
+export interface UpdateFlowPayload {
+  displayName?: string;
+  description?: string | null;
+  /** Load / unload the flow from the runtime (enable / disable). */
+  enabled?: boolean;
+}
+
 /** Body for `PATCH /api/flows/{id}/slash-exposure`. */
 export interface UpdateFlowSlashExposurePayload {
   slashApiName?: string;

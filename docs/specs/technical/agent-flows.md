@@ -35,19 +35,22 @@ losslessly even for fields with no editing UI.
 - **`constants/edgeConditions.ts`** — condition values, labels, and theme-token color map.
 - **`IFlowRepository` / `FlowService`** — `list`, `get`, `create`, `delete`, `validateYaml`,
   `saveFromYaml` (POST, idempotent by api_name), `saveFromYamlById` (PUT, by id, supports rename),
-  `updateSlashExposure`. Registered as `flowService` in the DI container.
+  `updateFlow` (PATCH flow-level fields outside the YAML graph — FEAT-003), `updateSlashExposure`.
+  Registered as `flowService` in the DI container.
 - **`FlowRepository`** (axios) — endpoints under `/api`: `GET/POST /flows`, `GET/DELETE /flows/{id}`,
   `POST /flows/validate-yaml`, `POST /flows/from-yaml`, `PUT /flows/{id}/from-yaml`,
+  `PATCH /flows/{id}` (`updateFlow`: sends only the provided `display_name`/`description`/`enabled`),
   `PATCH /flows/{id}/slash-exposure`. `mappers/mapFlow.ts` does snake_case ↔ camelCase for
-  flow/node/edge.
+  flow/node/edge. `UpdateFlowPayload` (domain) carries the optional flow-level fields.
 
 ## 3. Hooks (react-query)
 
 `hooks/flows/useFlows.ts`: `useFlows` (`['flows']`), `useFlow(id)` (`['flows', id]`), `useCreateFlow`,
 `useDeleteFlow`, `useValidateFlowYaml`, `useSaveFlowFromYaml`, `useSaveFlowFromYamlById`,
-`useUpdateFlowSlashExposure`. Mutations invalidate `['flows']` (+ `['flows', id]`); the YAML-save and
-slash-exposure mutations also invalidate `['pragna','flows']` (reserved for the deferred chat slash
-popover — harmless no-op until then).
+`useUpdateFlow` (FEAT-003 — flow-level fields, used by the enable/disable toggle),
+`useUpdateFlowSlashExposure`. Mutations invalidate `['flows']` (+ `['flows', id]`); the YAML-save,
+`updateFlow`, and slash-exposure mutations also invalidate `['pragna','flows']` (the chat slash
+popover — enabling/exposing changes which flows it can run).
 
 ## 4. Interactive editor (`FlowDetailView/`)
 
@@ -83,11 +86,25 @@ primitives. Files:
   + delete).
 - **`FlowEditor.tsx`** — `FlowEditor({ flow })`: hydrates the store from `buildEditorGraph(
   flow.definition)` (or `newFlowGraph()` + meta from the flow when empty) on mount and `reset()`s on
-  unmount; renders `ReactFlow` (`ReactFlowProvider`, `ConnectionMode.Loose`) wired to the store
+  unmount; renders the **`FlowMetaBar`** (top), `ReactFlow` (`ReactFlowProvider`,
+  `ConnectionMode.Loose`) wired to the store
   (`onNodesChange`/`onEdgesChange`/`onConnect`/`isValidConnection`), the palette, and the selection
   panel; **Save** serializes via `graphToYaml`, runs `useValidateFlowYaml` (errors shown by path,
   save skipped if invalid), then `useSaveFlowFromYamlById` and `markClean`. Imports
   `reactflow/dist/style.css`.
+- **`FlowMetaBar.tsx`** (FEAT-003) — the editor's top control bar. Top row is the **flow identity**
+  (EntityIcon + display name + api_name pill + `/slash` pill); below it the controls. Two persistence
+  models, kept visually grouped: **graph meta** (Description — placeholder-only, no visible label;
+  Expose-as-/slash; Slash name) edits the store `meta`
+  (`setMeta`, Save-gated via the YAML round-trip); **Enabled** is an immediate `useUpdateFlow` PATCH
+  (not Save-gated), mirroring the slash toggle on the card. Renders an inline "description required"
+  hint when exposing without one (the backend rule), a kebab-validation hint on the slash name
+  (`FLOW_SLASH_NAME_RE` from `constants/flows.ts`), the dirty badge, **Save** (calls the parent's
+  handler), and `FlowYamlActions`.
+- **`FlowYamlActions.tsx`** (FEAT-003) — YAML **import** (paste/file → `buildEditorGraph` →
+  store `hydrate` + `markDirty`; malformed → inline `FLW_010`) and **export** (`graphToYaml` → Blob
+  download as `<api_name>.yaml`, fallback `agentic-flow`). Self-contained: reads/writes the store
+  directly. Constants in `constants/flows.ts` (`FLOW_YAML_*`).
 
 ## 5. Presentation
 
@@ -97,8 +114,16 @@ primitives. Files:
   - `FlowCard`: name/api_name, node/edge counts, enabled badge, an inline **slash-exposure** row
     (`useUpdateFlowSlashExposure`; surfaces backend `detail` / 409), and a confirmed delete
     (`ConfirmButton` + `useDeleteFlow`).
-- **`FlowDetailView`** (`/settings/flows/:flowId`) — a compact header (name + status/slash badges)
-  over `<FlowEditor flow={flow} />` (§4), which fills the remaining height.
+- **`FlowDetailView`** (`/settings/flows/:flowId`) — a **full-page** surface (FEAT-003): a
+  `fixed inset-0 z-[300]` container covering the settings sidebar (matching `AgentFormModal`'s
+  full-page treatment), with a single-row header (ghost icon back button + an "Edit <name>" title,
+  mirroring the agent edit form — flows are always created first then opened here, so it's always
+  "Edit"; the flow identity pills live in the FlowMetaBar) over `<FlowEditor flow={flow} />` (§4). The header reserves space for the
+  macOS overlay traffic lights via `useOverlayTitleBarInset()` (CF-019), since it now sits at the
+  window's top-left. **z-tier:** `z-[300]` is above the settings chrome it must hide — the macOS
+  collapse toggle (`z-[70]`) and the Windows title bar (`z-[200]`) — but below the modal tier
+  (`z-[700]`+) so dialogs the editor opens (connector wizard, confirm, Select) still layer on top.
+  Loading/error/loaded states share the one full-page shell.
 - **Routing:** `routes.ts` `SETTINGS_FLOW_DETAIL`; `AppRoutes.tsx` swaps the flows `PlaceholderView`
   for `FlowsView` + the nested detail route inside the Settings layout.
 

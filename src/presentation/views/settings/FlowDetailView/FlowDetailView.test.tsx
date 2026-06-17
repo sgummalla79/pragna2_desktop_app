@@ -7,8 +7,9 @@ import FlowDetailView from './FlowDetailView';
 
 // FlowDetailView mounts <FlowEditor flow={flow} />, which renders the real
 // ReactFlow canvas — painful in jsdom and out of scope here (FlowEditor has
-// its own test). Stub it so we test only the page chrome: header, status
-// pills, loading/error branches, and that the loaded flow is fed in.
+// its own test). Stub it so we test only the page chrome: the New/Edit header
+// title, loading/error branches, and that the loaded flow is fed in. (The flow
+// identity pills now live in FlowMetaBar — covered by FlowMetaBar.test.)
 vi.mock('./FlowEditor', () => ({
   FlowEditor: ({ flow }: { flow: Flow }) => (
     <div data-testid="flow-editor-stub">{flow.displayName}</div>
@@ -63,28 +64,14 @@ describe('FlowDetailView', () => {
     expect(screen.getByText('Loading flow…')).toBeInTheDocument();
   });
 
-  it('renders the header + feeds the loaded flow into the editor', async () => {
+  it('titles the header "Edit <name>" + feeds the loaded flow into the editor', async () => {
+    // Flows are always created first then opened here, so the title is always Edit.
     const flow = makeFlow();
     renderAt('flow-1', flowService(() => Promise.resolve(flow)));
 
-    expect(await screen.findByRole('heading', { name: 'Research Flow' })).toBeInTheDocument();
-    // api_name pill.
-    expect(screen.getByText('research')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Edit Research Flow' })).toBeInTheDocument();
     // Editor stub received the loaded flow.
     expect(screen.getByTestId('flow-editor-stub')).toHaveTextContent('Research Flow');
-  });
-
-  it('renders the slash pill only when exposed with a slash name', async () => {
-    const flow = makeFlow({ exposedAsSlash: true, slashApiName: 'do-research' });
-    renderAt('flow-1', flowService(() => Promise.resolve(flow)));
-    expect(await screen.findByText('/do-research')).toBeInTheDocument();
-  });
-
-  it('hides the slash pill when not exposed', async () => {
-    const flow = makeFlow({ exposedAsSlash: false, slashApiName: 'do-research' });
-    renderAt('flow-1', flowService(() => Promise.resolve(flow)));
-    await screen.findByRole('heading', { name: 'Research Flow' });
-    expect(screen.queryByText('/do-research')).not.toBeInTheDocument();
   });
 
   it('renders the error state with a Back link when the flow fails to load', async () => {

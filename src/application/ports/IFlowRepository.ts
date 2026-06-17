@@ -1,6 +1,7 @@
 import type {
   CreateFlowPayload,
   Flow,
+  UpdateFlowPayload,
   UpdateFlowSlashExposurePayload,
 } from '@/domain/types/flow.types';
 import type { YamlValidationResult } from '@/domain/types/flowYaml.types';
@@ -37,6 +38,11 @@ export interface IFlowRepository {
   /** Persist a YAML-authored flow by **id** (supports renaming `api_name` in
    *  place; 409 on collision with a different flow). */
   saveFromYamlById(flowId: string, definition: string): Promise<SaveFromYamlResult>;
+
+  /** Update flow-level fields outside the YAML graph (display name, description,
+   *  enabled). Used for the enable/disable toggle; description is normally
+   *  authored in the editor and persisted via the YAML save. */
+  updateFlow(flowId: string, payload: UpdateFlowPayload): Promise<Flow>;
 
   /** Toggle slash exposure + set / clear `slash_api_name`. 422 on validation
    *  failure, 409 on a per-user slash-name collision. */

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useServices } from '@/presentation/providers/ServiceContext';
 import type {
   CreateFlowPayload,
+  UpdateFlowPayload,
   UpdateFlowSlashExposurePayload,
 } from '@/domain/types/flow.types';
 
@@ -83,6 +84,23 @@ export function useSaveFlowFromYaml() {
     onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: FLOWS_KEY });
       qc.invalidateQueries({ queryKey: flowKey(result.flow.id) });
+      qc.invalidateQueries({ queryKey: PRAGNA_FLOWS_KEY });
+    },
+  });
+}
+
+/** Update flow-level fields (display name, description, enabled). Used for the
+ *  enable/disable toggle in the editor. */
+export function useUpdateFlow() {
+  const { flowService } = useServices();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ flowId, payload }: { flowId: string; payload: UpdateFlowPayload }) =>
+      flowService.updateFlow(flowId, payload),
+    onSuccess: (flow) => {
+      qc.invalidateQueries({ queryKey: FLOWS_KEY });
+      qc.invalidateQueries({ queryKey: flowKey(flow.id) });
+      // Enabling/disabling changes which flows the chat slash popover can run.
       qc.invalidateQueries({ queryKey: PRAGNA_FLOWS_KEY });
     },
   });
