@@ -19,8 +19,8 @@ use tokio::sync::Mutex;
 use uuid::Uuid;
 
 use crate::domain::mcp::{
-    is_auth_error_signal, DelegatedCallOutcome, McpHostError, StdioLaunchConfig, ToolSchema,
-    REAUTH_REASON_TOKEN_EXPIRED,
+    is_auth_error_signal, service_from_error_text, DelegatedCallOutcome, McpHostError,
+    StdioLaunchConfig, ToolSchema, REAUTH_REASON_TOKEN_EXPIRED,
 };
 
 /// Bound the handshake when spawning a server.
@@ -104,8 +104,12 @@ impl McpRegistry {
                     );
                 }
                 if is_error && is_auth_error_signal(&content) {
+                    // Primary: extract provider name from mcp-adaptor error text
+                    // (e.g. "for provider 'gus'"). Works for --profile connectors
+                    // where launch args carry no --server/--provider flag (#129).
+                    let service = service_from_error_text(&content);
                     Ok(DelegatedCallOutcome::AuthRequired {
-                        service: None,
+                        service,
                         reason: REAUTH_REASON_TOKEN_EXPIRED.to_string(),
                     })
                 } else {
@@ -122,8 +126,9 @@ impl McpRegistry {
                         "[mcp_stdio_call] auth-classified call error: {}",
                         truncate_for_log(&message)
                     );
+                    let service = service_from_error_text(&message);
                     Ok(DelegatedCallOutcome::AuthRequired {
-                        service: None,
+                        service,
                         reason: REAUTH_REASON_TOKEN_EXPIRED.to_string(),
                     })
                 } else {

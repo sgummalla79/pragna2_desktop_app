@@ -20,8 +20,11 @@ pub async fn discover(cfg: &StdioLaunchConfig) -> Result<Vec<ToolSchema>, McpHos
 
 /// Run a delegated tool call: load the connector's launch config from the
 /// keychain, then call against its warm service. When the call classifies as
-/// auth-required (tracker #124), enrich it with the downstream `service` derived
-/// from the launch-config args (the registry leaves `service` `None`).
+/// auth-required (tracker #124/#129), the registry already extracts the
+/// downstream `service` from the mcp-adaptor error text (PRIMARY path — works
+/// for `--profile` connectors whose launch args carry no flag). If the registry
+/// could not derive it (non-adaptor connectors), fall back to parsing
+/// `--server`/`--provider` from the launch-config args.
 pub async fn call(
     registry: &McpRegistry,
     id: Uuid,
@@ -31,18 +34,22 @@ pub async fn call(
     let cfg = mcp_registry::load_config(id)?;
     let outcome = registry.call(id, &cfg, upstream_name, args).await?;
     Ok(match outcome {
-        DelegatedCallOutcome::AuthRequired { reason, .. } => DelegatedCallOutcome::AuthRequired {
-            service: mcp::service_from_args(&cfg.args),
-            reason,
-        },
+        DelegatedCallOutcome::AuthRequired { service: None, reason } => {
+            // Registry couldn't extract service from error text — fall back to
+            // launch-config args (single-server --server gus connectors).
+            DelegatedCallOutcome::AuthRequired {
+                service: mcp::service_from_args(&cfg.args),
+                reason,
+            }
+        }
         other => other,
     })
 }
 
 /// Derive the downstream provider (e.g. `gus`) for a connector from its stored
-/// launch config, or `None` when not derivable. Exposed for the frontend so a
-/// re-auth card can name the service even when it came from the backend's
-/// text-signal fallback (which carries `service=null`).
+/// launch config args. Only covers single-server connectors launched with
+/// `--server gus`; for profile-based connectors the service is derived from the
+/// error text at call time (tracker #129).
 pub fn service_for(id: Uuid) -> Result<Option<String>, McpHostError> {
     let cfg = mcp_registry::load_config(id)?;
     Ok(mcp::service_from_args(&cfg.args))

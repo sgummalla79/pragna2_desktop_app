@@ -55,7 +55,7 @@ pub enum DelegatedCallOutcome {
 
 /// Conservative, case-insensitive substrings that mark a tool result (or a raised
 /// call error) as an AUTHENTICATION failure rather than a normal outcome
-/// (tracker #122/#124). MIRRORS pragna2-api `MCP_AUTH_ERROR_RESULT_SIGNALS` so the
+/// (tracker #122/#124/#128). MIRRORS pragna2-api `MCP_AUTH_ERROR_RESULT_SIGNALS` so the
 /// desktop classifies exactly as the backend's text-signal fallback would — a
 /// drift here would re-introduce the #122 silent-explain or a spurious pause.
 /// Deliberately specific: a false positive only costs a pause the user can
@@ -78,13 +78,19 @@ pub const AUTH_ERROR_RESULT_SIGNALS: &[&str] = &[
     "re-authenticate",
     "reauthenticate",
     "www-authenticate",
+    // OAuth RFC 6749 §5.2 — refresh token definitively revoked/expired.
+    // A server may silently refresh an expired token and return a HTTP 400
+    // {"error":"invalid_grant"} as an isError body rather than a 401 on the API
+    // call itself. Keyed on the STANDARD OAuth error code, not any one vendor's
+    // prose — provider-agnostic and never present in normal tool output (#128).
+    // MIRRORS pragna2-api MCP_AUTH_ERROR_RESULT_SIGNALS (tracker #127/#128).
+    "invalid_grant",
 ];
 
 /// Launch-config arg flags whose value names the downstream provider for an
-/// aggregator (`mcp-adaptor --server gus` / `--provider gus`). The same value is
-/// reused as `auth --provider <service>` to drive that service's re-auth.
-/// Revisit if a single connector ever aggregates multiple providers (tracker
-/// #124 open question).
+/// aggregator (`mcp-adaptor --server gus` / `--provider gus`). Used as a
+/// FALLBACK when `service_from_tool_name` cannot derive the provider from the
+/// tool name (single-server connectors launched with `--server`).
 pub const PROVIDER_ARG_FLAGS: &[&str] = &["--server", "--provider"];
 
 /// Default re-auth reason when an auth-looking failure carries no definitive
@@ -101,10 +107,34 @@ pub fn is_auth_error_signal(text: &str) -> bool {
         .any(|signal| lower.contains(signal))
 }
 
+/// Extract the downstream provider name from an mcp-adaptor error message.
+///
+/// The mcp-adaptor error format is:
+/// `"failed to fetch required token for provider 'gus': ..."`
+///
+/// This is the PRIMARY derivation path for profile-based connectors
+/// (`--profile sumangummalla`) where the launch args carry no
+/// `--server`/`--provider` flag (tracker #129). The provider name is embedded
+/// verbatim in the error text, so it works for any server in any profile
+/// without a static mapping table.
+///
+/// Returns `None` when the pattern is not present (non-adaptor tool errors,
+/// or a different error format).
+pub fn service_from_error_text(text: &str) -> Option<String> {
+    // Match: "for provider '<name>'" (case-insensitive, single-quoted).
+    let lower = text.to_lowercase();
+    let marker = "for provider '";
+    let start = lower.find(marker)? + marker.len();
+    let end = text[start..].find('\'')?;
+    let name = text[start..start + end].trim().to_string();
+    if name.is_empty() { None } else { Some(name) }
+}
+
 /// Derive the downstream provider (e.g. `gus`) from a connector's launch-config
 /// `args`: the value immediately following the first [`PROVIDER_ARG_FLAGS`] flag.
-/// `None` when no provider flag is present (the frontend then sends
-/// `service: null` and the card shows a generic message).
+/// Used as a FALLBACK for single-server connectors launched with `--server gus`.
+/// For profile-based connectors (`--profile sumangummalla`) prefer
+/// [`service_from_error_text`] instead (tracker #129).
 pub fn service_from_args(args: &[String]) -> Option<String> {
     let mut iter = args.iter();
     while let Some(arg) = iter.next() {
@@ -226,6 +256,27 @@ mod tests {
     }
 
     #[test]
+    fn auth_signal_matches_mcp_adaptor_token_refresh_failure() {
+        // Exact error shape observed from mcp-adaptor when a GUS refresh token
+        // is revoked (tracker #128). The classifier matches on "invalid_grant"
+        // (the standard OAuth RFC 6749 §5.2 code embedded in the JSON body),
+        // NOT on the vendor-specific prose around it. MIRRORS the API team's
+        // deliberate decision in pragna2-api tracker #127.
+        let adaptor_error = "failed to get MCP client: could not create \
+            SERVER_TYPE_HTTP_MCP MCP client for GUS: failed to generate MCP \
+            client headers: failed to fetch required token for provider 'gus': \
+            token refresh failed: token refresh failed with status 400: \
+            {\"error\":\"invalid_grant\",\"error_description\":\"Token has been expired or revoked.\"}";
+        assert!(is_auth_error_signal(adaptor_error));
+        // Bare standard OAuth code always matches.
+        assert!(is_auth_error_signal("invalid_grant"));
+        // Vendor prose WITHOUT the standard code does NOT match (intentionally
+        // narrow — mirrors the API team's decision to avoid false positives).
+        assert!(!is_auth_error_signal("token refresh failed with status 400"));
+        assert!(!is_auth_error_signal("failed to fetch required token for provider"));
+    }
+
+    #[test]
     fn auth_signal_ignores_clearly_non_auth_text() {
         assert!(!is_auth_error_signal("ok"));
         assert!(!is_auth_error_signal(r#"{"rows": 7, "status": "done"}"#));
@@ -242,6 +293,42 @@ mod tests {
         // costs a pause the user can dismiss with "Continue".
         assert!(is_auth_error_signal(r#"{"rows": 4012}"#));
     }
+
+    // ── service_from_error_text ─────────────────────────────────────────────
+
+    #[test]
+    fn service_from_error_text_extracts_gus_from_adaptor_error() {
+        // Exact error format observed in the wild (tracker #129).
+        let err = "failed to get MCP client: could not create SERVER_TYPE_HTTP_MCP \
+            MCP client for GUS: failed to generate MCP client headers: \
+            failed to fetch required token for provider 'gus': token refresh failed";
+        assert_eq!(service_from_error_text(err), Some("gus".to_string()));
+    }
+
+    #[test]
+    fn service_from_error_text_extracts_google_workspace() {
+        let err = "failed to fetch required token for provider 'google-workspace-rw': expired";
+        assert_eq!(
+            service_from_error_text(err),
+            Some("google-workspace-rw".to_string())
+        );
+    }
+
+    #[test]
+    fn service_from_error_text_none_when_pattern_absent() {
+        assert_eq!(service_from_error_text("HTTP 401 Unauthorized"), None);
+        assert_eq!(service_from_error_text("token expired"), None);
+        assert_eq!(service_from_error_text(""), None);
+    }
+
+    #[test]
+    fn service_from_error_text_case_insensitive_marker() {
+        // "for provider '" marker matched case-insensitively.
+        let err = "Failed to fetch required token For Provider 'search': err";
+        assert_eq!(service_from_error_text(err), Some("search".to_string()));
+    }
+
+    // ── service_from_args ───────────────────────────────────────────────────
 
     #[test]
     fn service_from_args_reads_server_flag() {
