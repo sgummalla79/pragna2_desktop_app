@@ -12,14 +12,14 @@
  * graph (`newFlowGraph`) with `meta` seeded from the flow. The store is
  * `reset()` on unmount so a different flow opens clean.
  *
- * Ported from the web app's FlowEditorView; the route chrome (header form,
- * YAML viewer, import/export) is intentionally NOT part of this component —
- * it's a self-contained editor surface the page composes via `<FlowEditor
- * flow={flow} />`.
+ * Ported from the web app's FlowEditorView. The top {@link FlowMetaBar} carries
+ * the graph-meta fields (description, expose-as-/slash, slash name), the
+ * enable/disable toggle, YAML import/export, and Save; the page composes the
+ * whole editor via `<FlowEditor flow={flow} />`.
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, Save } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import ReactFlow, {
   Background,
   ConnectionMode,
@@ -31,7 +31,6 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { Flow } from '@/domain/types/flow.types';
 import type { YamlError } from '@/domain/types/flowYaml.types';
@@ -51,6 +50,7 @@ import { PalettePanel } from './PalettePanel';
 import { buildEditorGraph } from './buildEditorGraph';
 import { isValidFlowConnection } from './connectionRules';
 import { graphToYaml } from './graphToYaml';
+import { FlowMetaBar } from './FlowMetaBar';
 import {
   NODE_TYPE_AGENT,
   NODE_TYPE_CONNECTOR,
@@ -165,21 +165,13 @@ function EditorInner({ flow }: Props) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Toolbar: dirty indicator + Save. */}
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-2">
-        <span
-          className={cn(
-            'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white',
-            dirty ? 'bg-amber-600' : 'bg-emerald-600',
-          )}
-        >
-          {dirty ? 'Unsaved' : 'Saved'}
-        </span>
-        <Button size="sm" onClick={() => void handleSave()} disabled={isSaving || !dirty} aria-busy={isSaving}>
-          <Save size={14} aria-hidden="true" />
-          {isSaving ? 'Saving…' : 'Save'}
-        </Button>
-      </div>
+      {/* Toolbar: graph-meta + enabled + YAML actions + Save. */}
+      <FlowMetaBar
+        flow={flow}
+        dirty={dirty}
+        isSaving={isSaving}
+        onSave={() => void handleSave()}
+      />
 
       {/* Banner / validation errors. */}
       {(banner || errors.length > 0) && (

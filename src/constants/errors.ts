@@ -105,6 +105,8 @@ export const ERRORS = {
   FLW_006: { code: 'FLW_006', message: 'Failed to update slash exposure.', severity: 'error' },
   FLW_007: { code: 'FLW_007', message: 'A flow with this name already exists.', severity: 'warn' },
   FLW_008: { code: 'FLW_008', message: 'Slash name must be lowercase letters, digits, and hyphens (e.g. my-flow).', severity: 'warn' },
+  FLW_009: { code: 'FLW_009', message: 'Failed to update the flow.', severity: 'error' },
+  FLW_010: { code: 'FLW_010', message: "Couldn't read that YAML. Check the document and try again.", severity: 'warn' },
 
   // ── Network / HTTP ────────────────────────────────────────────────────────
   NET_401: { code: 'NET_401', message: 'Your session has expired. Please sign in again.', severity: 'warn' },

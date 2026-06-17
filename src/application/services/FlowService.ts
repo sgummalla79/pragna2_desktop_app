@@ -5,6 +5,7 @@ import type {
 import type {
   CreateFlowPayload,
   Flow,
+  UpdateFlowPayload,
   UpdateFlowSlashExposurePayload,
 } from '@/domain/types/flow.types';
 import type { YamlValidationResult } from '@/domain/types/flowYaml.types';
@@ -43,6 +44,10 @@ export class FlowService {
 
   saveFromYamlById(flowId: string, definition: string): Promise<SaveFromYamlResult> {
     return this.flowRepository.saveFromYamlById(flowId, definition);
+  }
+
+  updateFlow(flowId: string, payload: UpdateFlowPayload): Promise<Flow> {
+    return this.flowRepository.updateFlow(flowId, payload);
   }
 
   updateSlashExposure(
