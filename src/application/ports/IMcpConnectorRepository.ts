@@ -8,6 +8,8 @@
 
 import type {
   ClientToolSchema,
+  CompleteOAuthRequest,
+  CompleteOAuthResult,
   CreateMcpConnectorPayload,
   McpConnector,
   RefreshToolsResult,
@@ -60,4 +62,12 @@ export interface IMcpConnectorRepository {
    *  `requiresManualClient` when the AS lacks dynamic client registration.
    *  Maps to `POST /api/mcp-connectors/{id}/oauth-authorization`. */
   startOAuth(id: string, payload: StartOAuthPayload): Promise<StartOAuthResult>;
+
+  /** Finish a loopback (pre-registered `callbackPort`) OAuth flow by handing
+   *  the captured `code` + `state` to the BE for the token exchange. Maps to
+   *  `POST /api/mcp-connectors/{id}/oauth-completion`. */
+  completeOAuth(
+    id: string,
+    payload: CompleteOAuthRequest,
+  ): Promise<CompleteOAuthResult>;
 }

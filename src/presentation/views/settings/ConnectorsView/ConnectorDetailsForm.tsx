@@ -42,13 +42,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type {
-  ConnectorCredentials,
-  CredentialInjection,
-  InjectionLocation,
-  McpAuthType,
-  McpTransport,
+import {
+  readMcpOAuthConfig,
+  type ConnectorCredentials,
+  type CredentialInjection,
+  type InjectionLocation,
+  type McpAuthType,
+  type McpOAuthConfig,
+  type McpTransport,
 } from '@/domain/types/mcp.types';
+import { MCP_OAUTH_CONFIG_KEY } from '@/constants/mcpOAuth';
 
 /** Initial values for the form (a preset on create, the connector on edit). */
 export interface ConnectorDetailsInitial {
@@ -60,6 +63,8 @@ export interface ConnectorDetailsInitial {
   /** Default key name + location for an `api_key` preset. */
   apiKeyName?: string;
   apiKeyLocation?: InjectionLocation;
+  /** Pre-registered OAuth app block (generic; `oauth` connectors only). */
+  oauthConfig?: McpOAuthConfig;
 }
 
 /** The assembled payload handed to the parent on submit. The parent maps this
@@ -75,6 +80,11 @@ export interface DetailsSubmit {
   /** Edit-only: true when the connector should end up with no static creds
    *  (auth switched to none/oauth) so the parent can wipe stored credentials. */
   clearCredentials: boolean;
+  /** Generic pre-registered OAuth app block (`oauth` connectors only, when all
+   *  three fields are supplied). Maps to the connector's `config.oauth`. The
+   *  create path forwards it; the PATCH (edit) path has no `config` field, so
+   *  it is ignored on edit. */
+  oauthConfig?: McpOAuthConfig;
 }
 
 interface Props {
@@ -155,6 +165,23 @@ export function ConnectorDetailsForm({
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
+  // Generic pre-registered OAuth app block (config.oauth) — shown for `oauth`
+  // connectors whose AS uses a pre-registered client + a fixed loopback
+  // redirect (no Dynamic Client Registration). Product-agnostic: just three
+  // plain fields, no server-specific defaults.
+  const [oauthClientId, setOauthClientId] = useState(
+    initial?.oauthConfig?.clientId ?? '',
+  );
+  const [oauthLoginUrl, setOauthLoginUrl] = useState(
+    initial?.oauthConfig?.loginUrl ?? '',
+  );
+  const [oauthCallbackPort, setOauthCallbackPort] = useState(
+    initial?.oauthConfig ? String(initial.oauthConfig.callbackPort) : '',
+  );
+  const [oauthAdvancedOpen, setOauthAdvancedOpen] = useState(
+    initial?.oauthConfig != null,
+  );
+
   const isEdit = mode === 'edit';
 
   // Trim-aware so whitespace-only edits don't trip the unsaved-changes guard.
@@ -165,7 +192,11 @@ export function ConnectorDetailsForm({
     authMode !== (initial?.authType ?? 'none') ||
     token.length > 0 ||
     apiKeyValue.length > 0 ||
-    headers.some((r) => r.key.trim().length > 0 || r.value.length > 0);
+    headers.some((r) => r.key.trim().length > 0 || r.value.length > 0) ||
+    oauthClientId.trim() !== (initial?.oauthConfig?.clientId ?? '').trim() ||
+    oauthLoginUrl.trim() !== (initial?.oauthConfig?.loginUrl ?? '').trim() ||
+    oauthCallbackPort.trim() !==
+      (initial?.oauthConfig ? String(initial.oauthConfig.callbackPort) : '');
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -219,6 +250,38 @@ export function ConnectorDetailsForm({
     return injections.length > 0 ? { injections } : undefined;
   }
 
+  /**
+   * Assemble the optional pre-registered OAuth block (`config.oauth`).
+   *
+   * Returns `{ config }` with a validated block when all three fields are
+   * present + valid; `{ config: undefined }` when none are entered (a plain DCR
+   * oauth connector); or `{ error }` when the block is partially / invalidly
+   * filled — surfaced explicitly rather than silently dropped.
+   */
+  function buildOAuthConfig():
+    | { config?: McpOAuthConfig; error?: undefined }
+    | { error: string; config?: undefined } {
+    if (authMode !== 'oauth') return { config: undefined };
+    const clientId = oauthClientId.trim();
+    const loginUrl = oauthLoginUrl.trim();
+    const portStr = oauthCallbackPort.trim();
+    const anyFilled = clientId !== '' || loginUrl !== '' || portStr !== '';
+    if (!anyFilled) return { config: undefined };
+
+    // Reuse the domain reader so the form and the runtime decision validate the
+    // block identically (DRY).
+    const candidate = readMcpOAuthConfig({
+      [MCP_OAUTH_CONFIG_KEY]: { clientId, loginUrl, callbackPort: Number(portStr) },
+    });
+    if (!candidate) {
+      return {
+        error:
+          'Complete all three pre-registered OAuth fields (Client ID, Login URL, and a valid Callback port), or clear them all.',
+      };
+    }
+    return { config: candidate };
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setLocalError(null);
@@ -234,6 +297,12 @@ export function ConnectorDetailsForm({
       return;
     }
 
+    const oauth = buildOAuthConfig();
+    if (oauth.error) {
+      setLocalError(oauth.error);
+      return;
+    }
+
     onSubmit({
       displayName: trimmedLabel,
       description: description.trim() || undefined,
@@ -243,6 +312,7 @@ export function ConnectorDetailsForm({
       credentials: buildCredentials(),
       // No static credentials for none/oauth — let an edit wipe any stale blob.
       clearCredentials: authMode === 'none' || authMode === 'oauth',
+      oauthConfig: oauth.config,
     });
   }
 
@@ -329,10 +399,84 @@ export function ConnectorDetailsForm({
 
         {/* Selected method's fields */}
         {authMode === 'oauth' && (
-          <p className="text-xs text-muted-foreground">
-            You'll connect with OAuth after creating the connector — use the
-            Connect button.
-          </p>
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-muted-foreground">
+              You'll connect with OAuth after creating the connector — use the
+              Connect button.
+            </p>
+
+            {/* Optional pre-registered OAuth app (generic — for servers whose
+                authorization server uses a pre-registered client + a fixed
+                loopback redirect instead of automatic client registration). */}
+            <button
+              type="button"
+              onClick={() => setOauthAdvancedOpen((v) => !v)}
+              className="-mx-2 flex items-center gap-1.5 self-start rounded-md px-2 py-1 text-xs font-medium text-foreground transition hover:bg-muted"
+              aria-expanded={oauthAdvancedOpen}
+            >
+              <ChevronRight
+                size={14}
+                aria-hidden="true"
+                className={`transition-transform ${oauthAdvancedOpen ? 'rotate-90' : ''}`}
+              />
+              Pre-registered OAuth app
+              <span className="font-normal text-muted-foreground">
+                · optional
+              </span>
+            </button>
+
+            {oauthAdvancedOpen && (
+              <div className="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">
+                  For servers that use a pre-registered OAuth client with a fixed
+                  loopback redirect (no automatic client registration). Leave
+                  blank for servers that register a client automatically.
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="mcp-oauth-client-id">Client ID</Label>
+                  <Input
+                    id="mcp-oauth-client-id"
+                    value={oauthClientId}
+                    onChange={(e) => setOauthClientId(e.target.value)}
+                    placeholder="client_id"
+                    autoComplete="off"
+                    data-testid="mcp-oauth-client-id"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="mcp-oauth-login-url">Login URL</Label>
+                  <Input
+                    id="mcp-oauth-login-url"
+                    type="url"
+                    value={oauthLoginUrl}
+                    onChange={(e) => setOauthLoginUrl(e.target.value)}
+                    placeholder="https://login.example.com"
+                    autoComplete="off"
+                    data-testid="mcp-oauth-login-url"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="mcp-oauth-callback-port">Callback port</Label>
+                  <Input
+                    id="mcp-oauth-callback-port"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={65535}
+                    value={oauthCallbackPort}
+                    onChange={(e) => setOauthCallbackPort(e.target.value)}
+                    placeholder="8082"
+                    autoComplete="off"
+                    data-testid="mcp-oauth-callback-port"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    The local port the authorization server redirects to
+                    (http://localhost:&#123;port&#125;/callback).
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {authMode === 'bearer' && (

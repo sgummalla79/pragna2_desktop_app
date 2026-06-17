@@ -10,6 +10,15 @@ import { ConnectorCard } from './ConnectorCard';
 const openUrl = vi.fn().mockResolvedValue(undefined);
 vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: (u: string) => openUrl(u) }));
 
+// Run as the desktop (Tauri) runtime so the loopback-vs-browser decision can
+// take the loopback branch for connectors carrying config.oauth.callbackPort.
+// Connectors without an oauth block resolve to the browser path regardless, so
+// the existing browser-redirect tests are unaffected.
+vi.mock('@/infrastructure/platform', async (orig) => ({
+  ...(await orig<typeof import('@/infrastructure/platform')>()),
+  isTauriRuntime: () => true,
+}));
+
 // The edit modal nests another form/dialog; it's covered by ConnectorDetailsForm
 // + EditConnectorModal flows. Stub it to keep this spec on the card's actions.
 vi.mock('./EditConnectorModal', () => ({
@@ -41,6 +50,7 @@ interface ServiceFns {
   archive?: ReturnType<typeof vi.fn>;
   refreshTools?: ReturnType<typeof vi.fn>;
   startOAuth?: ReturnType<typeof vi.fn>;
+  connectViaLoopback?: ReturnType<typeof vi.fn>;
   toolList?: ReturnType<typeof vi.fn>;
 }
 
@@ -58,9 +68,23 @@ function services(fns: ServiceFns = {}): Partial<Services> {
           authorizationUrl: null,
           requiresManualClient: false,
         }),
+      connectViaLoopback:
+        fns.connectViaLoopback ??
+        vi.fn().mockResolvedValue({ status: 'connected', connectorId: 'c1' }),
     },
     toolService: { list: fns.toolList ?? vi.fn().mockResolvedValue([]) },
   } as unknown as Partial<Services>;
+}
+
+/** A connector configured for the pre-registered loopback OAuth flow. */
+function loopbackConnector(): McpConnector {
+  return makeConnector({
+    authType: 'oauth',
+    config: {
+      url: 'https://x',
+      oauth: { clientId: 'cid', loginUrl: 'https://login', callbackPort: 8082 },
+    },
+  });
 }
 
 beforeEach(() => {
@@ -198,6 +222,30 @@ describe('ConnectorCard', () => {
     expect(
       screen.getByText('Complete the connection in your browser, then Refresh.'),
     ).toBeInTheDocument();
+  });
+
+  it('uses the loopback connect for a connector with config.oauth.callbackPort', async () => {
+    const connectViaLoopback = vi
+      .fn()
+      .mockResolvedValue({ status: 'connected', connectorId: 'c1' });
+    const startOAuth = vi.fn();
+    renderWithProviders(<ConnectorCard connector={loopbackConnector()} />, {
+      services: services({ connectViaLoopback, startOAuth }),
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'My Server' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Connect with OAuth' }),
+    );
+
+    await waitFor(() =>
+      expect(connectViaLoopback).toHaveBeenCalledWith('c1', 8082),
+    );
+    // The loopback path completes locally — no browser-redirect "Refresh" note,
+    // and the start-only OAuth endpoint is not used directly.
+    expect(startOAuth).not.toHaveBeenCalled();
+    expect(openUrl).not.toHaveBeenCalled();
+    expect(await screen.findByText('Connected via OAuth.')).toBeInTheDocument();
   });
 
   it('reveals the manual-client form when the AS requires a client id', async () => {

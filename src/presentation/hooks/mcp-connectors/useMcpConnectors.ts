@@ -9,6 +9,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useServices } from '@/presentation/providers/ServiceContext';
+import type { ConnectViaLoopbackResult } from '@/application/services/McpConnectorService';
 import type {
   CreateMcpConnectorPayload,
   McpConnector,
@@ -107,5 +108,30 @@ export function useStartConnectorOAuth() {
     { id: string; payload: StartOAuthPayload }
   >({
     mutationFn: ({ id, payload }) => mcpConnectorService.startOAuth(id, payload),
+  });
+}
+
+/** Complete a pre-registered-client (loopback) OAuth connect on the desktop:
+ *  authorize → capture on the connector's `callbackPort` → exchange. On a
+ *  `connected` result the connector now has stored tokens, so invalidate the
+ *  connectors list (→ `hasOauthTokens` refetch) AND the tools list (its tools
+ *  resolve at runtime once connected). The `requires_manual_client` result
+ *  needs no invalidation (nothing changed). */
+export function useConnectorOAuthLoopback() {
+  const { mcpConnectorService } = useServices();
+  const qc = useQueryClient();
+  return useMutation<
+    ConnectViaLoopbackResult,
+    Error,
+    { id: string; callbackPort: number }
+  >({
+    mutationFn: ({ id, callbackPort }) =>
+      mcpConnectorService.connectViaLoopback(id, callbackPort),
+    onSuccess: (result) => {
+      if (result.status === 'connected') {
+        qc.invalidateQueries({ queryKey: MCP_CONNECTORS_KEY });
+        qc.invalidateQueries({ queryKey: TOOLS_KEY });
+      }
+    },
   });
 }

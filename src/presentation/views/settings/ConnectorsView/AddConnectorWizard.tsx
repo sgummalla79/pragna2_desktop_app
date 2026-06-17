@@ -24,9 +24,12 @@ import { Input } from '@/components/ui/input';
 import { ERRORS } from '@/constants/errors';
 import { useDirtyDialog } from '@/presentation/hooks/useDirtyDialog';
 import {
+  useConnectorOAuthLoopback,
   useRegisterMcpConnector,
   useStartConnectorOAuth,
 } from '@/presentation/hooks/mcp-connectors/useMcpConnectors';
+import { MCP_OAUTH_CONFIG_KEY } from '@/constants/mcpOAuth';
+import { resolveOAuthConnectMode } from './oauthConnectMode';
 import {
   CONNECTOR_PRESETS,
   faviconUrl,
@@ -100,6 +103,7 @@ export function AddConnectorWizard({ open, onOpenChange, onRegistered }: Props) 
 
   const register = useRegisterMcpConnector();
   const startOAuth = useStartConnectorOAuth();
+  const loopbackConnect = useConnectorOAuthLoopback();
 
   // Guard Escape / overlay-click only while details fields are unsaved.
   const guard = useDirtyDialog(open && step === 'details' && detailsDirty);
@@ -149,7 +153,11 @@ export function AddConnectorWizard({ open, onOpenChange, onRegistered }: Props) 
         displayName: p.displayName,
         description: p.description,
         transport: p.transport,
-        config: { url: p.url },
+        config: {
+          url: p.url,
+          // Forward the optional generic pre-registered OAuth block, when set.
+          ...(p.oauthConfig ? { [MCP_OAUTH_CONFIG_KEY]: p.oauthConfig } : {}),
+        },
         authType: p.authType,
         credentials: p.credentials,
       });
@@ -172,6 +180,24 @@ export function AddConnectorWizard({ open, onOpenChange, onRegistered }: Props) 
     setError(null);
     setOauthNote(null);
     try {
+      // Pre-registered loopback connectors (config.oauth.callbackPort) complete
+      // end-to-end on the desktop: capture the redirect locally + exchange.
+      const connectMode = resolveOAuthConnectMode(created.config);
+      if (connectMode.mode === 'loopback') {
+        const result = await loopbackConnect.mutateAsync({
+          id: created.id,
+          callbackPort: connectMode.callbackPort,
+        });
+        if (result.status === 'requires_manual_client') {
+          setError(
+            "This server needs OAuth client credentials. Close this and use the connector card's Connect button to enter them.",
+          );
+          return;
+        }
+        setOauthNote('Connected. Manage its tools from the connector list.');
+        return;
+      }
+
       const result = await startOAuth.mutateAsync({ id: created.id, payload: {} });
       if (result.requiresManualClient) {
         // The card's Connect section handles the manual-client fallback — send
@@ -182,9 +208,9 @@ export function AddConnectorWizard({ open, onOpenChange, onRegistered }: Props) 
         return;
       }
       if (result.authorizationUrl) {
-        // Desktop: open the authorization URL in the system browser.
+        // Desktop browser-redirect path (no callbackPort): open the auth URL in
+        // the system browser; the BE's server-side callback finishes it.
         await openUrl(result.authorizationUrl);
-        // Callback round-trip not yet wired on desktop — see pragna2-tracker TD-001.
         setOauthNote('Complete the connection in your browser, then Refresh.');
       }
     } catch (err) {
@@ -315,8 +341,13 @@ export function AddConnectorWizard({ open, onOpenChange, onRegistered }: Props) 
                   {oauthNote && (
                     <p className="text-xs text-muted-foreground">{oauthNote}</p>
                   )}
-                  <Button onClick={handleOAuthConnect} disabled={startOAuth.isPending}>
-                    {startOAuth.isPending ? 'Starting…' : 'Connect with OAuth'}
+                  <Button
+                    onClick={handleOAuthConnect}
+                    disabled={startOAuth.isPending || loopbackConnect.isPending}
+                  >
+                    {startOAuth.isPending || loopbackConnect.isPending
+                      ? 'Starting…'
+                      : 'Connect with OAuth'}
                   </Button>
                   <button
                     type="button"

@@ -34,11 +34,13 @@ import { ERRORS } from '@/constants/errors';
 import { detailOr } from '@/lib/httpError';
 import {
   useArchiveMcpConnector,
+  useConnectorOAuthLoopback,
   useRefreshMcpConnectorTools,
   useStartConnectorOAuth,
   useUpdateMcpConnector,
 } from '@/presentation/hooks/mcp-connectors/useMcpConnectors';
 import { useTools } from '@/presentation/hooks/tools/useTools';
+import { resolveOAuthConnectMode } from './oauthConnectMode';
 import { ConnectorToolToggleList } from './ConnectorToolToggleList';
 import { EditConnectorModal } from './EditConnectorModal';
 import type { McpConnector } from '@/domain/types/mcp.types';
@@ -58,6 +60,7 @@ export function ConnectorCard({ connector }: Props) {
   const archiveConnector = useArchiveMcpConnector();
   const refreshTools = useRefreshMcpConnectorTools();
   const startOAuth = useStartConnectorOAuth();
+  const loopbackConnect = useConnectorOAuthLoopback();
   const { data: allTools = [] } = useTools();
   const [editOpen, setEditOpen] = useState(false);
 
@@ -73,6 +76,25 @@ export function ConnectorCard({ connector }: Props) {
     setError(null);
     setOauthNote(null);
     try {
+      // Pre-registered loopback connectors (config.oauth.callbackPort) complete
+      // end-to-end on the desktop — capture the redirect locally + exchange — so
+      // the connector flips to connected with no manual Refresh.
+      const connectMode = resolveOAuthConnectMode(connector.config);
+      if (connectMode.mode === 'loopback') {
+        const result = await loopbackConnect.mutateAsync({
+          id: connector.id,
+          callbackPort: connectMode.callbackPort,
+        });
+        if (result.status === 'requires_manual_client') {
+          // Not expected: a loopback connector always carries config.oauth.clientId.
+          setError('This server unexpectedly requires manual OAuth credentials.');
+          return;
+        }
+        setManualOpen(false);
+        setOauthNote('Connected via OAuth.');
+        return;
+      }
+
       const result = await startOAuth.mutateAsync({ id: connector.id, payload });
       if (result.requiresManualClient) {
         // The AS has no dynamic client registration — collect a client_id.
@@ -80,10 +102,9 @@ export function ConnectorCard({ connector }: Props) {
         return;
       }
       if (result.authorizationUrl) {
-        // Desktop: there is no browser navigation. Hand the authorization URL
-        // to the system browser via the opener plugin.
+        // Browser-redirect path (no callbackPort): hand the authorization URL to
+        // the system browser; the BE's server-side callback finishes it.
         await openUrl(result.authorizationUrl);
-        // Callback round-trip not yet wired on desktop — see pragna2-tracker TD-001.
         setOauthNote(
           'Complete the connection in your browser, then Refresh.',
         );
@@ -92,6 +113,8 @@ export function ConnectorCard({ connector }: Props) {
       setError(detailOr(err, ERRORS.CON_006.message));
     }
   }
+
+  const connectPending = startOAuth.isPending || loopbackConnect.isPending;
 
   const isActive = connector.status === 'active';
 
@@ -307,9 +330,9 @@ export function ConnectorCard({ connector }: Props) {
                   size="sm"
                   variant={connector.hasOauthTokens ? 'outline' : 'default'}
                   onClick={() => handleConnect()}
-                  disabled={startOAuth.isPending}
+                  disabled={connectPending}
                 >
-                  {startOAuth.isPending
+                  {connectPending
                     ? 'Starting…'
                     : connector.hasOauthTokens
                       ? 'Reconnect'
