@@ -11,6 +11,7 @@ import { ModelRepository } from '@/infrastructure/repositories/ModelRepository';
 import { EmbeddingKeyRepository } from '@/infrastructure/repositories/EmbeddingKeyRepository';
 import { KnowledgeSettingsRepository } from '@/infrastructure/repositories/KnowledgeSettingsRepository';
 import { McpConnectorRepository } from '@/infrastructure/repositories/McpConnectorRepository';
+import { TauriMcpOAuthLoopbackFlow } from '@/infrastructure/mcp/tauriMcpOAuthLoopbackFlow';
 import { ToolRepository } from '@/infrastructure/repositories/ToolRepository';
 import { KnowledgeRepository } from '@/infrastructure/repositories/KnowledgeRepository';
 import { AgentRepository } from '@/infrastructure/repositories/AgentRepository';
@@ -67,7 +68,10 @@ export function ServiceProvider({ children }: ServiceProviderProps) {
       knowledgeSettingsService: new KnowledgeSettingsService(
         new KnowledgeSettingsRepository(axiosClient),
       ),
-      mcpConnectorService: new McpConnectorService(new McpConnectorRepository(axiosClient)),
+      mcpConnectorService: new McpConnectorService(
+        new McpConnectorRepository(axiosClient),
+        new TauriMcpOAuthLoopbackFlow(),
+      ),
       toolService: new ToolService(new ToolRepository(axiosClient)),
       knowledgeService: new KnowledgeService(new KnowledgeRepository(axiosClient)),
       agentService: new AgentService(new AgentRepository(axiosClient)),
