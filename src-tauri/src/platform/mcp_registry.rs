@@ -18,7 +18,10 @@ use rmcp::ServiceExt;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
-use crate::domain::mcp::{McpHostError, StdioLaunchConfig, ToolSchema};
+use crate::domain::mcp::{
+    is_auth_error_signal, DelegatedCallOutcome, McpHostError, StdioLaunchConfig, ToolSchema,
+    REAUTH_REASON_TOKEN_EXPIRED,
+};
 
 /// Bound the handshake when spawning a server.
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(30);
@@ -52,13 +55,21 @@ impl McpRegistry {
     }
 
     /// Call a tool on the connector's WARM service (spawn-or-reuse).
+    ///
+    /// Classifies the outcome instead of discarding `result.isError` (tracker
+    /// #124): an `isError` result whose flattened content matches an auth signal,
+    /// OR a raised call error whose message matches one, yields
+    /// [`DelegatedCallOutcome::AuthRequired`] (with `service` left `None` here —
+    /// the application layer enriches it from the launch config). Everything else
+    /// is a normal [`DelegatedCallOutcome::Result`]. Service derivation is NOT done
+    /// here so the registry stays focused on process lifecycle.
     pub async fn call(
         &self,
         id: Uuid,
         cfg: &StdioLaunchConfig,
         upstream_name: &str,
         args: serde_json::Value,
-    ) -> Result<String, McpHostError> {
+    ) -> Result<DelegatedCallOutcome, McpHostError> {
         let mut map = self.services.lock().await;
         if !map.contains_key(&id) {
             let service = tokio::time::timeout(STARTUP_TIMEOUT, spawn_service(cfg))
@@ -68,7 +79,7 @@ impl McpRegistry {
         }
         let service = map.get(&id).expect("inserted above");
         let arguments = args.as_object().cloned();
-        let result = tokio::time::timeout(
+        let call = tokio::time::timeout(
             CALL_TIMEOUT,
             service.call_tool(CallToolRequestParam {
                 name: upstream_name.to_string().into(),
@@ -76,9 +87,50 @@ impl McpRegistry {
             }),
         )
         .await
-        .map_err(|_| McpHostError::Timeout)?
-        .map_err(|e| McpHostError::Protocol(e.to_string()))?;
-        Ok(flatten_result(&result))
+        .map_err(|_| McpHostError::Timeout)?;
+
+        match call {
+            Ok(result) => {
+                let content = flatten_result(&result);
+                let is_error = result.is_error.unwrap_or(false);
+                // Diagnostic for the #124 verify-first step: one real expired-GUS
+                // run reveals which channel carries the signal (isError body here,
+                // vs raised error below, vs stderr — see the tech spec §10).
+                if is_error {
+                    eprintln!(
+                        "[mcp_stdio_call] isError result (auth_signal={}): {}",
+                        is_auth_error_signal(&content),
+                        truncate_for_log(&content),
+                    );
+                }
+                if is_error && is_auth_error_signal(&content) {
+                    Ok(DelegatedCallOutcome::AuthRequired {
+                        service: None,
+                        reason: REAUTH_REASON_TOKEN_EXPIRED.to_string(),
+                    })
+                } else {
+                    Ok(DelegatedCallOutcome::Result { content })
+                }
+            }
+            Err(err) => {
+                // A raised protocol error that LOOKS like auth (e.g. a 401 the
+                // transport surfaced as an error) is treated as auth-required too,
+                // not a hard failure — defensive coverage for the unknown channel.
+                let message = err.to_string();
+                if is_auth_error_signal(&message) {
+                    eprintln!(
+                        "[mcp_stdio_call] auth-classified call error: {}",
+                        truncate_for_log(&message)
+                    );
+                    Ok(DelegatedCallOutcome::AuthRequired {
+                        service: None,
+                        reason: REAUTH_REASON_TOKEN_EXPIRED.to_string(),
+                    })
+                } else {
+                    Err(McpHostError::Protocol(message))
+                }
+            }
+        }
     }
 
     /// Tear down every warm service (app close). Cancel closes each transport.
@@ -98,16 +150,15 @@ async fn spawn_service(cfg: &StdioLaunchConfig) -> Result<ClientService, McpHost
     }
     cmd.kill_on_drop(true);
     let transport = TokioChildProcess::new(cmd).map_err(|e| McpHostError::Spawn(e.to_string()))?;
-    ().serve(transport).await.map_err(|e| McpHostError::Protocol(e.to_string()))
+    ().serve(transport)
+        .await
+        .map_err(|e| McpHostError::Protocol(e.to_string()))
 }
 
 fn tool_to_schema(tool: rmcp::model::Tool) -> ToolSchema {
     ToolSchema {
         name: tool.name.to_string(),
-        description: tool
-            .description
-            .map(|d| d.to_string())
-            .unwrap_or_default(),
+        description: tool.description.map(|d| d.to_string()).unwrap_or_default(),
         input_schema: serde_json::Value::Object((*tool.input_schema).clone()),
     }
 }
@@ -116,6 +167,19 @@ fn tool_to_schema(tool: rmcp::model::Tool) -> ToolSchema {
 /// array; clean text-only extraction is a refinement.
 fn flatten_result(result: &rmcp::model::CallToolResult) -> String {
     serde_json::to_string(&result.content).unwrap_or_default()
+}
+
+/// Cap a string for a single-line diagnostic log so a large tool body / error
+/// doesn't flood stderr. Never logs secrets — launch-config env never appears in
+/// a tool result or error message.
+fn truncate_for_log(text: &str) -> String {
+    const MAX: usize = 300;
+    if text.chars().count() <= MAX {
+        text.to_string()
+    } else {
+        let head: String = text.chars().take(MAX).collect();
+        format!("{head}…[{} bytes]", text.len())
+    }
 }
 
 // ── Keychain launch-config store (secrets stay on the desktop) ───────────────
@@ -138,9 +202,7 @@ pub fn load_config(id: Uuid) -> Result<StdioLaunchConfig, McpHostError> {
         .map_err(|e| McpHostError::Keyring(e.to_string()))?;
     let json = match entry.get_password() {
         Ok(j) => j,
-        Err(keyring::Error::NoEntry) => {
-            return Err(McpHostError::NotConfigured(id.to_string()))
-        }
+        Err(keyring::Error::NoEntry) => return Err(McpHostError::NotConfigured(id.to_string())),
         Err(e) => return Err(McpHostError::Keyring(e.to_string())),
     };
     serde_json::from_str(&json).map_err(|e| McpHostError::Serde(e.to_string()))

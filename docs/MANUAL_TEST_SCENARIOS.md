@@ -197,6 +197,52 @@ narrow widths is gated at commit time per CLAUDE.md; this is the native *feel*.)
 
 ---
 
+## M10 — Aggregator per-service re-auth (mcp-adaptor, e.g. GUS) — tracker #124
+
+**Why manual:** needs the real `mcp-adaptor` binary, a downstream provider
+account (GUS) whose token can be expired, and the adaptor's own **system-browser**
+OAuth flow — none of which the browser e2e tier (or this dev Mac, which has no
+adaptor binary) can drive. This is the **verify-first** step (B) for #124: it also
+captures **which channel** an expired downstream token surfaces on.
+
+**Prerequisites**
+- A machine with the `mcp-adaptor` binary (e.g.
+  `~/.mcp-adaptor/bin/mcp-adaptor-go-v2.1.0-<os>-amd64`) and a GUS account.
+- This branch built and run via `pnpm tauri dev` (native shell — stdio delegation
+  + keychain are desktop-only).
+- The Docker `pragna2-api` (`Releases/V1` ≥ v1.0.12) reachable; a model configured.
+- A client-delegated **stdio** connector registered pointing at the adaptor, with
+  its launch args carrying `--server gus` (or `--provider gus`).
+
+**Steps**
+1. Expire / invalidate the GUS downstream token in the adaptor (so the next GUS
+   tool call fails auth) — leave pragna2's own auth intact.
+2. In chat, send a prompt that makes the agent call a **GUS** tool via the adaptor.
+3. **Capture the diagnostic.** In the `pnpm tauri dev` terminal, find the
+   `[mcp_stdio_call]` line emitted by the Rust host (`src-tauri/.../mcp_registry.rs`).
+   Record whether it shows `isError result (auth_signal=true)` **or** an
+   `auth-classified call error` — and whether nothing was logged (⇒ the signal was
+   stderr-only, which means the classifier must be extended; see tech spec §10).
+4. Observe the inline card; click **Re-authenticate**; complete the adaptor login
+   in the browser; click **Retry**.
+5. Repeat for a *second* downstream provider (e.g. `search`/`google`) under the
+   same adaptor, expiring only that one.
+
+**Checks**
+- [ ] An inline **Re-authenticate card** appears (NOT an LLM prose explanation of
+      a 401), naming the **specific service** (`gus`).
+- [ ] **Re-authenticate** opens the system browser via
+      `mcp-adaptor auth --provider gus` (not pragna2's connector OAuth).
+- [ ] After completing it, **Retry** re-runs the call and the run continues with a
+      real result.
+- [ ] **Continue without it** degrades gracefully (the step is skipped, run proceeds).
+- [ ] Expiring a *different* downstream service re-auths **that** provider only.
+- [ ] A **non-auth** GUS tool error still surfaces normally (no re-auth card).
+- [ ] **Recorded:** which channel carried the signal (isError body / raised error /
+      stderr-only) — fed back to confirm or extend the classifier.
+
+---
+
 > **Promotion rule:** any behavior a future spec author finds automatable (a
 > runtime primitive ships, or a Tauri WebDriver lands for pragna2-tracker TD-028) should move
 > from here into an automated spec, and its `M<n>` entry deleted.
