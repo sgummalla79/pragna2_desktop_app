@@ -11,6 +11,29 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-022 — `service_from_error_text`: provider name always `null` for `--profile` connectors → `mcp-adaptor auth --provider <service>` could not be driven (pragna2-tracker #129)
+
+- **Date:** 2026-06-17
+- **Area / file:** `src-tauri/src/domain/mcp.rs` (new `service_from_error_text()`), `src-tauri/src/platform/mcp_registry.rs` (call classification), `src-tauri/src/application/mcp_host.rs` (enrichment fallback).
+- **Found by:** Analysis of `claude-web-app` mcp-adaptor pattern — connectors launched as `mcp-adaptor serve --profile sumangummalla` bundle multiple servers (`gus`, `codesearch`, `google_workspace`, etc.) in one process. The launch args carry no `--server`/`--provider` flag, so `service_from_args()` always returned `None`, `DelegatedCallOutcome::AuthRequired { service: None }` was the only possible outcome, and `mcp-adaptor auth --provider <service>` could never be invoked from the Re-authenticate card.
+- **Root cause:** `service_from_args` was the only derivation path. It works for single-server connectors (`mcp-adaptor serve --server gus`) but not for profile-based ones. For profile connectors the provider name is embedded verbatim in the mcp-adaptor error text: `"failed to fetch required token for provider 'gus'"` — it was never extracted.
+- **Fix:** Added `service_from_error_text(text)` to `domain/mcp.rs` — matches the `"for provider '<name>'"` pattern (case-insensitive) in the error string and returns the provider name. Updated `mcp_registry::call()` to call this at the point of auth-classification (where the error text is available). `mcp_host::call()` retains `service_from_args` as a fallback for when the pattern is absent (non-adaptor or single-server connectors). 4 new tests in `domain::mcp::tests`. 16/16 Rust tests pass.
+- **Web-app applicability:** **N/A** — stdio delegation is desktop-only.
+
+---
+
+## CF-021 — `AUTH_ERROR_RESULT_SIGNALS` missing `invalid_grant` / `token refresh failed` → mcp-adaptor 400 refresh failure classified as `auth_signal=false`, Re-authenticate card never shown (pragna2-tracker #128)
+
+- **Date:** 2026-06-17
+- **Area / file:** `src-tauri/src/domain/mcp.rs` (`AUTH_ERROR_RESULT_SIGNALS` constant, lines 63–84).
+- **Found by:** Console log during live GUS MCP tool call: `[mcp_stdio_call] isError result (auth_signal=false): [{"type":"text","text":"failed to get MCP client: ... token refresh failed with status 400: {\"error\":\"invalid_grant\"..."}]`. The Re-authenticate card never appeared; the LLM narrated the error in prose.
+- **Bug:** When a GUS session token expires, the `mcp-adaptor` attempts a silent token refresh. If the refresh token is also expired/revoked, the adaptor returns an `isError=true` MCP result whose text contains `"invalid_grant"` (OAuth RFC 6749 §5.2 error code), `"token refresh failed"`, and `"failed to fetch required token"`. `is_auth_error_signal()` in `mcp.rs` returned `false` for all of these because none appeared in `AUTH_ERROR_RESULT_SIGNALS`. As a result, `mcp_registry::call` returned `DelegatedCallOutcome::Success` (not `AuthRequired`), the desktop sent a plain `tool_result` to `/resume-tool` instead of the structured `{"auth_required": ...}` signal, the BE's text-signal fallback also missed (same gap — tracked as pragna2-tracker #127 for the API team), and no `connector_reauth` interrupt was raised. The #122/#124 re-auth pause flow was fully bypassed.
+- **Root cause:** The signal list was authored to cover OIDC/session patterns but missed the OAuth token-refresh failure code `invalid_grant` and the mcp-adaptor-specific wrapper messages. The failure arrives as a **400** on the refresh endpoint (not a 401 on the API call), so the existing `"401"` signal never matched.
+- **Fix:** Added `"invalid_grant"` to `AUTH_ERROR_RESULT_SIGNALS` in `src-tauri/src/domain/mcp.rs`. Keyed on the standard OAuth RFC 6749 §5.2 error code embedded in the mcp-adaptor error JSON body — NOT on vendor-specific prose (`"token refresh failed"`, `"failed to fetch required token"`), which the API team deliberately excluded (pragna2-api #127 adds only `"invalid_grant"` for the same reason: too broad). The full mcp-adaptor error string matches via the embedded `"invalid_grant"` code. Test updated to assert the full error matches AND that bare vendor prose without the standard code does NOT match. 16/16 Rust tests pass.
+- **Web-app applicability:** **N/A** — `AUTH_ERROR_RESULT_SIGNALS` and the stdio delegation path are desktop-only (Rust / Tauri). BE companion fix: pragna2-api #127 (merged, v1.0.13).
+
+---
+
 ## CF-020 — Delegated stdio `call` discarded `result.isError` → aggregator auth errors narrated by the LLM, never paused
 
 - **Date:** 2026-06-17
