@@ -98,7 +98,14 @@ change.
   this conversation's message log. `send` appends a user turn and calls
   `runAgent`; `sendWithOverrides` appends `?user_model_id=` / `?thinking_enabled=`
   for the first turn then restores the base URL on finalize; `stop` calls
-  `abortRun` (client-side only).
+  `abortRun` (client-side only). **Failed-turn rollback (pragna2-tracker #111 /
+  CF-015):** the optimistic user push is tracked (`pendingUserIdRef` +
+  `lastRunFailedRef`); because a failed run is never reconciled to the persisted
+  log (`useReconcileMessages` skips while in-memory is ahead — CF-013b), its
+  un-persisted copy would otherwise linger and be re-sent on every retry,
+  duplicating the message N× in the outgoing history. `send` drops that orphan
+  via `utils/messageDedup.pruneOrphanedOptimisticMessage` before pushing the new
+  turn, so exactly one copy of each user message is sent per turn.
 - **`views/chat/hooks/useChatModels.ts`** — chat-eligible models
   (`enabled && availableForChat && !archived`) from the shared `useModels` cache.
   Single source for the picker, the composer gating, and the landing default.
