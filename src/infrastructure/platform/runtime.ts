@@ -9,6 +9,28 @@ export function isWindowsPlatform(): boolean {
   return typeof navigator !== 'undefined' && navigator.userAgent.includes('Windows');
 }
 
+/** True when the app is running on macOS (Tauri or browser). Detected via the
+ *  user-agent's `Macintosh`/`Mac OS X` token (the OS, runtime-independent). */
+export function isMacPlatform(): boolean {
+  return typeof navigator !== 'undefined' && navigator.userAgent.includes('Macintosh');
+}
+
+/** True only when the macOS overlay title bar is actually present: on macOS AND
+ *  inside the Tauri runtime.
+ *
+ *  The real macOS app runs with `titleBarStyle: "Overlay"` + `hiddenTitle: true`
+ *  (see tauri.macos.conf.json / tauri.conf.json), so the webview fills the whole
+ *  window and the native traffic-light buttons float over the top-left corner.
+ *  Content anchored to the window's top-left (a full-screen overlay's header)
+ *  must reserve space for those lights. In a plain browser — including the e2e
+ *  Desktop Chrome device, which can send ANY OS UA — there is no overlay and no
+ *  traffic lights, so that inset must NOT be applied. Gating on the runtime as
+ *  well as the OS is what keeps browser-fallback layout correct. Mirrors the
+ *  rationale of {@link usesWindowsChrome}. */
+export function usesMacOverlayChrome(): boolean {
+  return isMacPlatform() && isTauriRuntime();
+}
+
 /** True only when the Windows-native desktop chrome (custom title bar + the
  *  Windows-specific sidebar/layout branches) should be rendered: on Windows AND
  *  inside the Tauri runtime.

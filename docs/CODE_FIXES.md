@@ -415,6 +415,49 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-019 — macOS overlay traffic lights overlap full-screen overlay headers
+
+- **Date:** 2026-06-16
+- **Tracker:** pragna2-tracker #120 (`type:bug`, `target:desktop-fe`)
+- **Area / files:** `src/infrastructure/platform/runtime.ts` (+ `index.ts`) — new
+  `isMacPlatform()` / `usesMacOverlayChrome()`; `src/constants/windowChrome.ts` — new
+  `TRAFFIC_LIGHT_SAFE_INSET_PX`; `src/presentation/hooks/useOverlayTitleBarInset.ts` (new,
+  reusable); applied in `src/presentation/views/settings/AgentsView/AgentFormModal.tsx` and
+  `src/presentation/views/chat/components/AttachmentViewer.tsx`.
+- **Found by:** Manual use (screenshot) — the macOS traffic-light buttons painted **on top of** the
+  "Edit … Assistant" agent-editor header (its back button + title), making the title unreadable and
+  the back button hard to hit.
+- **Bug:** The macOS app runs with `titleBarStyle: "Overlay"` + `hiddenTitle: true`
+  (`tauri.macos.conf.json` / `tauri.conf.json`), so the webview fills the whole window and the native
+  traffic lights float over the **top-left** corner at `trafficLightPosition {x:22,y:28}`. The normal
+  app chrome reserves a title row for them (via the sidebar / `SIDEBAR_TITLE_ROW_PX` + `AppTitleBar`),
+  but a **full-screen overlay** (`fixed inset-0`, `z-[701]`/`z-[700]`) draws **over** that chrome and
+  pins its own header to the very top — with no inset reserved for the lights. Two surfaces collide:
+  the agent editor (`AgentFormModal`) and the attachment viewer (`AttachmentViewer`).
+- **Root cause:** No shared mechanism reserved the traffic-light safe zone for content anchored to the
+  window's top-left in a full-screen overlay. Centered dialogs (provider/connector modals,
+  update-required screen) are unaffected — their content sits mid-window, so the lights only float over
+  the dimmed backdrop (normal macOS behavior).
+- **Fix:** A single reusable, platform-gated mechanism, applied to every offending header:
+  1. `usesMacOverlayChrome()` (= macOS **and** Tauri runtime) — the only case where the overlay lights
+     actually exist; mirrors the `usesWindowsChrome()` runtime-gating rationale (CF-011) so a plain
+     browser / e2e Desktop Chrome — which can send any OS UA — never gets the inset.
+  2. `TRAFFIC_LIGHT_SAFE_INSET_PX` — the left inset derived from `TRAFFIC_LIGHT_X` + the light-group
+     width + clearance (no inline literal; lives in the chrome-geometry constants file).
+  3. `useOverlayTitleBarInset()` — returns `{ paddingLeft }` on macOS-overlay chrome, else `undefined`.
+     Spread onto a full-screen overlay's header `style`. Reuse this on any future full-screen overlay.
+- **Tests:** `runtime.test.ts` 4-cell OS×runtime truth table for `usesMacOverlayChrome` + `isMacPlatform`;
+  `useOverlayTitleBarInset.test.ts` (both branches, hook mocked platform); `AgentFormModal.test.tsx`
+  header-inset applied/absent (hook mocked both ways). Full suite green; `lint:platform` passes (no
+  OS detection outside the platform layer).
+- **Web-app applicability:** **PROBABLY NOT AFFECTED — verify.** This is a **desktop-only / macOS-only**
+  defect: it exists only because of the Tauri overlay title bar with native traffic lights. The web app
+  (`pragna2_sgummalla_works`) runs in a normal browser with no overlay window controls, so its
+  full-screen overlays have nothing to collide with. No port needed unless the web app is ever wrapped
+  in a desktop shell with an overlay title bar.
+
+---
+
 ## CF-018 — Select dropdowns overlap the trigger (option list renders on top of the control)
 
 - **Date:** 2026-06-17

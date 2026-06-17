@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Download, Loader2, X } from 'lucide-react';
 import { isImageType, isPdfType } from '@/constants/attachments';
 import type { Attachment } from '@/domain/types/attachment.types';
+import { useOverlayTitleBarInset } from '@/presentation/hooks/useOverlayTitleBarInset';
 import { useAttachmentBlob } from '../hooks/useAttachmentBlob';
 
 interface AttachmentViewerProps {
@@ -18,6 +19,10 @@ interface AttachmentViewerProps {
  */
 export function AttachmentViewer({ attachment, onClose }: AttachmentViewerProps) {
   const { url, loading, error } = useAttachmentBlob(attachment?.id ?? null);
+  // Clear the macOS overlay traffic lights (full-screen overlay, top-left
+  // header). No-op off macOS-overlay chrome. Called before the early return to
+  // keep hook order stable.
+  const headerInset = useOverlayTitleBarInset();
 
   useEffect(() => {
     if (!attachment) return;
@@ -43,6 +48,7 @@ export function AttachmentViewer({ attachment, onClose }: AttachmentViewerProps)
       {/* Header. */}
       <div
         className="flex shrink-0 items-center gap-2 border-b border-border bg-popover px-4 py-2.5"
+        style={headerInset}
         onClick={(e) => e.stopPropagation()}
       >
         <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
