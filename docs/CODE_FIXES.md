@@ -415,6 +415,19 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-015 — User message duplicated N× in the history sent per turn (pragna2-tracker #111)
+
+- **Date:** 2026-06-16
+- **Area / file:** `src/presentation/views/chat/hooks/useChatSession.ts` (`send` + `onRunFailed`/`onRunFinalized` subscriber hooks); new pure helper `src/presentation/views/chat/utils/messageDedup.ts`.
+- **Found by:** Backend (pragna2-tracker #110, GitLab) — while investigating a Bedrock `RemoteProtocolError`, the BE logged the **same user message repeated 8×** inside one Bedrock request payload on thread `3fe045ec`. Filed for the desktop FE as **#111** per the no-cross-repo rule.
+- **Bug:** `send()` optimistically pushes the user message into `agent.messages` (with a client `randomId()`) **before** `runAgent()`; ag-ui streams that whole list to the BE as the turn's history (`prepareRunAgentInput` sends `this.messages` verbatim). A **successful** run is later reconciled to the persisted log by `useReconcileMessages` (which swaps the optimistic copy for the server-id'd one). A **failed** run is **not** reconciled — and the reconciliation hook's CF-013b guard (`if (messages.length > persisted.length) return;`) deliberately skips while in-memory is ahead of persisted (the exact failed-orphan shape). So the orphaned optimistic copy lingers in `agent.messages`, and every retry of the message appends another copy → the same user message is re-sent N× in the outgoing history. The #110 `RemoteProtocolError` storm (repeated failures on one fresh thread) is what drove it to 8×.
+- **Root cause:** Optimistic-append with no rollback on failure. The only pruning path (reconciliation against the persisted snapshot) is intentionally inert exactly when a run failed and left an un-persisted orphan, so failed-turn user messages accumulate across retries.
+- **Fix:** Track the last optimistic user-message id (`pendingUserIdRef`) and whether its run failed (`lastRunFailedRef`, set in `onRunFailed`, cleared on a successful `onRunFinalized`). At the **start of the next `send`**, if the prior run failed, drop the orphan via the pure `pruneOrphanedOptimisticMessage(messages, orphanId)` helper before pushing the new optimistic message — guaranteeing exactly one copy per turn. Id-based (never content-based), so a legitimately repeated message is preserved; a succeeded message is never pruned (its id is cleared on finalize); harmless no-op in the sub-case where the BE *did* persist the user turn and reconciliation already removed the orphan. The failed message stays visible until the next send (no premature content loss), then is replaced. 6 unit tests in `messageDedup.test.ts`; all 127 chat-area tests pass.
+- **Web-app applicability:** **LIKELY AFFECTED — check.** `pragna2_sgummalla_works` shares the same `useChatSession` optimistic-push + reconcile architecture (it originated the `replaceMessages` resync). If it also carries the CF-013b "in-memory ahead → skip reconcile" guard, it has the identical failed-orphan accumulation. Apply the same `pendingUserIdRef`/`lastRunFailedRef` + `pruneOrphanedOptimisticMessage` rollback there. (Web app uses the browser transport, but the duplication is transport-independent — it's in the shared message-state lifecycle.)
+- **Possible BE-side residue (flag, do NOT fix here):** if the BE persists a user row on **each** failed/retried POST, the persisted `/messages` log itself may carry duplicate user rows independent of this FE fix. That is a `pragna2-api` concern — record it as a tracked item for the BE session rather than touching the BE from this repo.
+
+---
+
 ## CF-014 — MCP "Failed to save local servers" hides the real Tauri/Rust error
 
 - **Date:** 2026-06-16

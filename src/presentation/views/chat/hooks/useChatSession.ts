@@ -24,6 +24,7 @@ import {
   readDelegationEnvelope,
   readReauthEnvelope,
 } from '@/domain/types/mcpDelegation.types';
+import { pruneOrphanedOptimisticMessage } from '../utils/messageDedup';
 
 /** A tool call rendered inline under an assistant turn. */
 export interface ChatToolCall {
@@ -245,6 +246,15 @@ export function useChatSession(
   // Abort controller for an in-flight raw episode run (start/resume), so `stop`
   // can cancel it (these bypass ag-ui's `runAgent`/`abortRun`).
   const rawAbortRef = useRef<AbortController | null>(null);
+  // Duplicate-history guard (pragna2-tracker #111). `send` optimistically pushes
+  // the user message into `agent.messages` BEFORE `runAgent`; a SUCCESSFUL run is
+  // reconciled to the persisted log by ChatSessionView (dropping the optimistic
+  // copy), but a FAILED run is not — so its copy lingers and is re-sent on the
+  // next turn, duplicating the same user message N× in the outgoing history.
+  // `pendingUserIdRef` tracks the last optimistic id; `lastRunFailedRef` records
+  // whether that run failed (only then is the copy an orphan to prune).
+  const pendingUserIdRef = useRef<string | null>(null);
+  const lastRunFailedRef = useRef(false);
   // Stable ref to the latest open-episode resolver, called from the subscriber
   // (avoids adding it to the subscribe effect's deps).
   const resolveOpenEpisodeRef = useRef<() => void>(() => {});
@@ -351,12 +361,19 @@ export function useChatSession(
         setStatus('error');
         setError(e.message || 'Run failed');
         setProgressLabel(null);
+        // The optimistic user message of this turn was NOT persisted/reconciled —
+        // flag it so the next `send` prunes it instead of re-sending it (#111).
+        lastRunFailedRef.current = true;
         logger.fromError('CHT_004:run_failed', e);
       },
       onRunFinalized: () => {
         setStatus((prev) => (prev === 'error' ? prev : 'idle'));
         setProgressLabel(null);
         setStreamingMessageIds(new Set());
+        // A run that did NOT fail leaves a real (soon-reconciled) user message —
+        // forget its optimistic id so the next `send` never prunes it as an
+        // orphan. A failed run keeps the id flagged for pruning (#111).
+        if (!lastRunFailedRef.current) pendingUserIdRef.current = null;
         // Restore the base URL after an overrides run so the next plain send
         // reverts to the conversation's persisted preference.
         if (overrideUrlRef.current !== null && agent) {
@@ -569,7 +586,22 @@ export function useChatSession(
         agent.url = `${PRAGNA_BASE_URL}/flows/${encodeURIComponent(slashName)}`;
       }
 
-      agent.messages.push({ id: randomId(), role: 'user', content: trimmed });
+      // Drop an orphaned optimistic user message left by a PRIOR failed run
+      // before pushing this turn's, so the same user message is never sent more
+      // than once in the outgoing history (pragna2-tracker #111). Only a failed
+      // run leaves an orphan; a succeeded one was reconciled away and its id was
+      // cleared in `onRunFinalized`.
+      if (lastRunFailedRef.current) {
+        agent.messages = pruneOrphanedOptimisticMessage(
+          agent.messages,
+          pendingUserIdRef.current,
+        );
+        lastRunFailedRef.current = false;
+      }
+
+      const optimisticUserId = randomId();
+      pendingUserIdRef.current = optimisticUserId;
+      agent.messages.push({ id: optimisticUserId, role: 'user', content: trimmed });
       syncMessages();
 
       // Attachments uploaded ahead of send ride along as a forwarded prop; the
