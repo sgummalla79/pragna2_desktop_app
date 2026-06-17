@@ -64,4 +64,17 @@ describe('McpConnectorRepository', () => {
       requiresManualClient: false,
     });
   });
+
+  it('completeOAuth posts code+state and maps connector_id', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${BASE}/mcp-connectors/mc1/oauth-completion`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ connector_id: 'mc1' });
+      }),
+    );
+    const out = await repo().completeOAuth('mc1', { code: 'C', state: 'S' });
+    expect(body).toEqual({ code: 'C', state: 'S' });
+    expect(out).toEqual({ connectorId: 'mc1' });
+  });
 });

@@ -3,7 +3,11 @@ import type { ReactNode } from 'react';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ServiceContext, type Services } from '@/presentation/providers/ServiceContext';
-import { useMcpConnectors, useRegisterMcpConnector } from './useMcpConnectors';
+import {
+  useConnectorOAuthLoopback,
+  useMcpConnectors,
+  useRegisterMcpConnector,
+} from './useMcpConnectors';
 
 function setup(mcpConnectorService: Record<string, unknown>) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
@@ -40,5 +44,36 @@ describe('useRegisterMcpConnector', () => {
     const keys = invalidate.mock.calls.map((c) => (c[0] as { queryKey: unknown[] }).queryKey);
     expect(keys).toContainEqual(['mcp-connectors']);
     expect(keys).toContainEqual(['tools']);
+  });
+});
+
+describe('useConnectorOAuthLoopback', () => {
+  it('invalidates connectors + tools on a connected result', async () => {
+    const connectViaLoopback = vi
+      .fn()
+      .mockResolvedValue({ status: 'connected', connectorId: 'mc1' });
+    const { wrapper, qc } = setup({ connectViaLoopback });
+    const invalidate = vi.spyOn(qc, 'invalidateQueries');
+    const { result } = renderHook(() => useConnectorOAuthLoopback(), { wrapper });
+    await act(async () => {
+      await result.current.mutateAsync({ id: 'mc1', callbackPort: 8082 });
+    });
+    expect(connectViaLoopback).toHaveBeenCalledWith('mc1', 8082);
+    const keys = invalidate.mock.calls.map((c) => (c[0] as { queryKey: unknown[] }).queryKey);
+    expect(keys).toContainEqual(['mcp-connectors']);
+    expect(keys).toContainEqual(['tools']);
+  });
+
+  it('does NOT invalidate when the BE asks for a manual client', async () => {
+    const connectViaLoopback = vi
+      .fn()
+      .mockResolvedValue({ status: 'requires_manual_client' });
+    const { wrapper, qc } = setup({ connectViaLoopback });
+    const invalidate = vi.spyOn(qc, 'invalidateQueries');
+    const { result } = renderHook(() => useConnectorOAuthLoopback(), { wrapper });
+    await act(async () => {
+      await result.current.mutateAsync({ id: 'mc1', callbackPort: 8082 });
+    });
+    expect(invalidate).not.toHaveBeenCalled();
   });
 });

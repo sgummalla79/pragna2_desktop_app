@@ -10,6 +10,8 @@ import type { AxiosInstance } from 'axios';
 import type { IMcpConnectorRepository } from '@/application/ports/IMcpConnectorRepository';
 import type {
   ClientToolSchema,
+  CompleteOAuthRequest,
+  CompleteOAuthResult,
   CreateMcpConnectorPayload,
   McpConnector,
   RefreshToolsResult,
@@ -120,5 +122,16 @@ export class McpConnectorRepository implements IMcpConnectorRepository {
       authorizationUrl: data.authorization_url ?? null,
       requiresManualClient: data.requires_manual_client,
     };
+  }
+
+  async completeOAuth(
+    id: string,
+    payload: CompleteOAuthRequest,
+  ): Promise<CompleteOAuthResult> {
+    const { data } = await this.http.post<{ connector_id: string }>(
+      `/mcp-connectors/${id}/oauth-completion`,
+      { code: payload.code, state: payload.state },
+    );
+    return { connectorId: data.connector_id };
   }
 }
