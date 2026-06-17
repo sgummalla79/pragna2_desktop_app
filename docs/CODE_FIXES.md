@@ -415,6 +415,19 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-016 — Agent silently "not responding" — FE ignored the backend's in-band `RUN_ERROR` event
+
+- **Date:** 2026-06-16
+- **Area / file:** `src/presentation/views/chat/hooks/useChatSession.ts` (run subscriber); new pure helper `src/presentation/views/chat/utils/runError.ts`.
+- **Found by:** User report — "when an agent has MCP connectors configured, the agent is not responding." Backend (`pragna2-api`) Docker logs showed the run dying with an Anthropic `400` (`tools.2.custom.name` — MCP tool names contain dots; tracked as pragna2-tracker **#114**, a BE bug), and the BE **does** publish a terminal `RUN_ERROR` event on failure (its own comment: "so the FE's `onRunFailed` fires"). Yet the FE showed nothing.
+- **Bug:** In `@ag-ui/client` 0.0.43, a terminal **`RUN_ERROR` *event*** is delivered to the `onRunErrorEvent` subscriber hook and **does not throw** — so it never reaches the `catchError → onError → onRunFailed` path. `onRunFailed` only fires on a *thrown* error (connection drop / abort rejection). The FE subscriber implemented `onRunFailed` but **not** `onRunErrorEvent`, so a backend-emitted `RUN_ERROR` was a no-op: `onRunFinalized` then flipped `status` to `idle`, leaving the turn with **no assistant reply and no error banner** — the silent "not responding" symptom. The BE's RUN_ERROR fix (added to stop a server-side silent hang) assumed an FE handler that didn't exist.
+- **Root cause:** Missing `onRunErrorEvent` handler — the FE conflated "run failed" with "run *threw*". ag-ui surfaces background/in-band failures as a non-throwing event, which the FE dropped.
+- **Fix:** Added an `onRunErrorEvent` handler that mirrors `onRunFailed`: stop the spinner, set `status='error'`, show the backend's (already sanitized) message — falling back to `ERRORS.CHT_004` when empty — and flag `lastRunFailedRef` so the optimistic user message is pruned on the next send (CF-015 / #111). A client-side abort arrives as `RUN_ERROR` `code:'abort'`; that path unwinds silently (no banner), same as `onRunFailed`'s `AbortError` branch (CF-006). The abort-vs-error decision is extracted to the pure `classifyRunErrorEvent` helper with 6 unit tests. All 133 chat-area tests pass.
+- **Web-app applicability:** **LIKELY AFFECTED — check.** `pragna2_sgummalla_works` shares `useChatSession`; if its subscriber also lacks `onRunErrorEvent`, every backend `RUN_ERROR` (LLM 4xx/5xx, rate-limit, mid-stream failure) fails silently there too. Add the same handler. (Independent of transport — browser or Tauri.)
+- **Note:** This is the *FE surfacing* fix. The *underlying* failure for the MCP case (Anthropic 400 from dotted tool names) is a backend bug tracked as pragna2-tracker #114; once that lands, this RUN_ERROR path stops triggering for MCP — but the FE must still surface RUN_ERROR for every other run failure.
+
+---
+
 ## CF-015 — User message duplicated N× in the history sent per turn (pragna2-tracker #111)
 
 - **Date:** 2026-06-16

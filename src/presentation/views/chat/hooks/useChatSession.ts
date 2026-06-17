@@ -25,6 +25,7 @@ import {
   readReauthEnvelope,
 } from '@/domain/types/mcpDelegation.types';
 import { pruneOrphanedOptimisticMessage } from '../utils/messageDedup';
+import { classifyRunErrorEvent } from '../utils/runError';
 
 /** A tool call rendered inline under an assistant turn. */
 export interface ChatToolCall {
@@ -365,6 +366,30 @@ export function useChatSession(
         // flag it so the next `send` prunes it instead of re-sending it (#111).
         lastRunFailedRef.current = true;
         logger.fromError('CHT_004:run_failed', e);
+      },
+      // A terminal `RUN_ERROR` *event* — the backend's in-band signal that a
+      // background run failed mid-stream (e.g. an LLM 400). ag-ui routes this to
+      // `onRunErrorEvent` and does NOT throw, so `onRunFailed` (the thrown/
+      // connection-error path) never fires; without handling it here the run
+      // just goes idle on finalize with no reply and no error — the silent
+      // "agent not responding" symptom. Surface it exactly like `onRunFailed`.
+      onRunErrorEvent: ({ event }) => {
+        setStreamingMessageIds(new Set());
+        const { aborted, message } = classifyRunErrorEvent(event, ERRORS.CHT_004.message);
+        // A client-side abort (Stop / navigation) arrives as RUN_ERROR code
+        // 'abort' — unwind silently, same as onRunFailed's AbortError (CF-006).
+        if (aborted) {
+          setStatus('idle');
+          setProgressLabel(null);
+          return;
+        }
+        setStatus('error');
+        setError(message);
+        setProgressLabel(null);
+        // Same as the thrown-failure path: the optimistic user message wasn't
+        // persisted — flag it so the next `send` prunes it, not re-sends (#111).
+        lastRunFailedRef.current = true;
+        logger.error('CHT_004:run_error', { errorMessage: event.message ?? null });
       },
       onRunFinalized: () => {
         setStatus((prev) => (prev === 'error' ? prev : 'idle'));
