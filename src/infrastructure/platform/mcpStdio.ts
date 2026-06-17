@@ -4,6 +4,7 @@ import type {
   ClientToolSchema,
   StdioServerConfig,
 } from '@/domain/types/mcp.types';
+import type { McpStdioCallOutcome } from '@/domain/types/mcpDelegation.types';
 
 import { isTauriRuntime } from './runtime';
 
@@ -50,14 +51,16 @@ export const mcpStdio = {
 
   /** Run a delegated tool call against the connector's warm local server.
    *  The Rust side reads the launch config (incl. env secrets) from the
-   *  keychain — secrets never cross this boundary. */
+   *  keychain — secrets never cross this boundary. Returns a tagged outcome: a
+   *  normal `result`, or `auth_required` when the aggregator's downstream-service
+   *  token is dead (#124). */
   async call(
     connectorId: string,
     upstreamName: string,
     args: Record<string, unknown>,
-  ): Promise<string> {
+  ): Promise<McpStdioCallOutcome> {
     if (!isTauriRuntime()) throw new NotInTauriError();
-    return invoke<string>('mcp_stdio_call', {
+    return invoke<McpStdioCallOutcome>('mcp_stdio_call', {
       connectorId,
       upstreamName,
       args,
@@ -96,6 +99,18 @@ export const mcpStdio = {
   async auth(command: string): Promise<void> {
     if (!isTauriRuntime()) throw new NotInTauriError();
     await invoke('mcp_stdio_auth', { command });
+  },
+
+  /** Drive an aggregator connector's per-DOWNSTREAM-service re-auth (#124): the
+   *  Rust side resolves the connector's registered binary from the keychain and
+   *  runs `<binary> auth --provider <service>` (the adaptor's own browser flow).
+   *  `service` `null`/omitted falls back to the gateway-login flow. Resolves when
+   *  the flow completes; rejects (Rust error string) on a missing binary or a
+   *  non-zero exit (user cancelled / rejected). Call this on a
+   *  `boundary=downstream_service` re-auth card, then resume with `retry`. */
+  async reauth(connectorId: string, service: string | null): Promise<void> {
+    if (!isTauriRuntime()) throw new NotInTauriError();
+    await invoke('mcp_stdio_reauth', { connectorId, service });
   },
 
   /** Load the whole-config editor blob (the `mcpServers` JSON the user authors)
