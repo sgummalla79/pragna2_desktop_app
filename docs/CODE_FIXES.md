@@ -415,6 +415,30 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-018 — Select dropdowns overlap the trigger (option list renders on top of the control)
+
+- **Date:** 2026-06-17
+- **Area / file:** `src/components/ui/select.tsx` (shared `SelectContent` primitive).
+- **Found by:** Manual use — across **every** `Select` (chat model picker, agent-form MCP connector
+  picker, active/inactive selectors, all settings dropdowns) the option list opened **over** the
+  trigger button instead of below it, overlapping the control.
+- **Bug:** `SelectContent` defaulted to Radix `position="item-aligned"`, which positions the content so
+  the *selected item* aligns with (sits on top of) the trigger — the list overlaps the control. This
+  has been the default since the primitive was added (`d99a2c7`, 2026-06-09); it was **never fixed by a
+  commit** on any branch (the earlier "fix" was an uncommitted local edit that didn't survive — a
+  cross-machine / uncommitted-loss case; the standing "Sync Latest" rule applies).
+- **Fix:** Default `position="popper"` so the list opens **below/above** the trigger (offset, no
+  overlap) — the standard dropdown behavior. Also changed the popper viewport from
+  `h-(--radix-select-trigger-height)` to **`min-h-`** so a multi-item list grows instead of being
+  clipped to one row. `z-[800]` (CF-001, above modal overlays) is retained, so dropdowns inside dialogs
+  still float correctly. Committed to the shared primitive → fixes all Selects at once, and committed
+  (not left in the working tree) so it can't silently regress again.
+- **Web-app applicability:** **LIKELY AFFECTED — check.** If `pragna2_sgummalla_works`'s `select.tsx`
+  also defaults to `item-aligned`, every dropdown overlaps there too — set `position="popper"` +
+  `min-h-` viewport the same way.
+
+---
+
 ## FEAT-002 — Clean agent-activity rendering (one collapsible "umbrella" per turn, claude.ai-style)
 
 - **Date:** 2026-06-17
