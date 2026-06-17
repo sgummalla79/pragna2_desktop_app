@@ -56,11 +56,27 @@ describe('ChatMessage — generated documents', () => {
     expect(screen.getByTestId('document-card')).toBeInTheDocument();
   });
 
-  it('still shows a normal tool-call badge for non-document tools', () => {
+  it('still shows a normal tool-call badge for non-document tools, with a friendly label (not the raw name)', () => {
     const msg = assistant({
       toolCalls: [{ id: 't2', name: 'web_search', argsBuffer: '{}', args: {} }],
     });
     render(<ChatMessage message={msg} />, { wrapper: wrap() });
-    expect(screen.getByText('web_search')).toBeInTheDocument();
+    expect(screen.getByTestId('tool-call-badge')).toBeInTheDocument();
+    expect(screen.getByText('Web Search')).toBeInTheDocument();
+    expect(screen.queryByText('web_search')).not.toBeInTheDocument();
+  });
+
+  it('suppresses a tool-role message — never dumps its raw result payload', () => {
+    const rawResult =
+      '{"query":"AI trends","results":[{"url":"https://example.com","score":0.9}],"request_id":"abc"}';
+    const toolMsg = {
+      id: 'tr1',
+      role: 'tool',
+      content: rawResult,
+    } as ChatMessageModel;
+    const { container } = render(<ChatMessage message={toolMsg} />, { wrapper: wrap() });
+    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByText(/request_id/)).toBeNull();
+    expect(screen.queryByText(/example\.com/)).toBeNull();
   });
 });

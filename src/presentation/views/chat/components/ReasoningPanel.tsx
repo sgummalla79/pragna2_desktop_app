@@ -1,6 +1,5 @@
-import { useMemo, useState } from 'react';
-import { CheckCircle2, ChevronDown, Clock } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useMemo } from 'react';
+import { ActivityDisclosure } from './ActivityDisclosure';
 
 interface ReasoningPanelProps {
   /** The model's extended-thinking trace (BE migration 0026). */
@@ -16,14 +15,13 @@ const SUMMARY_MAX_CHARS = 96;
 /**
  * Collapsible reasoning timeline rendered beneath an assistant turn.
  *
- * A faint summary header with a chevron expands into a vertical timeline (a
- * Clock node carrying the full trace, then a Done node). Collapsed by default
- * so the thinking stays out of the way until the user wants to inspect it. A
- * local `useState` toggle keeps the dependency surface narrow (no Collapsible).
+ * A thin wrapper over the shared {@link ActivityDisclosure}: it derives the
+ * collapsed summary from the trace's first line and hands the full trace in as
+ * the expanded body. All chrome (header, chevron, timeline, "Done") lives in
+ * the shared component so reasoning reads identically to tool calls and any
+ * future activity.
  */
 export function ReasoningPanel({ reasoning, defaultOpen = false }: ReasoningPanelProps) {
-  const [open, setOpen] = useState(defaultOpen);
-
   // Collapsed-header preview: first non-empty line, whitespace-collapsed.
   const summary = useMemo(() => {
     const firstLine =
@@ -38,51 +36,8 @@ export function ReasoningPanel({ reasoning, defaultOpen = false }: ReasoningPane
   }, [reasoning]);
 
   return (
-    <div className="w-full">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className={cn(
-          'group flex w-full items-center gap-1.5 rounded-md py-1.5 text-left',
-          'text-[13px] text-muted-foreground transition-colors hover:text-foreground',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
-        )}
-      >
-        <span className="min-w-0 flex-1 truncate">{open ? 'Reasoning' : summary}</span>
-        <ChevronDown
-          className={cn(
-            'h-4 w-4 shrink-0 transition-transform duration-200',
-            open && 'rotate-180',
-          )}
-          aria-hidden="true"
-        />
-      </button>
-
-      {open && (
-        <ol className="relative mt-1 space-y-3 pl-1">
-          <li className="relative flex gap-3 pb-1">
-            <span
-              className="absolute left-[9px] top-5 h-[calc(100%-4px)] w-px bg-border"
-              aria-hidden="true"
-            />
-            <Clock
-              className="relative z-10 mt-0.5 h-[18px] w-[18px] shrink-0 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <p className="whitespace-pre-wrap break-words text-[14px] leading-relaxed text-muted-foreground">
-              {reasoning}
-            </p>
-          </li>
-          <li className="flex items-center gap-3">
-            <CheckCircle2
-              className="relative z-10 h-[18px] w-[18px] shrink-0 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <span className="text-[14px] text-muted-foreground">Done</span>
-          </li>
-        </ol>
-      )}
-    </div>
+    <ActivityDisclosure summary={summary} openLabel="Reasoning" defaultOpen={defaultOpen}>
+      <p className="whitespace-pre-wrap break-words">{reasoning}</p>
+    </ActivityDisclosure>
   );
 }
