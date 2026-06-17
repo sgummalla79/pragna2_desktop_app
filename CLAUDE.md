@@ -156,6 +156,42 @@ scoped to verify.
 
 This standing rule stays in force until the user explicitly changes it.
 
+### Track Every Change in GitLab Before Committing — STANDING RULE (all 3 repos)
+
+This is an authoritative, machine-independent rule, checked into the repo on purpose so it applies on
+**every** machine where these repos are cloned and worked, not just the one where it was first set up.
+It governs **all three repos identically**: `pragna2-api` (backend), this Desktop FE
+(`pragna2_desktop_app`), and the web FE (`pragna2_sgummalla_works`).
+
+**Every code change must have a corresponding GitLab work item created BEFORE the code is committed.**
+No commit may go in without a tracking issue that describes what the change is and where it lands.
+
+1. **Create the work item first.** Before committing any bug fix or feature, open an issue in the
+   cross-project tracker (GitLab `sgummalla79/pragna2-tracker`) describing the change. This is a
+   strict pre-commit gate, alongside the responsive-design and spec-docs gates.
+2. **Classify it as a bug or a feature.** Use `type:bug` for corrected broken behavior and
+   `type:feature` for new behavior (`type:tech-debt` for refactors/cleanup), matching the work
+   actually being done.
+3. **Record which repo is being changed.** Tag the target component explicitly so the issue says
+   whether the change is in the **backend** (`target:backend`, `pragna2-api`), the **Desktop FE**
+   (`target:desktop-fe`, `pragna2_desktop_app`), or the **Web FE** (`target:web-fe`,
+   `pragna2_sgummalla_works`). A single change that spans repos gets one issue per repo it touches
+   (consistent with the No Cross-Repo Changes rule — each repo's own session does its own part).
+4. **Detail, not a one-liner.** The issue must carry enough information to stand on its own: the
+   problem/root cause (for a bug) or the desired behavior + acceptance criteria (for a feature),
+   the affected area/files, and the target repo. This is the durable tracking record — not the
+   commit message.
+5. **Reference the issue from the commit.** Cite the work item in the commit (e.g. the issue IID /
+   `#NNN`) so code and tracker stay linked. This complements — does not replace — the
+   `docs/CODE_FIXES.md` bug-fix log and the per-feature spec docs.
+
+Rationale: a tracker issue per change makes the three independent deployables auditable across
+release lines — what changed, why, and in which repo — without reverse-engineering it from commit
+history. Distinct from the Deferred Work rule (which tracks work *not* being done now): this rule
+tracks the change you are *about to commit*.
+
+This standing rule stays in force until the user explicitly changes it.
+
 ### Responsive Design — Required Before Every Commit
 - **Every UI page/screen MUST be built as a responsive web design.** Layouts must adapt
   gracefully across all viewport sizes — a narrow/resized desktop window, small displays, and
