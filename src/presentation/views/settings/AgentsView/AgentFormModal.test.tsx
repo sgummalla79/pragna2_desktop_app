@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AxiosError, AxiosHeaders } from 'axios';
@@ -6,6 +6,20 @@ import { renderWithProviders } from '@/__tests__/renderWithProviders';
 import { ERRORS } from '@/constants/errors';
 import type { Services } from '@/presentation/providers/ServiceContext';
 import { AgentFormModal } from './AgentFormModal';
+
+// The header is a full-screen overlay anchored to the window's top-left, so it
+// must clear the macOS overlay traffic lights via `useOverlayTitleBarInset`.
+// Mock the hook so the macOS-overlay vs. not branches are both asserted without
+// touching platform internals. Default to undefined (off macOS-overlay) so the
+// other tests render exactly as before.
+const overlayInset = vi.fn<[], React.CSSProperties | undefined>(() => undefined);
+vi.mock('@/presentation/hooks/useOverlayTitleBarInset', () => ({
+  useOverlayTitleBarInset: () => overlayInset(),
+}));
+
+beforeEach(() => {
+  overlayInset.mockReturnValue(undefined);
+});
 
 /**
  * Tier 1 tests for AgentFormModal — scoped to the two pieces of own logic:
@@ -156,5 +170,24 @@ describe('AgentFormModal — create', () => {
     await userEvent.type(screen.getByLabelText('Handle'), 'x'); // dirty
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('insets the header to clear the traffic lights on macOS-overlay chrome', () => {
+    overlayInset.mockReturnValue({ paddingLeft: 84 });
+    renderWithProviders(<AgentFormModal open onClose={vi.fn()} />, {
+      services: services(vi.fn()),
+    });
+    const header = screen.getByRole('heading', { name: 'New agent' }).parentElement;
+    expect(header).toHaveStyle({ paddingLeft: '84px' });
+  });
+
+  it('leaves the header un-inset off macOS-overlay chrome (browser / Windows)', () => {
+    overlayInset.mockReturnValue(undefined);
+    renderWithProviders(<AgentFormModal open onClose={vi.fn()} />, {
+      services: services(vi.fn()),
+    });
+    const header = screen.getByRole('heading', { name: 'New agent' }).parentElement;
+    // No inline override: the header keeps only its Tailwind `px-4` padding.
+    expect(header?.style.paddingLeft).toBe('');
   });
 });
