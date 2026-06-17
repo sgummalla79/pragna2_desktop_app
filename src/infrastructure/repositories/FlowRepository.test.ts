@@ -59,6 +59,32 @@ describe('FlowRepository', () => {
     expect(await repo().validateYaml('y')).toEqual({ valid: false, errors: [{ path: 'a', message: 'bad' }] });
   });
 
+  it('updateFlow PATCHes /flows/{id} with only the provided fields (snake_case)', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.patch(`${BASE}/flows/f1`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ...FLOW, enabled: false });
+      }),
+    );
+    const flow = await repo().updateFlow('f1', { enabled: false });
+    // Omitted fields are NOT sent (so they stay unchanged server-side).
+    expect(body).toEqual({ enabled: false });
+    expect(flow.enabled).toBe(false);
+  });
+
+  it('updateFlow sends display_name + description when provided (description nullable)', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.patch(`${BASE}/flows/f1`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(FLOW);
+      }),
+    );
+    await repo().updateFlow('f1', { displayName: 'R2', description: null });
+    expect(body).toEqual({ display_name: 'R2', description: null });
+  });
+
   it('updateSlashExposure builds the body (incl. clear flag)', async () => {
     let body: Record<string, unknown> | null = null;
     server.use(

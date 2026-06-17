@@ -11,6 +11,45 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## FEAT-003 — Flow editor: description / YAML import-export / enable-disable + full-page
+
+- **Date:** 2026-06-16
+- **Tracker:** pragna2-tracker #121 (`type:feature`, `target:desktop-fe`)
+- **Area / files:** `src/presentation/views/settings/FlowDetailView/FlowMetaBar.tsx` (new),
+  `FlowYamlActions.tsx` (new), `FlowEditor.tsx`, `FlowDetailView.tsx`; `constants/flows.ts` (new),
+  `constants/errors.ts` (FLW_009/FLW_010); data layer `domain/types/flow.types.ts`
+  (`UpdateFlowPayload`), `application/ports/IFlowRepository.ts`, `application/services/FlowService.ts`,
+  `infrastructure/repositories/FlowRepository.ts` (`updateFlow` → `PATCH /flows/{id}`),
+  `presentation/hooks/flows/useFlows.ts` (`useUpdateFlow`); `FlowsView/FlowCard.tsx` (use shared regex).
+- **Why (the bug behind the feature):** Clicking **Expose** on a flow returned *"Cannot expose flow
+  as /slash without description populated"* — and the desktop flow editor had **no way to set a
+  description**, no YAML import/export, and no enable/disable. So a flow could never be exposed as a
+  `/slash` command on desktop, which is also why the chat `/` popover was always empty (the popover
+  code is correct — there was simply nothing exposed). The web app's `FlowEditorView` has all of
+  these; the desktop editor had shipped deliberately reduced.
+- **What shipped:**
+  1. **Editor meta bar (`FlowMetaBar`)** — Description input (writes store `meta`, persisted on Save
+     via the YAML round-trip), inline Expose-as-/slash + slash-name, and an immediate **enable/disable**
+     toggle (`useUpdateFlow` → `PATCH /flows/{id}` with `enabled`). Inline hints: description-required
+     before exposing, kebab-validation on the slash name.
+  2. **YAML import/export (`FlowYamlActions`)** — import (paste/file → `buildEditorGraph` → replace
+     canvas + mark dirty; malformed → inline error) and export (download `<api_name>.yaml`).
+  3. **Full-page editor** — `FlowDetailView` is now a `fixed inset-0` surface covering the settings
+     sidebar (matching the agent create/edit form), with its header cleared of the macOS traffic
+     lights via `useOverlayTitleBarInset()` (CF-019).
+- **Backend:** No change needed — `PATCH /api/flows/{id}` already accepts `display_name`/`description`/
+  `enabled` (`UpdateFlowRequest`), and `validate-yaml` / `from-yaml` already enforce the
+  description-before-slash rule.
+- **Tests:** `FlowRepository.test.ts` (`updateFlow` body mapping, omitted fields not sent);
+  `FlowMetaBar.test.tsx` (description→store, enabled toggle PATCH, expose-without-description hint,
+  Save gating); `FlowYamlActions.test.tsx` (export filename + fallback, import replace+dirty,
+  malformed→error). Full suite green; `tsc -b` + `lint:platform` pass.
+- **Web-app applicability:** **NOT a port — the web app already has these** (`FlowEditorView` meta
+  row + YAML import/export). This entry brings the **desktop** to parity. (The full-page-vs-sidebar
+  treatment is a desktop UX choice; the web app's editor is its own route.)
+
+---
+
 ## CF-001 — Radix Select dropdown renders behind modal overlays (unclickable)
 
 - **Date:** 2026-06-10

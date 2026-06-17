@@ -33,10 +33,18 @@ Shipped in two phases on one branch:
       (pick libraries) — and a selected edge's routing condition.
 - [ ] **Save**: serialize the canvas to YAML, validate server-side (errors shown by path), and
       persist by flow id; node positions + all fields round-trip through the YAML.
+- [ ] **Editor meta bar** (FEAT-003): edit the flow **description** (required by the backend before
+      slash-exposure), toggle **Expose as /slash** + set the slash name inline, **enable/disable**
+      the flow (immediate), and **import / export YAML** — all from the editor's top bar.
+- [ ] **Full-page editor** (FEAT-003): the editor fills the whole window (covers the settings
+      sidebar), matching the agent create/edit form's full-page treatment; its header clears the
+      macOS overlay traffic lights (CF-019).
 
 **Non-Goals (deferred — see §6)**
-- A standalone **editable YAML / source** view (the web app's is read-only too — not a parity
-  item), and a UI for node **reducers** (web app has no UI for these either; data round-trips).
+- A standalone **live editable YAML / source** view (the web app's is read-only too — not a parity
+  item). **Import/export of YAML is shipped** (FEAT-003): import replaces the canvas, export
+  downloads `<api_name>.yaml`. UI for node **reducers** is still deferred (web app has no UI either;
+  data round-trips).
 - Running a flow / slash dispatch / HITL forms in chat (deferred — pragna2-tracker TD-013, pragna2-tracker TD-014).
 
 > **Now shipped (pragna2-tracker TD-021, 2026-06-10):** dynamic-dispatch fan-out editing
@@ -48,13 +56,16 @@ Shipped in two phases on one branch:
 
 **Create + author**
 1. Settings → Agent Flows → **New flow** → enter display name (api_name auto-seeds, editable) →
-   Create. Navigates to the flow detail.
-2. In the detail, the canvas shows the (initially empty) graph; the YAML panel holds the
-   definition. Edit YAML → **Validate** (fix any path-tagged errors) → **Save**. The canvas
-   re-renders from the saved graph.
+   Create. Navigates to the **full-page** flow editor.
+2. In the editor, set the **Description** in the meta bar (required before slash-exposure), author
+   the graph on the canvas (or **Import** a YAML document to replace it), then **Save** (serialize →
+   validate → persist; path-tagged errors shown inline). **Export** downloads the flow as YAML.
 
 **Manage**
-- Toggle **Expose** to publish the flow as a `/slash` command (set the kebab name first).
+- Toggle **Expose as /slash** in the editor meta bar (set the slash name first) — or from the flow
+  card in the list. The backend requires a non-empty description first; an inline hint nudges the
+  user.
+- Toggle **Enabled** in the editor meta bar to load/unload the flow from the runtime (immediate).
 - **Delete** a flow from its card (confirmed).
 
 ## 4. Acceptance Criteria
@@ -68,7 +79,13 @@ Shipped in two phases on one branch:
       by path (save skipped).
 - [ ] A saved flow reopens with its node positions + fields intact (YAML round-trip).
 - [ ] Exposing a flow without a description (backend requirement) surfaces the backend's message;
-      a slash-name collision shows "already exists".
+      a slash-name collision shows "already exists". The editor meta bar lets the user **set** that
+      description (FEAT-003) and shows an inline "description required" hint when exposing without one.
+- [ ] The editor meta bar edits the description (Save-gated via YAML), toggles enable/disable
+      (immediate PATCH), and imports/exports YAML (import replaces the canvas + marks dirty; export
+      downloads `<api_name>.yaml`). (FEAT-003)
+- [ ] The editor is a full-page surface covering the settings sidebar; its header clears the macOS
+      traffic lights (FEAT-003 / CF-019).
 - [ ] All flows surfaces remain usable narrow → wide (grid reflows; editor canvas + side panel
       adapt).
 
