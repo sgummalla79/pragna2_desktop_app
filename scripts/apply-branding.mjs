@@ -19,10 +19,10 @@
 // document `<title>` (set by vite.config's transformIndexHtml).
 
 import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { readBrandConfig } from '../branding-aliases.mjs';
+import { runPnpm } from './run-pnpm.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -31,10 +31,9 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ICON_FILES = ['32x32.png', '128x128.png', '128x128@2x.png', 'icon.icns', 'icon.ico'];
 const BRAND_ICON_DIR = 'icons-brand'; // under src-tauri/, git-ignored
 
-/** Run the local Tauri CLI cross-platform (resolves the .bin/.cmd shim via pnpm). */
+/** Run the local Tauri CLI via pnpm — cross-platform (see scripts/run-pnpm.mjs). */
 function runTauri(args) {
-  // `pnpm exec` finds the workspace-local @tauri-apps/cli binary on macOS + Windows.
-  execFileSync('pnpm', ['exec', 'tauri', ...args], { cwd: root, stdio: 'inherit' });
+  runPnpm(['exec', 'tauri', ...args], root);
 }
 
 /**
