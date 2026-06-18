@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import PragnaLogo from '@/assets/logo.svg?react';
+import PragnaLogo from '@brand/logo.svg?react';
 import { APP_NAME } from '@/constants/api';
 import { ROUTES } from '@/constants/routes';
 import { ERRORS } from '@/constants/errors';

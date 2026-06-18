@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { ROUTES } from '@/constants/routes';
 import { APP_NAME } from '@/constants/api';
 import { usesWindowsChrome } from '@/infrastructure/platform';
-import PragnaLogo from '@/assets/logo.svg?react';
+import PragnaLogo from '@brand/logo.svg?react';
 import { ConversationList } from './ConversationList';
 import { AvatarMenu } from './AvatarMenu';
 

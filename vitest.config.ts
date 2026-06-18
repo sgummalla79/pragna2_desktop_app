@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
 import path from 'node:path';
 import { readFileSync } from 'node:fs';
+import { brandAliases } from './branding-aliases.mjs';
 
 // Match vite.config's __APP_VERSION__ define so modules that read the app
 // version (constants/api.ts) resolve under the test runner too.
@@ -22,7 +23,14 @@ const PKG_VERSION: string = JSON.parse(
  */
 export default defineConfig({
   plugins: [react(), svgr()],
-  define: { __APP_VERSION__: JSON.stringify(PKG_VERSION) },
+  // Brand constants default to empty under test so APP_NAME/animation resolve to
+  // the committed defaults (stock Pragna), independent of any local overlay.
+  define: {
+    __APP_VERSION__: JSON.stringify(PKG_VERSION),
+    __BRAND_NAME__: '""',
+    __BRAND_AGENT_ANIMATION__: '""',
+    __BRAND_HAS_OVERLAY_LOGO__: 'false',
+  },
   test: {
     globals: true,
     environment: 'jsdom',
@@ -43,8 +51,10 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+    alias: [
+      // `@brand/*` brand-overlay assets must precede the broad `@` alias.
+      ...brandAliases(__dirname),
+      { find: '@', replacement: path.resolve(__dirname, './src') },
+    ],
   },
 });

@@ -1,6 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
+// White-label theme overlay (tweakcn export), imported AFTER index.css so its
+// token overrides win by source order. Empty when no `branding/theme.css` exists.
+import "virtual:brand-theme.css";
 import App from "./App";
 import { initTheme } from "@/presentation/store/themeStore";
 
