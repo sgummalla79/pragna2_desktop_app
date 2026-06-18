@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Sample brand mark. Replace with your own SVG (keep viewBox so it scales).
+       Use a hardcoded brand colour, or `currentColor` to inherit the theme. -->
+  <rect x="14" y="14" width="72" height="72" rx="18" fill="#4f46e5" />
+  <path d="M34 60 L50 30 L66 60" stroke="#ffffff" stroke-width="6"
+    stroke-linecap="round" stroke-linejoin="round" fill="none" />
+  <line x1="41" y1="48" x2="59" y2="48" stroke="#ffffff" stroke-width="6"
+    stroke-linecap="round" />
+</svg>

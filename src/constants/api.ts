@@ -28,8 +28,24 @@ export const PRAGNA_BASE_URL: string = envOr(
 export const LOG_LEVEL: string =
   envOr(import.meta.env.VITE_LOG_LEVEL as string | undefined, 'info');
 
+// Build-time white-label brand name. Precedence: the `branding/brand.config.json`
+// `name` (injected as `__BRAND_NAME__` by Vite) wins, else an explicit
+// `VITE_APP_NAME` (shell / .env), else the committed default 'Pragna'. The
+// overlay is authoritative because the repo's own .env ships VITE_APP_NAME=Pragna
+// as the default — env must not shadow a brander's overlay.
 export const APP_NAME: string =
+  envOr(__BRAND_NAME__, '') ||
   envOr(import.meta.env.VITE_APP_NAME as string | undefined, 'Pragna');
+
+// Key selecting which thinking-indicator animation the agent uses, resolved
+// against the animation registry (src/presentation/components/agent-animation).
+// Precedence mirrors APP_NAME: the `brand.config.json` `agentAnimation`
+// (`__BRAND_AGENT_ANIMATION__`) wins, else `VITE_AGENT_ANIMATION` env, else empty
+// — and an empty/unknown key falls back to the registry default. Kept as the raw
+// key (not the resolved strategy) so this module stays free of presentation deps.
+export const AGENT_ANIMATION_KEY: string =
+  envOr(__BRAND_AGENT_ANIMATION__, '') ||
+  envOr(import.meta.env.VITE_AGENT_ANIMATION as string | undefined, '');
 
 // Single source of truth: package.json, injected at build by Vite as
 // __APP_VERSION__ (see vite.config.ts / vitest.config.ts). Deliberately NOT read

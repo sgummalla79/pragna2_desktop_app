@@ -1,6 +1,7 @@
 import { Sun, Moon, Monitor } from 'lucide-react';
 import { EntityIcon } from '@/presentation/components/icons/EntityIcon';
 import { cn } from '@/lib/utils';
+import { APP_NAME } from '@/constants/api';
 import { THEME_MODES, type ThemeMode } from '@/constants/theme';
 import { useThemeStore } from '@/presentation/store/themeStore';
 
@@ -30,7 +31,7 @@ export default function AppearanceView() {
           Appearance
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Choose how Pragna looks. “System” follows your operating system’s
+          Choose how {APP_NAME} looks. “System” follows your operating system’s
           light/dark setting.
         </p>
       </div>

@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 
-import PragnaLogo from '@/assets/logo.svg?react';
+import PragnaLogo from '@brand/logo.svg?react';
 import { APP_NAME } from '@/constants/api';
 import { ERRORS } from '@/constants/errors';
 import { ROUTES } from '@/constants/routes';
