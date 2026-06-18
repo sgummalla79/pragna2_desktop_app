@@ -45,4 +45,17 @@ describe('readMcpOAuthConfig', () => {
       readMcpOAuthConfig({ oauth: { ...base, callbackPort: 65535 } })?.callbackPort,
     ).toBe(65535);
   });
+
+  it('passes through omitResourceAtTokenExchange=true when set', () => {
+    const config = {
+      oauth: { clientId: 'abc', loginUrl: 'https://login.example', callbackPort: 8082, omitResourceAtTokenExchange: true },
+    };
+    expect(readMcpOAuthConfig(config)?.omitResourceAtTokenExchange).toBe(true);
+  });
+
+  it('omits omitResourceAtTokenExchange when false or absent', () => {
+    const base = { clientId: 'abc', loginUrl: 'https://login.example', callbackPort: 8082 };
+    expect(readMcpOAuthConfig({ oauth: base })?.omitResourceAtTokenExchange).toBeUndefined();
+    expect(readMcpOAuthConfig({ oauth: { ...base, omitResourceAtTokenExchange: false } })?.omitResourceAtTokenExchange).toBeUndefined();
+  });
 });

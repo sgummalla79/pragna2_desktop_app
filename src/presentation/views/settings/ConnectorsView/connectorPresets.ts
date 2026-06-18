@@ -17,6 +17,7 @@
 import type {
   InjectionLocation,
   McpAuthType,
+  McpOAuthConfig,
   McpTransport,
 } from '@/domain/types/mcp.types';
 
@@ -48,6 +49,11 @@ export interface ConnectorPreset {
   apiKeyLocation?: InjectionLocation;
   /** Optional provider docs link. */
   docsUrl?: string;
+  /** Extra flags merged into `config.oauth` at connector-creation time, beyond
+   *  what the user fills in (clientId / loginUrl / callbackPort). These flags
+   *  never appear in the form — they are preset-injected and forwarded opaquely
+   *  to the backend. Currently used only for `omitResourceAtTokenExchange`. */
+  oauthExtraFlags?: Pick<McpOAuthConfig, 'omitResourceAtTokenExchange'>;
 }
 
 /** Build a brand-icon URL from a domain (Google's public favicon service). */
@@ -188,5 +194,7 @@ export const CONNECTOR_PRESETS: readonly ConnectorPreset[] = [
     monogram: 'Sf',
     accent: 'bg-sky-500',
     docsUrl: 'https://developer.salesforce.com',
+    // Salesforce's /token endpoint rejects the RFC 8707 resource param (tracker #137).
+    oauthExtraFlags: { omitResourceAtTokenExchange: true },
   },
 ] as const;
