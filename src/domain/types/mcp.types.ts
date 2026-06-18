@@ -11,6 +11,7 @@ import {
   MCP_OAUTH_CLIENT_ID_KEY,
   MCP_OAUTH_CONFIG_KEY,
   MCP_OAUTH_LOGIN_URL_KEY,
+  MCP_OAUTH_OMIT_RESOURCE_KEY,
   MAX_TCP_PORT,
   MIN_TCP_PORT,
 } from '@/constants/mcpOAuth';
@@ -193,6 +194,10 @@ export interface McpOAuthConfig {
   loginUrl: string;
   /** Loopback port the AS redirects to (`http://localhost:{port}/callback`). */
   callbackPort: number;
+  /** When true, the backend omits the RFC 8707 `resource` param from the token
+   *  exchange request (tracker #136). Required for Salesforce — its token
+   *  endpoint rejects that param with `invalid_grant`. */
+  omitResourceAtTokenExchange?: boolean;
 }
 
 /** Body for `POST /api/mcp-connectors/{id}/oauth-completion` — the code + state
@@ -239,5 +244,11 @@ export function readMcpOAuthConfig(
     return null;
   }
 
-  return { clientId, loginUrl, callbackPort };
+  const omit = block[MCP_OAUTH_OMIT_RESOURCE_KEY];
+  return {
+    clientId,
+    loginUrl,
+    callbackPort,
+    ...(omit === true ? { omitResourceAtTokenExchange: true } : {}),
+  };
 }

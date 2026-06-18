@@ -149,6 +149,13 @@ export function AddConnectorWizard({ open, onOpenChange, onRegistered }: Props) 
   async function handleDetailsSubmit(p: DetailsSubmit) {
     setError(null);
     try {
+      // Merge any preset-level extra OAuth flags (e.g. omitResourceAtTokenExchange)
+      // into the user-supplied oauth block. Extra flags are invisible to the form —
+      // they are preset-injected and forwarded opaquely to the backend (tracker #137).
+      const oauthConfig =
+        p.oauthConfig && preset?.oauthExtraFlags
+          ? { ...p.oauthConfig, ...preset.oauthExtraFlags }
+          : p.oauthConfig;
       const result = await register.mutateAsync({
         displayName: p.displayName,
         description: p.description,
@@ -156,7 +163,7 @@ export function AddConnectorWizard({ open, onOpenChange, onRegistered }: Props) 
         config: {
           url: p.url,
           // Forward the optional generic pre-registered OAuth block, when set.
-          ...(p.oauthConfig ? { [MCP_OAUTH_CONFIG_KEY]: p.oauthConfig } : {}),
+          ...(oauthConfig ? { [MCP_OAUTH_CONFIG_KEY]: oauthConfig } : {}),
         },
         authType: p.authType,
         credentials: p.credentials,
