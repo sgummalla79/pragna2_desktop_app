@@ -3,7 +3,7 @@
 > **Status**: Implemented
 > **Author**: Suman Gummalla
 > **Created**: 2026-06-09
-> **Last Updated**: 2026-06-09
+> **Last Updated**: 2026-06-17
 
 ---
 
@@ -92,19 +92,26 @@ primitives. Files:
   panel; **Save** serializes via `graphToYaml`, runs `useValidateFlowYaml` (errors shown by path,
   save skipped if invalid), then `useSaveFlowFromYamlById` and `markClean`. Imports
   `reactflow/dist/style.css`.
-- **`FlowMetaBar.tsx`** (FEAT-003) — the editor's top control bar. Top row is the **flow identity**
-  (EntityIcon + display name + api_name pill + `/slash` pill); below it the controls. Two persistence
-  models, kept visually grouped: **graph meta** (Description — placeholder-only, no visible label;
-  Expose-as-/slash; Slash name) edits the store `meta`
-  (`setMeta`, Save-gated via the YAML round-trip); **Enabled** is an immediate `useUpdateFlow` PATCH
-  (not Save-gated), mirroring the slash toggle on the card. Renders an inline "description required"
-  hint when exposing without one (the backend rule), a kebab-validation hint on the slash name
-  (`FLOW_SLASH_NAME_RE` from `constants/flows.ts`), the dirty badge, **Save** (calls the parent's
-  handler), and `FlowYamlActions`.
-- **`FlowYamlActions.tsx`** (FEAT-003) — YAML **import** (paste/file → `buildEditorGraph` →
-  store `hydrate` + `markDirty`; malformed → inline `FLW_010`) and **export** (`graphToYaml` → Blob
-  download as `<api_name>.yaml`, fallback `agentic-flow`). Self-contained: reads/writes the store
-  directly. Constants in `constants/flows.ts` (`FLOW_YAML_*`).
+- **`FlowMetaBar.tsx`** — the editor's top control bar. Top row: **flow identity** (EntityIcon +
+  display name + api_name pill + `/slash` pill + **Unsaved/Saved pill** — amber when dirty, green
+  when clean). Second row: **graph meta** controls all `items-center` aligned — Description input
+  (placeholder-only, Save-gated via YAML round-trip), Expose-as-/slash checkbox, Slash name input
+  (when exposed), and the right-cluster (Import / Export / YAML buttons from `FlowYamlActions`).
+  Inline hints for missing description and invalid slash name. **Enabled/Disabled** removed from
+  this bar — it lives on the flow card on the main list (not duplicated here). No `useUpdateFlow`
+  dependency.
+- **`FlowYamlActions.tsx`** — three Sheet flyouts: **Import** (drag-and-drop zone with
+  drag-over highlight + "Choose file…" button + paste textarea; `buildEditorGraph` → `hydrate` +
+  `markDirty`; malformed → inline `FLW_010` alert); **Export** (direct download — `graphToYaml` →
+  Blob → `<api_name>.yaml`, fallback `agentic-flow`); **YAML** (read-only view of the serialised
+  canvas + Download button). Both sheets use `z-[400]` / `overlayClassName="z-[399]"` to sit above
+  the `z-[300]` full-page editor surface. Self-contained: reads/writes store directly.
+- **`FlowEditor.tsx`** footer — **Save / Cancel** buttons in a `border-t px-6 py-4` footer row
+  matching the Agent form pattern. Save: `graphToYaml` → `useValidateFlowYaml` (errors shown by
+  path, skip if invalid) → `useSaveFlowFromYamlById` → `markClean`. Cancel: `reset()` + `navigate(
+  ROUTES.SETTINGS_FLOWS)`. `isSaving` gates the Save button (disabled when clean or in-flight).
+- **`sheet.tsx`** — added `overlayClassName?: string` prop to `SheetContent` so callers can
+  override the overlay's z-index when the sheet must appear above a high-z page surface.
 
 ## 5. Presentation
 

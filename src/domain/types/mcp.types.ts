@@ -6,6 +6,15 @@
  * boundary. UI code only sees the camelCase shapes here.
  */
 
+import {
+  MCP_OAUTH_CALLBACK_PORT_KEY,
+  MCP_OAUTH_CLIENT_ID_KEY,
+  MCP_OAUTH_CONFIG_KEY,
+  MCP_OAUTH_LOGIN_URL_KEY,
+  MAX_TCP_PORT,
+  MIN_TCP_PORT,
+} from '@/constants/mcpOAuth';
+
 /** Transport discriminator on an `McpConnector`. `http` = HTTP-SSE;
  *  `streamable_http` = the modern remote transport used by OAuth-era servers;
  *  `stdio` = a CLIENT-DELEGATED local server (runs on this desktop; the backend
@@ -166,4 +175,69 @@ export interface StartOAuthPayload {
 export interface StartOAuthResult {
   authorizationUrl: string | null;
   requiresManualClient: boolean;
+}
+
+/**
+ * Generic pre-registered OAuth app config (tracker #130). Carried under
+ * `connector.config.oauth` for servers whose authorization server uses a
+ * pre-registered client + a fixed RFC 8252 loopback redirect rather than
+ * Dynamic Client Registration + the global server-side callback. Stored as
+ * opaque camelCase JSON on `config` (no mapper translation). Product-agnostic:
+ * the loopback path keys off the presence of `callbackPort`, never a server
+ * name.
+ */
+export interface McpOAuthConfig {
+  /** The pre-registered OAuth client id (used directly; DCR is skipped). */
+  clientId: string;
+  /** The authorization-server discovery base (per-org login URL). */
+  loginUrl: string;
+  /** Loopback port the AS redirects to (`http://localhost:{port}/callback`). */
+  callbackPort: number;
+}
+
+/** Body for `POST /api/mcp-connectors/{id}/oauth-completion` — the code + state
+ *  the desktop loopback listener captured from the AS redirect. */
+export interface CompleteOAuthRequest {
+  code: string;
+  state: string;
+}
+
+/** Response from `POST /api/mcp-connectors/{id}/oauth-completion`. */
+export interface CompleteOAuthResult {
+  /** The connector that was successfully connected. */
+  connectorId: string;
+}
+
+/**
+ * Read the optional pre-registered OAuth block off a connector's opaque
+ * `config`. Returns the typed block only when it is fully specified and valid —
+ * a non-empty `clientId` + `loginUrl` and an integer `callbackPort` in
+ * `(0, 65536)`; otherwise `null` (a plain DCR oauth connector, or no block).
+ *
+ * Pure (no I/O). The single place that interprets the `config.oauth` shape, so
+ * the loopback-vs-browser decision is made from one validated reader.
+ */
+export function readMcpOAuthConfig(
+  config: Record<string, unknown>,
+): McpOAuthConfig | null {
+  const raw = config[MCP_OAUTH_CONFIG_KEY];
+  if (typeof raw !== 'object' || raw === null) return null;
+  const block = raw as Record<string, unknown>;
+
+  const clientId = block[MCP_OAUTH_CLIENT_ID_KEY];
+  const loginUrl = block[MCP_OAUTH_LOGIN_URL_KEY];
+  const callbackPort = block[MCP_OAUTH_CALLBACK_PORT_KEY];
+
+  if (typeof clientId !== 'string' || clientId.trim() === '') return null;
+  if (typeof loginUrl !== 'string' || loginUrl.trim() === '') return null;
+  if (
+    typeof callbackPort !== 'number' ||
+    !Number.isInteger(callbackPort) ||
+    callbackPort <= MIN_TCP_PORT ||
+    callbackPort >= MAX_TCP_PORT
+  ) {
+    return null;
+  }
+
+  return { clientId, loginUrl, callbackPort };
 }

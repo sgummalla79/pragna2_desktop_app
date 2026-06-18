@@ -50,6 +50,9 @@ export const ERRORS = {
   CON_004: { code: 'CON_004', message: 'Failed to remove the connector.', severity: 'error' },
   CON_005: { code: 'CON_005', message: 'Failed to refresh the connector tools.', severity: 'error' },
   CON_006: { code: 'CON_006', message: 'Failed to start the connection. Please try again.', severity: 'error' },
+  CON_007: { code: 'CON_007', message: 'Could not complete the connection. Please try again.', severity: 'error' },
+  CON_008: { code: 'CON_008', message: 'The callback port is already in use. Close the app using it and try again.', severity: 'error' },
+  CON_009: { code: 'CON_009', message: 'The connection timed out. Please try again.', severity: 'warn' },
 
   // ── Tools ─────────────────────────────────────────────────────────────────
   TOOL_001: { code: 'TOOL_001', message: 'Failed to load tools.', severity: 'error' },

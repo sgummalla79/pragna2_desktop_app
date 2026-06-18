@@ -130,7 +130,9 @@ describe('service delegations', () => {
 
   it('McpConnectorService forwards every method', async () => {
     const repo = stubRepo();
-    const svc = new McpConnectorService(repo);
+    // 2nd ctor arg is the desktop loopback flow (IMcpOAuthLoopbackFlow); the
+    // 1:1 forwards below don't touch it. connectViaLoopback has its own test.
+    const svc = new McpConnectorService(repo, { capture: vi.fn() } as never);
     await svc.list();
     expect(repo.list).toHaveBeenCalled();
     await svc.register({ displayName: 'X', transport: 'http', config: {}, authType: 'none' } as never);

@@ -294,6 +294,75 @@ describe('ConnectorDetailsForm', () => {
     );
   });
 
+  it('assembles a config.oauth block from the pre-registered OAuth fields', async () => {
+    const onSubmit = vi.fn();
+    render(<ConnectorDetailsForm {...baseProps()} onSubmit={onSubmit} />);
+
+    await userEvent.selectOptions(
+      screen.getByLabelText('Authentication method'),
+      'oauth',
+    );
+    await userEvent.type(screen.getByLabelText('Name'), 'Pre-reg');
+    await userEvent.type(screen.getByLabelText('Server URL'), 'https://mcp.example.com');
+
+    await userEvent.click(screen.getByRole('button', { name: /Pre-registered OAuth app/ }));
+    await userEvent.type(screen.getByTestId('mcp-oauth-client-id'), 'cid');
+    await userEvent.type(screen.getByTestId('mcp-oauth-login-url'), 'https://login.example');
+    await userEvent.type(screen.getByTestId('mcp-oauth-callback-port'), '8082');
+    await userEvent.click(screen.getByRole('button', { name: 'Connect' }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authType: 'oauth',
+        oauthConfig: {
+          clientId: 'cid',
+          loginUrl: 'https://login.example',
+          callbackPort: 8082,
+        },
+      }),
+    );
+  });
+
+  it('omits config.oauth when none of the pre-registered fields are filled', async () => {
+    const onSubmit = vi.fn();
+    render(<ConnectorDetailsForm {...baseProps()} onSubmit={onSubmit} />);
+
+    await userEvent.selectOptions(
+      screen.getByLabelText('Authentication method'),
+      'oauth',
+    );
+    await userEvent.type(screen.getByLabelText('Name'), 'DCR');
+    await userEvent.type(screen.getByLabelText('Server URL'), 'https://mcp.example.com');
+    await userEvent.click(screen.getByRole('button', { name: 'Connect' }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ authType: 'oauth', oauthConfig: undefined }),
+    );
+  });
+
+  it('blocks submit with an error when the pre-registered block is partially filled', async () => {
+    const onSubmit = vi.fn();
+    const { container } = render(
+      <ConnectorDetailsForm {...baseProps()} onSubmit={onSubmit} />,
+    );
+
+    await userEvent.selectOptions(
+      screen.getByLabelText('Authentication method'),
+      'oauth',
+    );
+    await userEvent.type(screen.getByLabelText('Name'), 'Partial');
+    await userEvent.type(screen.getByLabelText('Server URL'), 'https://mcp.example.com');
+    await userEvent.click(screen.getByRole('button', { name: /Pre-registered OAuth app/ }));
+    // Only the client id — missing login URL + port.
+    await userEvent.type(screen.getByTestId('mcp-oauth-client-id'), 'cid');
+    fireEvent.submit(container.querySelector('form')!);
+
+    expect(
+      screen.getByText(/Complete all three pre-registered OAuth fields/),
+    ).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it('pre-fills fields from `initial` (preset path)', () => {
     render(
       <ConnectorDetailsForm

@@ -1,4 +1,5 @@
 import type { IMcpConnectorRepository } from '@/application/ports/IMcpConnectorRepository';
+import type { IMcpOAuthLoopbackFlow } from '@/application/ports/IMcpOAuthLoopbackFlow';
 import type {
   ClientToolSchema,
   CreateMcpConnectorPayload,
@@ -12,13 +13,27 @@ import type {
 } from '@/domain/types/mcp.types';
 
 /**
+ * Result of {@link McpConnectorService.connectViaLoopback}. Either the connect
+ * completed (`connected`) or the BE asked for a manual client (`requires_manual_client`)
+ * — the caller then routes to the existing manual-client form (not expected for a
+ * correctly-configured pre-registered connector, whose `clientId` lives in
+ * `config.oauth`).
+ */
+export type ConnectViaLoopbackResult =
+  | { status: 'connected'; connectorId: string }
+  | { status: 'requires_manual_client' };
+
+/**
  * Manages the user's registered MCP connectors via the
  * `/api/mcp-connectors/*` endpoints. Thin facade over the repository —
  * exists for consistency with the rest of the service layer and to give
  * consumers a single injection point.
  */
 export class McpConnectorService {
-  constructor(private readonly repo: IMcpConnectorRepository) {}
+  constructor(
+    private readonly repo: IMcpConnectorRepository,
+    private readonly oauthLoopbackFlow: IMcpOAuthLoopbackFlow,
+  ) {}
 
   /** List the user's active connectors with per-connector tool counts. */
   list(): Promise<McpConnector[]> {
@@ -68,5 +83,46 @@ export class McpConnectorService {
    *  manual-client signal). */
   startOAuth(id: string, payload: StartOAuthPayload): Promise<StartOAuthResult> {
     return this.repo.startOAuth(id, payload);
+  }
+
+  /**
+   * Complete a pre-registered-client (loopback) OAuth connect on the desktop
+   * (tracker #131): authorize → capture the redirect on the connector's fixed
+   * `callbackPort` → exchange. Used only when the connector carries
+   * `config.oauth.callbackPort` and the desktop runtime is available; otherwise
+   * the caller uses the browser-redirect {@link startOAuth} path.
+   *
+   * The `startOAuth` payload is empty by design — the pre-registered `clientId`
+   * already lives in `config.oauth` and is applied by the backend before it
+   * builds the authorization URL.
+   *
+   * @param id The connector to connect.
+   * @param callbackPort The connector's `config.oauth.callbackPort`.
+   * @returns `connected` (with the connector id) or the `requires_manual_client`
+   *   signal.
+   * @throws Propagates repository errors (`startOAuth` / `completeOAuth`) and
+   *   loopback-capture errors (port-in-use, timeout, provider error) for the
+   *   caller to surface inline.
+   */
+  async connectViaLoopback(
+    id: string,
+    callbackPort: number,
+  ): Promise<ConnectViaLoopbackResult> {
+    const { authorizationUrl, requiresManualClient } = await this.repo.startOAuth(
+      id,
+      {},
+    );
+    if (requiresManualClient) {
+      return { status: 'requires_manual_client' };
+    }
+    if (!authorizationUrl) {
+      throw new Error('OAuth authorization did not return an authorization URL.');
+    }
+    const { code, state } = await this.oauthLoopbackFlow.capture(
+      callbackPort,
+      authorizationUrl,
+    );
+    const { connectorId } = await this.repo.completeOAuth(id, { code, state });
+    return { status: 'connected', connectorId };
   }
 }

@@ -112,3 +112,24 @@ app has no local-stdio surface, so none of this is backported (see
 ---
 
 _Link to Technical Spec: [technical/client-delegated-stdio.md](../technical/client-delegated-stdio.md)_
+
+## 9. Edit Config — Edit / Tree tab toggle (2026-06-17)
+
+Added an **Edit / Tree** tab toggle at the top of the Edit Config flyout.
+
+**Edit tab** (default) — existing `<textarea>` editor; auto-formats on blur/paste; Save-gated.
+
+**Tree tab** — renders the saved JSON as a collapsible **JSON tree** (`JsonTree` component,
+`src/components/ui/JsonTree.tsx`). Keys, strings, numbers, booleans, and null use VS Code
+Light+/Dark+ token colours (keys: blue, strings: brown/orange, numbers: green, booleans/null:
+keyword blue). Objects and arrays are expand/collapse (chevron toggle). Switching to Tree
+auto-formats the JSON first so the parse always succeeds; if the JSON is invalid a red inline
+message prompts the user to switch back to Edit to fix it.
+
+**Acceptance criteria**
+
+- [x] The flyout shows Edit and Tree tab buttons above the editor area.
+- [x] Edit tab shows the textarea; Tree tab shows the collapsible JSON tree with VS Code token colours.
+- [x] Switching to Tree auto-formats valid JSON; invalid JSON shows an inline error with a prompt
+      to switch back to Edit.
+- [x] Objects and arrays are collapsible; primitives render inline with their type colour.
