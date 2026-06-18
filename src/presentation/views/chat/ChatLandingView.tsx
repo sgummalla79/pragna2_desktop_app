@@ -97,7 +97,9 @@ export default function ChatLandingView() {
     <div className="flex h-full flex-col bg-background">
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-12">
         <div className="mb-6 flex select-none items-center gap-4">
-          <PragnaLogo className="h-10 w-10 shrink-0 text-foreground" aria-hidden="true" />
+          {/* Logo before the greeting, on the same row. Fixed 70px tall; width
+              follows the aspect ratio (square Pragna star, wide Salesforce mark). */}
+          <PragnaLogo className="h-[70px] w-auto shrink-0 text-foreground" aria-hidden="true" />
           <h1 className="m-0 text-[28px] font-semibold leading-none text-foreground sm:text-[36px]">
             {greeting}
           </h1>

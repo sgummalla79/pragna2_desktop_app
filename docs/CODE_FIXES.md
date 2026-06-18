@@ -11,6 +11,17 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-023 — `@brand/logo.svg?raw` import fails to resolve in the Vite dev server → dev crashes when the OAuth loopback modules load (pragna2-tracker #142)
+
+- **Date:** 2026-06-18
+- **Area / file:** `src/infrastructure/branding/brandAssets.ts`, `vite.config.ts`, `vitest.config.ts`, `src/vite-env.d.ts`.
+- **Found by:** Running the branded app (`pnpm tauri:brand dev` / `pnpm dev`) and navigating far enough to load the OAuth loopback modules: `[plugin:vite:import-analysis] Failed to resolve import "@brand/logo.svg?raw" from "src/infrastructure/branding/brandAssets.ts"`.
+- **Root cause:** The `@brand` overlay is a **regex** `resolve.alias` (`/^@brand\/logo\.svg/`). It resolves `@brand/logo.svg?react` (the svgr plugin handles that query) and resolves everything correctly in `vite build`, but the `?raw` query does **not** resolve through the regex alias in the Vite **dev server**. `brandAssets.ts` is only imported transitively by the loopback success pages, so earlier dev runs (login page only) never loaded it and the failure was latent.
+- **Fix:** Removed the `@brand/logo.svg?raw` import. The brand logo markup is now injected as a build constant `__BRAND_LOGO_OVERLAY_SVG__` (read from `branding/logo.svg` in `vite.config.ts`, mirroring `__BRAND_NAME__` / the favicon data URI). `brandAssets.ts` uses `__BRAND_HAS_OVERLAY_LOGO__ ? __BRAND_LOGO_OVERLAY_SVG__ : DEFAULT_LOOPBACK_LOGO`. Declared in `vite-env.d.ts`, defined empty in `vitest.config.ts`. Verified by transforming `brandAssets.ts` through a live dev server (no resolve error) and default + branded builds.
+- **Web-app applicability:** **Likely N/A today** (the web app doesn't yet have this Tauri-loopback branding). If the build-time branding overlay is ported there, avoid `?raw` imports through a regex alias — inject raw asset content as a build constant instead.
+
+---
+
 ## CF-022 — `service_from_error_text`: provider name always `null` for `--profile` connectors → `mcp-adaptor auth --provider <service>` could not be driven (pragna2-tracker #129)
 
 - **Date:** 2026-06-17

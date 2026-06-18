@@ -30,6 +30,7 @@ export default defineConfig({
     __BRAND_NAME__: '""',
     __BRAND_AGENT_ANIMATION__: '""',
     __BRAND_HAS_OVERLAY_LOGO__: 'false',
+    __BRAND_LOGO_OVERLAY_SVG__: '""',
   },
   test: {
     globals: true,

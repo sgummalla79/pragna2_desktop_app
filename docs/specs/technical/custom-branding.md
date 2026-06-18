@@ -36,7 +36,7 @@ a build-configuration + presentation-strategy feature.
   - `branding-aliases.mjs` — shared `@brand` alias + `brand.config.json` reader,
     imported by `vite.config.ts`, `vitest.config.ts`, and the brand scripts.
   - `vite.config.ts` — `brandOverlayPlugin` (theme virtual module + index.html
-    title) and brand build constants.
+    title + favicon) and brand build constants.
   - `scripts/apply-branding.mjs` + `scripts/tauri-with-brand.mjs` — Tauri icons +
     `--config` merge.
 
@@ -47,7 +47,7 @@ branding/ overlay ─┬─ vite.config (reads brand.config.json + files)
                    │     ├─ define __BRAND_NAME__ / __BRAND_AGENT_ANIMATION__ ─▶ constants/api.ts (APP_NAME / AGENT_ANIMATION_KEY)
                    │     ├─ resolve.alias @brand/logo.svg, @brand/agent-icon.svg ─▶ overlay file or src/assets default
                    │     ├─ virtual:brand-theme.css ─▶ main.tsx (after index.css)
-                   │     └─ transformIndexHtml ─▶ <title>
+                   │     └─ transformIndexHtml ─▶ <title> + favicon (data URI)
                    └─ scripts/tauri-with-brand.mjs ─▶ apply-branding.mjs
                          ├─ tauri icon branding/icon.png ─▶ src-tauri/icons-brand/
                          └─ branding/tauri.brand.conf.json ─▶ tauri <cmd> --config (merge)

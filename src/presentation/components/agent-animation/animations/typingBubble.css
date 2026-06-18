@@ -1,0 +1,32 @@
+/* Typing-indicator dots inside the speech bubble. Idle = faint + static;
+   active = bounce in sequence (staggered via inline animation-delay). The dots
+   are SVG circles, so the transform is in the bubble's own coordinate space. */
+.typing-dot {
+  opacity: 0.4;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.typing-dot--active {
+  animation: typing-bubble-bounce 1.2s ease-in-out infinite;
+}
+
+@keyframes typing-bubble-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  40% {
+    transform: translateY(-2px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typing-dot--active {
+    animation: none;
+    opacity: 0.6;
+  }
+}

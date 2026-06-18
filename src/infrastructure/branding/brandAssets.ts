@@ -1,5 +1,3 @@
-import brandLogoOverlayMarkup from '@brand/logo.svg?raw';
-
 /**
  * Build-time brand assets for the self-contained loopback success pages that
  * render in the system browser (outside the app bundle, so they cannot import
@@ -27,7 +25,7 @@ const DEFAULT_LOOPBACK_LOGO = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="
  * default mark is kept, so stock (no-overlay) pages are byte-identical to before.
  */
 export const BRAND_LOGO_MARKUP: string = __BRAND_HAS_OVERLAY_LOGO__
-  ? brandLogoOverlayMarkup
+  ? __BRAND_LOGO_OVERLAY_SVG__
   : DEFAULT_LOOPBACK_LOGO;
 
 /**
