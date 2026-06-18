@@ -21,7 +21,7 @@ To go back to stock Pragna: `rm -rf branding`.
 | `brand.config.json` | name **Salesforce**, identifier `com.salesforce.app`, `agentAnimation: "typing-bubble"` |
 | `logo.svg` | the Salesforce cloud + wordmark (transparent; white wordmark sits on the blue cloud, so it reads on any background) |
 | `theme.css` | the tweakcn **"claude blu 2"** palette (`:root` + `.dark`) — source: <https://tweakcn.com/r/themes/cmmea3qbd000004jvb99v39cd> |
-| `icon.png` | the OS app/installer icon — 1024×1024 (logo centered on a transparent square); `apply-branding.mjs` feeds it to `tauri icon` |
+| `icon.png` | the OS app/installer icon — 1024×1024 white Salesforce cloud on a `#00A1E0` blue tile; `apply-branding.mjs` feeds it to `tauri icon` |
 
 ## Notes
 
