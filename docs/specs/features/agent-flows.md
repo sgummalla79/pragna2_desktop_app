@@ -3,7 +3,7 @@
 > **Status**: Implemented
 > **Author**: Suman Gummalla
 > **Created**: 2026-06-09
-> **Last Updated**: 2026-06-09
+> **Last Updated**: 2026-06-17
 
 ---
 
@@ -33,9 +33,13 @@ Shipped in two phases on one branch:
       (pick libraries) — and a selected edge's routing condition.
 - [ ] **Save**: serialize the canvas to YAML, validate server-side (errors shown by path), and
       persist by flow id; node positions + all fields round-trip through the YAML.
-- [ ] **Editor meta bar** (FEAT-003): edit the flow **description** (required by the backend before
-      slash-exposure), toggle **Expose as /slash** + set the slash name inline, **enable/disable**
-      the flow (immediate), and **import / export YAML** — all from the editor's top bar.
+- [ ] **Editor meta bar** (FEAT-003): edit the flow **description**, toggle **Expose as /slash** +
+      set the slash name inline, and **Import / Export / View YAML** — all from the editor's top
+      bar. Controls center-align with the description input.
+- [ ] **Save / Cancel footer**: Save (validate → persist) and Cancel (reset + navigate back) in a
+      footer bar at the bottom of the editor, matching the Agent form footer pattern. An
+      **Unsaved / Saved pill** sits in the identity row next to the api_name pill.
+- [ ] **Enabled/Disabled** is on the flow card on the main list only — not duplicated in the editor.
 - [ ] **Full-page editor** (FEAT-003): the editor fills the whole window (covers the settings
       sidebar), matching the agent create/edit form's full-page treatment; its header clears the
       macOS overlay traffic lights (CF-019).
@@ -63,9 +67,8 @@ Shipped in two phases on one branch:
 
 **Manage**
 - Toggle **Expose as /slash** in the editor meta bar (set the slash name first) — or from the flow
-  card in the list. The backend requires a non-empty description first; an inline hint nudges the
-  user.
-- Toggle **Enabled** in the editor meta bar to load/unload the flow from the runtime (immediate).
+  card in the list. The backend requires a non-empty description first; an inline hint nudges the user.
+- Toggle **Enabled** from the flow **card** on the list (not in the editor).
 - **Delete** a flow from its card (confirmed).
 
 ## 4. Acceptance Criteria
@@ -81,9 +84,12 @@ Shipped in two phases on one branch:
 - [ ] Exposing a flow without a description (backend requirement) surfaces the backend's message;
       a slash-name collision shows "already exists". The editor meta bar lets the user **set** that
       description (FEAT-003) and shows an inline "description required" hint when exposing without one.
-- [ ] The editor meta bar edits the description (Save-gated via YAML), toggles enable/disable
-      (immediate PATCH), and imports/exports YAML (import replaces the canvas + marks dirty; export
-      downloads `<api_name>.yaml`). (FEAT-003)
+- [ ] The editor meta bar edits the description (Save-gated via YAML) and provides Import / Export /
+      View-YAML actions as Sheet flyouts. Import has a drag-and-drop zone + file picker + paste
+      textarea; Export downloads `<api_name>.yaml`; YAML opens a read-only Sheet with the
+      serialised canvas (+ Download button).
+- [ ] Save and Cancel buttons are in the editor footer (not the meta bar). The Unsaved/Saved pill
+      sits in the identity row next to the api_name pill. Enabled/Disabled is on the flow card only.
 - [ ] The editor is a full-page surface covering the settings sidebar; its header clears the macOS
       traffic lights (FEAT-003 / CF-019).
 - [ ] All flows surfaces remain usable narrow → wide (grid reflows; editor canvas + side panel

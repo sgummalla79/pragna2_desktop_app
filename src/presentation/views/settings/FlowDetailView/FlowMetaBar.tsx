@@ -1,33 +1,18 @@
 /**
  * The flow editor's top control bar.
  *
- * Two concerns sit here, with DIFFERENT persistence models — kept visually
- * grouped so the distinction is legible:
- *
- *  - **Graph meta** (Description, Expose-as-/slash, Slash name): edits the
- *    Zustand store's `meta`; persisted with the canvas on **Save** (the YAML
- *    round-trip). The backend rejects slash-exposure without a description, so
- *    an inline hint nudges the user before they Save.
- *  - **Enabled** (load / unload from the runtime): a flow-level field OUTSIDE
- *    the YAML graph, so it's an **immediate** PATCH (`useUpdateFlow`), not
- *    Save-gated — mirroring the slash-toggle on the flow-list card.
- *
- * YAML import/export live in {@link FlowYamlActions}; Save (validate + persist)
- * stays with the parent {@link FlowEditor}, surfaced here via `onSave`.
+ * Handles graph-meta fields (Description, Expose-as-/slash, Slash name) that
+ * are Save-gated (persisted via the YAML round-trip). YAML import/export/view
+ * live in {@link FlowYamlActions}. Save/Cancel live in the parent
+ * {@link FlowEditor} footer. Enabled/Disabled is on the flow card on the main
+ * flows list — not duplicated here.
  */
 
-import { useState } from 'react';
-import { Save } from 'lucide-react';
-import axios from 'axios';
-
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { ERRORS } from '@/constants/errors';
 import { FLOW_SLASH_NAME_RE } from '@/constants/flows';
-import { logger } from '@/infrastructure/logging/logger';
 import { EntityIcon } from '@/presentation/components/icons/EntityIcon';
-import { useUpdateFlow } from '@/presentation/hooks/flows/useFlows';
 import type { Flow } from '@/domain/types/flow.types';
 
 import { FlowYamlActions } from './FlowYamlActions';
@@ -37,18 +22,12 @@ interface Props {
   flow: Flow;
   /** Whether the canvas/meta has unsaved edits. */
   dirty: boolean;
-  /** A validate-or-save call is in flight. */
-  isSaving: boolean;
-  /** Run the parent's validate + persist. */
-  onSave: () => void;
 }
 
-/** Editor toolbar: graph-meta fields + enabled toggle + YAML actions + Save. */
-export function FlowMetaBar({ flow, dirty, isSaving, onSave }: Props) {
+/** Editor toolbar: flow identity + graph-meta fields + YAML actions. */
+export function FlowMetaBar({ flow, dirty }: Props) {
   const meta = useFlowEditorStore((s) => s.meta);
   const setMeta = useFlowEditorStore((s) => s.setMeta);
-  const updateFlow = useUpdateFlow();
-  const [enabledError, setEnabledError] = useState<string | null>(null);
 
   const descriptionMissing = meta.exposedAsSlash && !(meta.description ?? '').trim();
   const slashNameInvalid =
@@ -56,26 +35,9 @@ export function FlowMetaBar({ flow, dirty, isSaving, onSave }: Props) {
     !!(meta.slashApiName ?? '').trim() &&
     !FLOW_SLASH_NAME_RE.test((meta.slashApiName ?? '').trim());
 
-  async function toggleEnabled() {
-    setEnabledError(null);
-    try {
-      await updateFlow.mutateAsync({
-        flowId: flow.id,
-        payload: { enabled: !flow.enabled },
-      });
-    } catch (err) {
-      const detail =
-        axios.isAxiosError(err) && typeof err.response?.data?.detail === 'string'
-          ? err.response.data.detail
-          : ERRORS.FLW_009.message;
-      setEnabledError(detail);
-      logger.fromError('FLW_009:enabled', err instanceof Error ? err : new Error(String(err)));
-    }
-  }
-
   return (
     <div className="shrink-0 border-b border-border px-4 py-2">
-      {/* Flow identity — icon + name + api_name / slash pills, above the meta. */}
+      {/* Flow identity — icon + name + api_name / slash pills + dirty indicator. */}
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <EntityIcon entity="flows" />
         <span className="text-sm font-semibold text-foreground">{flow.displayName}</span>
@@ -87,13 +49,18 @@ export function FlowMetaBar({ flow, dirty, isSaving, onSave }: Props) {
             /{flow.slashApiName}
           </span>
         )}
+        <span
+          className={cn(
+            'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white',
+            dirty ? 'bg-amber-600' : 'bg-emerald-600',
+          )}
+        >
+          {dirty ? 'Unsaved' : 'Saved'}
+        </span>
       </div>
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        {/* ── Graph meta (Save-gated) ── No visible label; the placeholder
-            carries the intent and an aria-label keeps it accessible. The input
-            is a direct flex child so its box edge is flush with the identity
-            row's flow icon above (both at the container's left padding). */}
+        {/* ── Graph meta (Save-gated) ── */}
         <Input
           id="flow-description"
           aria-label="Description"
@@ -103,7 +70,7 @@ export function FlowMetaBar({ flow, dirty, isSaving, onSave }: Props) {
           placeholder="Describe what this flow does — the LLM reads this to decide when to invoke it"
         />
 
-        <label className="flex h-8 shrink-0 select-none items-center gap-1.5 self-end text-sm text-foreground">
+        <label className="flex h-8 shrink-0 select-none items-center gap-1.5 text-sm text-foreground">
           <input
             type="checkbox"
             checked={meta.exposedAsSlash}
@@ -132,46 +99,13 @@ export function FlowMetaBar({ flow, dirty, isSaving, onSave }: Props) {
         )}
 
         {/* ── Actions (right cluster) ── */}
-        <div className="ml-auto flex shrink-0 items-center gap-2 self-end">
-          {/* Enabled — immediate PATCH, not Save-gated. Fixed min-width +
-              centered label so toggling "Enabled" ⇄ "Disabled" (different text
-              lengths) doesn't shift the adjacent controls. */}
-          <Button
-            type="button"
-            variant={flow.enabled ? 'default' : 'outline'}
-            size="xs"
-            className="min-w-[5rem] justify-center"
-            onClick={() => void toggleEnabled()}
-            disabled={updateFlow.isPending}
-            title={flow.enabled ? 'Disable (unload from the runtime)' : 'Enable (load into the runtime)'}
-          >
-            {flow.enabled ? 'Enabled' : 'Disabled'}
-          </Button>
-
+        <div className="ml-auto flex shrink-0 items-center gap-1.5">
           <FlowYamlActions apiName={flow.apiName} />
-
-          <span
-            className={cn(
-              'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white',
-              dirty ? 'bg-amber-600' : 'bg-emerald-600',
-            )}
-          >
-            {dirty ? 'Unsaved' : 'Saved'}
-          </span>
-          <Button
-            size="sm"
-            onClick={onSave}
-            disabled={isSaving || !dirty}
-            aria-busy={isSaving}
-          >
-            <Save size={14} aria-hidden="true" />
-            {isSaving ? 'Saving…' : 'Save'}
-          </Button>
         </div>
       </div>
 
       {/* Inline hints — only render when something needs attention. */}
-      {(descriptionMissing || slashNameInvalid || enabledError) && (
+      {(descriptionMissing || slashNameInvalid) && (
         <div className="mt-1.5 flex flex-col gap-0.5">
           {descriptionMissing && (
             <p className="text-[11px] text-amber-600">
@@ -181,7 +115,6 @@ export function FlowMetaBar({ flow, dirty, isSaving, onSave }: Props) {
           {slashNameInvalid && (
             <p className="text-[11px] text-amber-600">{ERRORS.FLW_008.message}</p>
           )}
-          {enabledError && <p className="text-[11px] text-destructive">{enabledError}</p>}
         </div>
       )}
     </div>

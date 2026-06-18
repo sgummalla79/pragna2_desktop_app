@@ -182,3 +182,18 @@ page is its first consumer.
 ---
 
 _Link to Feature Spec: [features/client-delegated-stdio.md](../features/client-delegated-stdio.md)_
+
+## Edit / Tree tab toggle (2026-06-17)
+
+**`JsonTree` (`src/components/ui/JsonTree.tsx`)** — lightweight collapsible JSON tree; no external
+deps. `JsonNode` renders primitives inline (VS Code Light+/Dark+ token colours: keys `#001080` /
+`#9cdcfe`, strings `#a31515` / `#ce9178`, numbers `#098658` / `#b5cea8`, booleans/null `#0000ff` /
+`#569cd6`). Objects/arrays are chevron-toggled (`ChevronRight`/`ChevronDown`, `aria-expanded`);
+entries recurse via `JsonNode`. Closing brackets use `text-foreground/70`. `JsonTree` is the public
+wrapper accepting `value: unknown` + optional `className`.
+
+**`LocalServersView` tab toggle** — new `editorTab: 'edit' | 'tree'` state (default `'edit'`). Two
+plain `<button>` tabs above the editor area (pill-style toggle, `aria-pressed`). Edit tab renders
+the existing `<textarea>`; Tree tab renders either `<JsonTree>` (valid JSON) or an inline red error
+(invalid JSON, prompts to switch back). Switching to Tree auto-calls `validateAndFormatMcpConfig`
+first so the JSON is always well-formed before parse.

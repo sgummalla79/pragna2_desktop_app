@@ -5,11 +5,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   ChevronDown,
   ChevronRight,
+  Code2,
   KeyRound,
   Loader2,
   Pencil,
   Save,
   Trash2,
+  TreePine,
 } from 'lucide-react';
 
 
@@ -23,6 +25,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { JsonTree } from '@/components/ui/JsonTree';
 import { EntityIcon } from '@/presentation/components/icons/EntityIcon';
 import type {
   LocalServersConfig,
@@ -77,6 +80,7 @@ export default function LocalServersView() {
   );
 
   const [editorText, setEditorText] = useState(EMPTY_CONFIG);
+  const [editorTab, setEditorTab] = useState<'edit' | 'tree'>('edit');
   const [saving, setSaving] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -428,34 +432,95 @@ export default function LocalServersView() {
             </SheetDescription>
           </SheetHeader>
 
-          <textarea
-            value={editorText}
-            onChange={(e) => {
-              setEditorText(e.target.value);
-              setFormatError(null);
-            }}
-            onBlur={(e) => handleBlurOrPaste(e.target.value)}
-            onPaste={(e) => {
-              // Read the pasted text from the clipboard data and validate after
-              // the browser has merged it into the textarea value (one tick later).
-              const pasted = e.clipboardData.getData('text');
-              // Reconstruct what the textarea will look like after the paste.
-              const el = e.currentTarget;
-              const next =
-                el.value.slice(0, el.selectionStart ?? 0) +
-                pasted +
-                el.value.slice(el.selectionEnd ?? 0);
-              // Defer so the DOM value is already updated when we read it.
-              setTimeout(() => handleBlurOrPaste(next), 0);
-            }}
-            spellCheck={false}
-            className={[
-              'min-h-0 w-full flex-1 resize-none rounded-md border bg-background px-3 py-2 font-mono text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              formatError ? 'border-destructive' : 'border-border',
-            ].join(' ')}
-            aria-label="Local MCP servers config (JSON)"
-            aria-describedby={formatError ? 'mcp-config-format-error' : undefined}
-          />
+          {/* Edit / Tree tab toggle */}
+          <div className="flex shrink-0 items-center gap-1 self-start rounded-md border border-border bg-muted/30 p-0.5">
+            <button
+              type="button"
+              onClick={() => setEditorTab('edit')}
+              className={[
+                'flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition',
+                editorTab === 'edit'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              ].join(' ')}
+              aria-pressed={editorTab === 'edit'}
+            >
+              <Code2 size={12} aria-hidden="true" />
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                // Auto-format on switch to tree so the parse always succeeds
+                const result = validateAndFormatMcpConfig(editorText);
+                if (result.ok) {
+                  setEditorText(result.formatted);
+                  setFormatError(null);
+                }
+                setEditorTab('tree');
+              }}
+              className={[
+                'flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition',
+                editorTab === 'tree'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              ].join(' ')}
+              aria-pressed={editorTab === 'tree'}
+            >
+              <TreePine size={12} aria-hidden="true" />
+              Tree
+            </button>
+          </div>
+
+          {editorTab === 'edit' ? (
+            <textarea
+              value={editorText}
+              onChange={(e) => {
+                setEditorText(e.target.value);
+                setFormatError(null);
+              }}
+              onBlur={(e) => handleBlurOrPaste(e.target.value)}
+              onPaste={(e) => {
+                // Read the pasted text from the clipboard data and validate after
+                // the browser has merged it into the textarea value (one tick later).
+                const pasted = e.clipboardData.getData('text');
+                // Reconstruct what the textarea will look like after the paste.
+                const el = e.currentTarget;
+                const next =
+                  el.value.slice(0, el.selectionStart ?? 0) +
+                  pasted +
+                  el.value.slice(el.selectionEnd ?? 0);
+                // Defer so the DOM value is already updated when we read it.
+                setTimeout(() => handleBlurOrPaste(next), 0);
+              }}
+              spellCheck={false}
+              className={[
+                'min-h-0 w-full flex-1 resize-none rounded-md border bg-background px-3 py-2 font-mono text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                formatError ? 'border-destructive' : 'border-border',
+              ].join(' ')}
+              aria-label="Local MCP servers config (JSON)"
+              aria-describedby={formatError ? 'mcp-config-format-error' : undefined}
+            />
+          ) : (
+            (() => {
+              let parsed: unknown = null;
+              let parseErr = false;
+              try {
+                parsed = JSON.parse(editorText);
+              } catch {
+                parseErr = true;
+              }
+              return parseErr ? (
+                <div className="flex flex-1 items-center justify-center rounded-md border border-destructive/40 bg-destructive/10 px-3 py-4 text-xs text-destructive">
+                  Invalid JSON — switch to Edit to fix it.
+                </div>
+              ) : (
+                <div className="min-h-0 flex-1 overflow-y-auto rounded-md border border-border bg-background px-3 py-2">
+                  <JsonTree value={parsed} />
+                </div>
+              );
+            })()
+          )}
 
           {formatError && (
             <p
