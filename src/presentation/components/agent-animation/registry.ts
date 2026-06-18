@@ -1,13 +1,18 @@
 import type { AgentAnimationStrategy } from './AgentAnimation.types';
 import { spinAnimation } from './animations/spin';
 import { bubblesBrainAnimation } from './animations/bubblesBrain';
+import { typingBubbleAnimation } from './animations/typingBubble';
 
 /**
  * All available thinking-indicator animations. Register a new animation by
  * adding its strategy module here — call sites resolve by key and need no
  * changes (Open/Closed). Order is irrelevant; lookup is by `key`.
  */
-const STRATEGIES: readonly AgentAnimationStrategy[] = [spinAnimation, bubblesBrainAnimation];
+const STRATEGIES: readonly AgentAnimationStrategy[] = [
+  spinAnimation,
+  bubblesBrainAnimation,
+  typingBubbleAnimation,
+];
 
 /**
  * Product default when branding config selects no animation (or an unknown

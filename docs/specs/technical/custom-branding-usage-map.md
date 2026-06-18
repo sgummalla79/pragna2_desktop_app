@@ -61,6 +61,7 @@ else `src/assets/logo.svg` ([branding-aliases.mjs](../../../branding-aliases.mjs
 | Register page | [src/presentation/views/auth/RegisterView.tsx](../../../src/presentation/views/auth/RegisterView.tsx) | `@brand/logo.svg?react` |
 | OAuth loopback pages (inline) | via `BRAND_LOGO_MARKUP` in [src/infrastructure/branding/brandAssets.ts](../../../src/infrastructure/branding/brandAssets.ts) | `@brand/logo.svg?raw` — see §4 |
 | Thinking strip (agent icon) | [src/presentation/views/chat/components/ThinkingStrip.tsx](../../../src/presentation/views/chat/components/ThinkingStrip.tsx) | `@brand/agent-icon.svg?react` (defaults to the logo — §3) |
+| Favicon / browser-tab icon | [index.html](../../../index.html) `<link rel="icon">` | rewritten to the overlay logo as an SVG data URI by `brandOverlayPlugin` ([vite.config.ts](../../../vite.config.ts) `transformIndexHtml`); else `public/logo.svg` |
 
 ---
 
@@ -97,13 +98,11 @@ thinking strip a distinct mark (e.g. a brain). The motion is chosen by
 
 ## 5. Known gaps / NOT branded by the overlay
 
-- **Favicon / webview document icon** — [index.html](../../../index.html) line ~5
-  references `/logo.svg` → [public/logo.svg](../../../public/logo.svg), which is a
-  separate committed file **not** covered by the `@brand` alias. In the packaged
-  Tauri app this is invisible (no browser tab; the OS icon comes from `tauri icon`),
-  but in browser-fallback it shows the stock Pragna mark. To brand it, have
-  `apply-branding.mjs` copy `branding/logo.svg` over `public/logo.svg` at build, or
-  add a `transformIndexHtml` rewrite of the icon href. (Deferred — low impact.)
+- _None currently._ The **favicon / browser-tab icon** is now branded: when a logo
+  overlay exists, `brandOverlayPlugin` (vite.config.ts `transformIndexHtml`)
+  rewrites the `<link rel="icon">` href in [index.html](../../../index.html) to the
+  brand logo inlined as an SVG data URI. With no overlay it keeps the committed
+  [public/logo.svg](../../../public/logo.svg) default.
 
 ---
 

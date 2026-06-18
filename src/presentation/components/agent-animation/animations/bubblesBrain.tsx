@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import type { AgentAnimationProps, AgentAnimationStrategy } from '../AgentAnimation.types';
+import { AGENT_ICON_SIZE } from '../constants';
 import './bubblesBrain.css';
 
 /**
@@ -21,7 +22,7 @@ function BubblesBrainAnimation({ active, Icon, className }: AgentAnimationProps)
   return (
     <span
       className={cn(
-        'relative inline-flex h-7 w-7 shrink-0 items-center justify-center',
+        `relative inline-flex ${AGENT_ICON_SIZE} shrink-0 items-center justify-center`,
         className,
       )}
     >
@@ -42,7 +43,7 @@ function BubblesBrainAnimation({ active, Icon, className }: AgentAnimationProps)
         </span>
       )}
       <Icon
-        className={cn('h-7 w-7 text-foreground', active && 'animate-[pulse_2s_ease-in-out_infinite]')}
+        className={cn(`${AGENT_ICON_SIZE} text-foreground`, active && 'animate-[pulse_2s_ease-in-out_infinite]')}
         aria-hidden="true"
       />
     </span>

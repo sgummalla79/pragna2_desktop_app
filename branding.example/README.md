@@ -31,7 +31,7 @@ is purely additive.
 | File | Required | What it overrides |
 |---|---|---|
 | `brand.config.json` | yes | App `name`, bundle `identifier`, `agentAnimation` key |
-| `logo.svg` | recommended | The brand mark (login, home, chat, sidebar, OAuth pages). **SVG only** — it is imported as a React component (`currentColor` theming). |
+| `logo.svg` | recommended | The brand mark (login, home, chat, sidebar, OAuth pages, **and the browser-tab favicon**). **SVG only** — it is imported as a React component (`currentColor` theming). |
 | `icon.png` | for packaging | The OS app/installer icon. A **1024×1024 PNG**; `tauri icon` expands it to every platform size. |
 | `agent-icon.svg` | optional | The agent (thinking-indicator) icon. **SVG only**; defaults to the brand logo. Drop one (e.g. a brain) to give the thinking strip its own mark. |
 | `theme.css` | optional | A tweakcn export of the shadcn token blocks (accent/primary/etc.). |
