@@ -11,6 +11,17 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-024 — brand wrapper scripts use `execFileSync('pnpm', …)` → `pnpm tauri:brand dev|build` fails on Windows (pragna2-tracker #143)
+
+- **Date:** 2026-06-18
+- **Area / file:** `scripts/tauri-with-brand.mjs`, `scripts/apply-branding.mjs`, new `scripts/run-pnpm.mjs`.
+- **Found by:** Reviewing the branding build commands for Windows.
+- **Root cause:** Both scripts spawned the pnpm CLI with `execFileSync('pnpm', […])` (no shell). On Windows `pnpm` is `pnpm.cmd`, and `execFile(Sync)` cannot launch a `.cmd`/`.bat` without `shell: true` — Node blocks it since CVE-2024-27980 (and even pre-CVE it would `ENOENT` because execFile does not apply PATHEXT). So `pnpm tauri:brand dev` / `build` and the `tauri icon` generation inside `apply-branding.mjs` would fail on Windows. (Worked on macOS, where `pnpm` is a real executable on PATH.) The misleading "resolves the .bin/.cmd shim via pnpm" comment was wrong — execFile does no such resolution.
+- **Fix:** Added `scripts/run-pnpm.mjs` exporting `runPnpm(args, cwd)` that calls `execFileSync('pnpm', args.map(quoteArg), { shell: true, stdio: 'inherit', cwd })` — `shell: true` runs through cmd.exe (Windows) / `/bin/sh` (macOS/Linux), which resolves the `.cmd` shim and PATH; whitespace-containing args are quoted so paths like `C:\Users\Jane Doe\…` survive. Both wrapper scripts now call `runPnpm`. Verified on macOS (`apply-branding.mjs` regenerates the brand icon set via the new runner) and node `--check` on all three scripts.
+- **Web-app applicability:** **N/A** — these are desktop-only Tauri build scripts; the web app has no equivalent.
+
+---
+
 ## CF-023 — `@brand/logo.svg?raw` import fails to resolve in the Vite dev server → dev crashes when the OAuth loopback modules load (pragna2-tracker #142)
 
 - **Date:** 2026-06-18

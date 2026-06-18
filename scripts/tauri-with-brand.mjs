@@ -7,10 +7,10 @@
 // `--config branding/tauri.brand.conf.json` ONLY when that file was produced.
 // With no overlay it is exactly `pnpm tauri <args>` — stock Pragna.
 
-import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve, relative } from 'node:path';
 import { applyBranding } from './apply-branding.mjs';
+import { runPnpm } from './run-pnpm.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const passthroughArgs = process.argv.slice(2); // e.g. ["build"] or ["dev", "--", ...]
@@ -22,4 +22,4 @@ if (brandConfPath) {
   args.push('--config', relative(root, brandConfPath));
 }
 
-execFileSync('pnpm', args, { cwd: root, stdio: 'inherit' });
+runPnpm(args, root);

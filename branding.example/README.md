@@ -10,11 +10,16 @@ overlays when present.
 1. Copy this template to the (git-ignored) overlay folder at the repo root:
 
    ```sh
+   # macOS / Linux
    cp -R branding.example branding
+   ```
+   ```powershell
+   # Windows (PowerShell)
+   Copy-Item -Recurse branding.example branding
    ```
 
 2. Edit `branding/` to your brand (see **Files** below).
-3. Build/run with the brand-aware wrapper:
+3. Build/run with the brand-aware wrapper (same on every OS):
 
    ```sh
    pnpm tauri:brand dev      # branded dev run
@@ -22,6 +27,8 @@ overlays when present.
    ```
 
    The plain `pnpm tauri dev` / `pnpm tauri build` always produce stock Pragna.
+   To remove the overlay: `rm -rf branding` (macOS/Linux) or
+   `Remove-Item -Recurse -Force branding` (Windows).
 
 With **no** `branding/` folder, every command produces stock Pragna — the overlay
 is purely additive.
