@@ -19,7 +19,8 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AlertCircle, Save } from 'lucide-react';
 import ReactFlow, {
   Background,
   ConnectionMode,
@@ -32,6 +33,8 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 
 import { cn } from '@/lib/utils';
+import { ROUTES } from '@/constants/routes';
+import { Button } from '@/components/ui/button';
 import type { Flow } from '@/domain/types/flow.types';
 import type { YamlError } from '@/domain/types/flowYaml.types';
 import {
@@ -68,6 +71,7 @@ interface Props {
 }
 
 function EditorInner({ flow }: Props) {
+  const navigate = useNavigate();
   const validateMutation = useValidateFlowYaml();
   const saveMutation = useSaveFlowFromYamlById();
   const isSaving = saveMutation.isPending || validateMutation.isPending;
@@ -137,6 +141,11 @@ function EditorInner({ flow }: Props) {
     selectEdge(edge.id);
   };
 
+  function handleCancel() {
+    reset();
+    navigate(ROUTES.SETTINGS_FLOWS);
+  }
+
   async function handleSave() {
     setBanner(null);
     setErrors([]);
@@ -169,8 +178,6 @@ function EditorInner({ flow }: Props) {
       <FlowMetaBar
         flow={flow}
         dirty={dirty}
-        isSaving={isSaving}
-        onSave={() => void handleSave()}
       />
 
       {/* Banner / validation errors. */}
@@ -248,6 +255,29 @@ function EditorInner({ flow }: Props) {
         {selectedNodeId && <DecisionPanel />}
         {selectedNodeId && <KnowledgePanel />}
         {selectedEdgeId && !selectedNodeId && <EdgePanel />}
+      </div>
+
+      {/* Footer — Save / Cancel, matching the Agent form footer pattern. */}
+      <div className="flex shrink-0 justify-end gap-2 border-t border-border px-6 py-4">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={handleCancel}
+          disabled={isSaving}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          onClick={() => void handleSave()}
+          disabled={isSaving || !dirty}
+          aria-busy={isSaving}
+        >
+          <Save size={14} aria-hidden="true" className="mr-1" />
+          {isSaving ? 'Saving…' : 'Save'}
+        </Button>
       </div>
     </div>
   );
