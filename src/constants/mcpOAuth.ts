@@ -19,6 +19,10 @@ export const MCP_OAUTH_CONFIG_KEY = 'oauth';
 export const MCP_OAUTH_CLIENT_ID_KEY = 'clientId';
 export const MCP_OAUTH_LOGIN_URL_KEY = 'loginUrl';
 export const MCP_OAUTH_CALLBACK_PORT_KEY = 'callbackPort';
+/** When true the backend omits the RFC 8707 resource param from the token
+ *  exchange (tracker #136 / #137). Required for Salesforce — its token endpoint
+ *  rejects the param with invalid_grant. */
+export const MCP_OAUTH_OMIT_RESOURCE_KEY = 'omitResourceAtTokenExchange';
 
 /**
  * Path the authorization server redirects to on the loopback host
