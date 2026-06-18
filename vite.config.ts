@@ -1,9 +1,45 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import svgr from "vite-plugin-svgr";
 import path from "node:path";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
+import { brandAliases, readBrandConfig } from "./branding-aliases.mjs";
+
+// Build-time white-label overlay plugin. Two jobs, both no-ops without a
+// `branding/` overlay so the default build stays byte-for-byte stock Pragna:
+//   1. `virtual:brand-theme.css` — injects a git-ignored `branding/theme.css`
+//      (e.g. a tweakcn export of the shadcn token blocks), imported last in
+//      main.tsx so its `:root` / `.dark` overrides win by source order.
+//   2. index.html `<title>` — rewritten to the resolved brand name so the
+//      document/tab/window title matches APP_NAME.
+const BRAND_THEME_VIRTUAL_ID = "virtual:brand-theme.css";
+// Minimal escape for the brand name injected into the HTML <title>.
+const escapeHtmlText = (value: string): string =>
+  value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const brandOverlayPlugin = (brandName: string) => {
+  const resolvedId = "\0" + BRAND_THEME_VIRTUAL_ID;
+  const themePath = path.resolve(__dirname, "branding/theme.css");
+  return {
+    name: "brand-overlay",
+    resolveId(id: string) {
+      return id === BRAND_THEME_VIRTUAL_ID ? resolvedId : null;
+    },
+    load(id: string) {
+      if (id !== resolvedId) return null;
+      return existsSync(themePath)
+        ? readFileSync(themePath, "utf-8")
+        : "/* no brand theme overlay */";
+    },
+    transformIndexHtml(html: string) {
+      if (!brandName) return html; // no override → keep the committed default
+      return html.replace(
+        /<title>[^<]*<\/title>/,
+        `<title>${escapeHtmlText(brandName)}</title>`,
+      );
+    },
+  };
+};
 
 // Single source of truth for the app version: the repo-root VERSION file (bumped
 // before each release; sync-version.mjs propagates it to tauri.conf.json +
@@ -35,19 +71,42 @@ const processEnvShim = (mode: string): Record<string, string> => ({
 });
 
 // https://vite.dev/config/
-export default defineConfig(async ({ mode }) => ({
-  define: { ...processEnvShim(mode), __APP_VERSION__: JSON.stringify(PKG_VERSION) },
+export default defineConfig(async ({ mode }) => {
+  // Resolve build-time branding from the git-ignored `branding/` overlay. The
+  // brand NAME + AGENT ANIMATION are injected as bundle constants (mirroring
+  // __APP_VERSION__) so constants/api.ts reads them without env plumbing. The
+  // overlay is authoritative: it wins over VITE_APP_NAME (the repo's .env ships
+  // VITE_APP_NAME=Pragna as the default, which must not shadow a brander's name).
+  const env = loadEnv(mode, __dirname, "");
+  const brand = readBrandConfig(__dirname);
+  const brandName: string =
+    (brand.name ?? "").trim() || (env.VITE_APP_NAME ?? "").trim();
+  // Whether a brand logo overlay exists. The self-contained OAuth loopback pages
+  // keep their ORIGINAL inline mark by default and only inline the brand logo
+  // when this is true, so stock (no-overlay) pages are byte-identical to before.
+  const brandHasOverlayLogo = existsSync(path.resolve(__dirname, "branding/logo.svg"));
+
+  return {
+  define: {
+    ...processEnvShim(mode),
+    __APP_VERSION__: JSON.stringify(PKG_VERSION),
+    __BRAND_NAME__: JSON.stringify((brand.name ?? "").trim()),
+    __BRAND_AGENT_ANIMATION__: JSON.stringify((brand.agentAnimation ?? "").trim()),
+    __BRAND_HAS_OVERLAY_LOGO__: JSON.stringify(brandHasOverlayLogo),
+  },
   optimizeDeps: {
     esbuildOptions: {
       define: processEnvShim(mode),
     },
   },
-  plugins: [react(), tailwindcss(), svgr()],
+  plugins: [react(), tailwindcss(), svgr(), brandOverlayPlugin(brandName)],
 
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+    alias: [
+      // `@brand/*` brand-overlay assets must precede the broad `@` alias.
+      ...brandAliases(__dirname),
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+    ],
   },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
@@ -77,4 +136,5 @@ export default defineConfig(async ({ mode }) => ({
       "/api": { target: apiTarget, changeOrigin: true },
     },
   },
-}));
+  };
+});

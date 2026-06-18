@@ -1,0 +1,22 @@
+/* OPTIONAL build-time theme overlay.
+ *
+ * Paste a tweakcn (https://tweakcn.com) export here — its `:root { … }` and
+ * `.dark { … }` blocks of shadcn OKLCH tokens. The app imports this AFTER its
+ * own index.css, so these blocks override the default palette by source order.
+ * Every token (accent, primary, background, …) is overridable from this one
+ * file; the rising-bubbles agent animation tints with `--primary` for free.
+ *
+ * Omit this file to keep the default Pragna palette. Below is a minimal sample
+ * overriding just the primary/accent hue — replace with your full export. */
+
+:root {
+  --primary: oklch(0.55 0.18 145);
+  --primary-foreground: oklch(0.98 0 0);
+  --accent: oklch(0.95 0.03 145);
+}
+
+.dark {
+  --primary: oklch(0.72 0.15 145);
+  --primary-foreground: oklch(0.18 0 0);
+  --accent: oklch(0.32 0.08 145);
+}

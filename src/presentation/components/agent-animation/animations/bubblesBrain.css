@@ -1,0 +1,33 @@
+/* Bubble particles that rise from the agent icon while a run is in flight.
+   Generic by design: the dots float up from above the icon regardless of its
+   shape, so a brander's custom agent-icon.svg works too. Bubbles tint with the
+   theme `--primary` token, so a tweakcn brand theme recolours them for free. */
+.agent-bubble {
+  position: absolute;
+  bottom: 0;
+  border-radius: 9999px;
+  background: var(--primary);
+  opacity: 0;
+  animation: agent-bubble-rise 1.8s ease-in-out infinite;
+}
+
+@keyframes agent-bubble-rise {
+  0% {
+    transform: translateY(2px) scale(0.5);
+    opacity: 0;
+  }
+  35% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateY(-9px) scale(1);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-bubble {
+    animation: none;
+    opacity: 0;
+  }
+}

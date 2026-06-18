@@ -17,6 +17,13 @@ dist-ssr
 .env.*
 !.env.example
 
+# Build-time white-label brand overlay — a brander's own name/logo/icon/theme.
+# NEVER committed: the repo ships only the committed defaults (stock Pragna) and
+# the `branding.example/` template. See docs/specs/features/custom-branding.md.
+/branding/
+# Generated brand OS icons (from `branding/icon.png` via `tauri icon`).
+/src-tauri/icons-brand/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
