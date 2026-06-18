@@ -6,13 +6,15 @@ It is **not** active by default — the stock build stays Pragna. To use it, cop
 it onto the git-ignored active overlay and build with the brand wrapper:
 
 ```sh
-cp -R branding.salesforce branding
+cp -R branding.salesforce branding      # macOS/Linux
+# Windows (PowerShell): Copy-Item -Recurse branding.salesforce branding
 pnpm tauri:brand dev      # branded desktop app
 # or, browser-only preview of name/logo/theme/animation:
 pnpm dev
 ```
 
-To go back to stock Pragna: `rm -rf branding`.
+To go back to stock Pragna: `rm -rf branding` (macOS/Linux) or
+`Remove-Item -Recurse -Force branding` (Windows).
 
 ## What's inside
 

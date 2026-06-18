@@ -10,6 +10,11 @@ give an explicit "select Pragna" overlay.
 cp -R branding.pragna branding   # explicitly select Pragna (identical to no overlay)
 rm -rf branding                  # …or just remove the overlay; same result
 ```
+```powershell
+# Windows (PowerShell)
+Copy-Item -Recurse branding.pragna branding
+Remove-Item -Recurse -Force branding
+```
 
 ## What's inside
 
