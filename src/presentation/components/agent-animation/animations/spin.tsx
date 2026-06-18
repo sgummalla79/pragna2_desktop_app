@@ -1,8 +1,8 @@
 import { cn } from '@/lib/utils';
 import type { AgentAnimationProps, AgentAnimationStrategy } from '../AgentAnimation.types';
+import { AGENT_ICON_SIZE } from '../constants';
 
-/** Icon edge length (Tailwind size units) — matches the legacy thinking strip. */
-const ICON_CLASSES = 'h-7 w-7 shrink-0 text-foreground';
+const ICON_CLASSES = `${AGENT_ICON_SIZE} shrink-0 text-foreground`;
 
 /**
  * Legacy behaviour: the agent icon spins while a run is in flight, sits static

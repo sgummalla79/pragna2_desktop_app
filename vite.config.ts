@@ -6,18 +6,21 @@ import path from "node:path";
 import { readFileSync, existsSync } from "node:fs";
 import { brandAliases, readBrandConfig } from "./branding-aliases.mjs";
 
-// Build-time white-label overlay plugin. Two jobs, both no-ops without a
+// Build-time white-label overlay plugin. Three jobs, all no-ops without a
 // `branding/` overlay so the default build stays byte-for-byte stock Pragna:
 //   1. `virtual:brand-theme.css` — injects a git-ignored `branding/theme.css`
 //      (e.g. a tweakcn export of the shadcn token blocks), imported last in
 //      main.tsx so its `:root` / `.dark` overrides win by source order.
 //   2. index.html `<title>` — rewritten to the resolved brand name so the
 //      document/tab/window title matches APP_NAME.
+//   3. favicon (browser-tab icon) — the `<link rel="icon">` href is rewritten to
+//      the brand logo (inlined as a data URI) when a logo overlay exists, so the
+//      tab icon matches the brand without touching the committed `public/logo.svg`.
 const BRAND_THEME_VIRTUAL_ID = "virtual:brand-theme.css";
 // Minimal escape for the brand name injected into the HTML <title>.
 const escapeHtmlText = (value: string): string =>
   value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const brandOverlayPlugin = (brandName: string) => {
+const brandOverlayPlugin = (brandName: string, faviconDataUri: string | null) => {
   const resolvedId = "\0" + BRAND_THEME_VIRTUAL_ID;
   const themePath = path.resolve(__dirname, "branding/theme.css");
   return {
@@ -32,11 +35,24 @@ const brandOverlayPlugin = (brandName: string) => {
         : "/* no brand theme overlay */";
     },
     transformIndexHtml(html: string) {
-      if (!brandName) return html; // no override → keep the committed default
-      return html.replace(
-        /<title>[^<]*<\/title>/,
-        `<title>${escapeHtmlText(brandName)}</title>`,
-      );
+      let out = html;
+      // Brand name → document/tab title.
+      if (brandName) {
+        out = out.replace(
+          /<title>[^<]*<\/title>/,
+          `<title>${escapeHtmlText(brandName)}</title>`,
+        );
+      }
+      // Brand logo → favicon (browser-tab icon), inlined as a data URI. Only the
+      // `rel="icon"` link's href is rewritten; absent a logo overlay it keeps the
+      // committed `public/logo.svg` default.
+      if (faviconDataUri) {
+        out = out.replace(
+          /(<link\b[^>]*\brel="icon"[^>]*\bhref=")[^"]*(")/i,
+          `$1${faviconDataUri}$2`,
+        );
+      }
+      return out;
     },
   };
 };
@@ -85,6 +101,19 @@ export default defineConfig(async ({ mode }) => {
   // keep their ORIGINAL inline mark by default and only inline the brand logo
   // when this is true, so stock (no-overlay) pages are byte-identical to before.
   const brandHasOverlayLogo = existsSync(path.resolve(__dirname, "branding/logo.svg"));
+  // Raw markup of the brand logo overlay (empty when none). Injected as a build
+  // constant (__BRAND_LOGO_OVERLAY_SVG__) for the self-contained OAuth pages,
+  // instead of a `@brand/logo.svg?raw` import — the `?raw` query does not resolve
+  // through the `@brand` regex alias in the dev server.
+  const brandLogoOverlaySvg = brandHasOverlayLogo
+    ? readFileSync(path.resolve(__dirname, "branding/logo.svg"), "utf-8")
+    : "";
+  // Brand favicon: the overlay logo inlined as an SVG data URI (base64 so any
+  // characters survive the HTML attribute). Null when no logo overlay → the
+  // committed public/logo.svg default tab icon is kept.
+  const brandFaviconDataUri = brandHasOverlayLogo
+    ? `data:image/svg+xml;base64,${Buffer.from(brandLogoOverlaySvg).toString("base64")}`
+    : null;
 
   return {
   define: {
@@ -93,13 +122,14 @@ export default defineConfig(async ({ mode }) => {
     __BRAND_NAME__: JSON.stringify((brand.name ?? "").trim()),
     __BRAND_AGENT_ANIMATION__: JSON.stringify((brand.agentAnimation ?? "").trim()),
     __BRAND_HAS_OVERLAY_LOGO__: JSON.stringify(brandHasOverlayLogo),
+    __BRAND_LOGO_OVERLAY_SVG__: JSON.stringify(brandLogoOverlaySvg),
   },
   optimizeDeps: {
     esbuildOptions: {
       define: processEnvShim(mode),
     },
   },
-  plugins: [react(), tailwindcss(), svgr(), brandOverlayPlugin(brandName)],
+  plugins: [react(), tailwindcss(), svgr(), brandOverlayPlugin(brandName, brandFaviconDataUri)],
 
   resolve: {
     alias: [
