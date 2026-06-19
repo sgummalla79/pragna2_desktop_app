@@ -6,7 +6,26 @@
  * 'length'`). It's a fixed protocol value, externalised here (per the
  * no-hardcoding rule) rather than inlined in the chat surface.
  */
+import type { FinishReason } from '@/domain/types/conversation.types';
+
 export const CONTINUE_PROMPT = 'continue';
+
+/**
+ * Finish reasons that TERMINATE an assistant turn — the model has stopped acting
+ * and the turn is complete. Deliberately excludes `'tool_calls'` (mid-turn: the
+ * turn continues after tool results). Used to split a completed turn from a
+ * later adjacent one in the transcript grouping so a re-attached streaming run
+ * never folds the prior turn into its activity umbrella (tracker #148).
+ * Externalised here (no-hardcoding) so the desktop + web FE classify terminal
+ * turns identically. NOTE: a turn with `finishReason === null` (legacy rows
+ * pre-BE-migration-0022) is NOT terminal and won't split — acceptable, since the
+ * backend stamps a finish reason on every turn since 0022.
+ */
+export const TERMINAL_FINISH_REASONS: ReadonlySet<FinishReason> = new Set<FinishReason>([
+  'stop',
+  'length',
+  'other',
+]);
 
 /**
  * Backend prefix for propose-flow tool names (`propose_flow_<api_name>`). A tool
