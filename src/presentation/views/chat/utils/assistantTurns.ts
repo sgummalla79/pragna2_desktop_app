@@ -27,10 +27,27 @@ export type RenderGroup =
  * standalone. Tool-role messages are dropped — their raw result payload is
  * represented by the turn's activity umbrella, never dumped in the transcript.
  *
+ * `endsTurn` closes a turn AFTER an assistant message even when no user/system
+ * message follows — used to split a previously-COMPLETED assistant turn from a
+ * later one when they ended up adjacent with no intervening user turn. That
+ * happens when a streaming run is re-attached after a remount (the originating
+ * user message isn't in the re-seeded list yet) — without the split, the prior
+ * turn's answer + reasoning would be folded into the live "Drafting…" activity
+ * umbrella (tracker #148). It also cleanly separates a background-episode turn
+ * (e.g. create_pdf_long posted back after the main answer) from the turn before
+ * it. A no-op for normal transcripts, where a user message already separates
+ * turns and the predicate never fires before one.
+ *
  * @param messages - The in-order chat messages.
+ * @param endsTurn - True when this assistant message terminates its turn (e.g.
+ *   it carries a persisted terminal finish reason → a completed, persisted
+ *   turn). Defaults to never (preserves the plain consecutive-collapse).
  * @returns Ordered render groups.
  */
-export function groupChatMessages(messages: ChatMessageModel[]): RenderGroup[] {
+export function groupChatMessages(
+  messages: ChatMessageModel[],
+  endsTurn: (message: ChatMessageModel) => boolean = () => false,
+): RenderGroup[] {
   const groups: RenderGroup[] = [];
   let turn: ChatMessageModel[] = [];
 
@@ -44,6 +61,9 @@ export function groupChatMessages(messages: ChatMessageModel[]): RenderGroup[] {
   for (const m of messages) {
     if (m.role === 'assistant') {
       turn.push(m);
+      // A completed/persisted turn ends here even without a following user
+      // message, so a later (e.g. resuming) turn isn't merged into it (#148).
+      if (endsTurn(m)) flush();
     } else if (m.role === 'tool') {
       // Suppressed: represented by the activity umbrella, never rendered raw.
       continue;
