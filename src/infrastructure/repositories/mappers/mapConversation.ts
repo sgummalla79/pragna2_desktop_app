@@ -20,6 +20,8 @@ export interface ApiConversationResponse {
   flow_id: string | null;
   thread_id: string;
   user_model_id: string | null;
+  /** Active standalone agent (BE #145); absent on older BEs → treated as null. */
+  agent_id?: string | null;
   title: string | null;
   thinking_enabled: boolean;
   pinned: boolean;
@@ -34,6 +36,8 @@ export interface ApiMessageResponse {
   content: string;
   tool_calls: PersistedToolCall[] | null;
   user_model_id: string | null;
+  /** Producing agent (BE #145); absent on older BEs → treated as null. */
+  agent_id?: string | null;
   message_index: number;
   created_at: string;
   modified_at: string;
@@ -52,6 +56,7 @@ export function mapConversation(raw: ApiConversationResponse): Conversation {
     flowId: raw.flow_id,
     threadId: raw.thread_id,
     userModelId: raw.user_model_id,
+    agentId: raw.agent_id ?? null,
     title: raw.title,
     thinkingEnabled: raw.thinking_enabled ?? false,
     pinned: raw.pinned ?? false,
@@ -116,6 +121,7 @@ export function mapMessage(raw: ApiMessageResponse): PersistedMessage {
     content: raw.content,
     toolCalls: raw.tool_calls,
     userModelId: raw.user_model_id,
+    agentId: raw.agent_id ?? null,
     messageIndex: raw.message_index,
     createdAt: raw.created_at,
     modifiedAt: raw.modified_at,

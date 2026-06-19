@@ -26,6 +26,12 @@ export interface Conversation {
   threadId: string;
   /** Model the next chat turn will use. `null` for legacy rows; mutable via PATCH. */
   userModelId: string | null;
+  /**
+   * Active standalone agent answering the next turn (BE #145). `null` for legacy
+   * rows / pre-feature conversations → the BE resolves the user's default agent.
+   * Mutable via PATCH — this is the mid-conversation agent switch (shared thread).
+   */
+  agentId: string | null;
   /** Auto-generated or user-set title; `null` until auto-title lands. */
   title: string | null;
   /** Per-conversation Anthropic extended-thinking toggle. */
@@ -59,6 +65,9 @@ export interface PersistedMessage {
   toolCalls: PersistedToolCall[] | null;
   /** Assistant-only: the `user_model` that produced this content (BE 0010). */
   userModelId: string | null;
+  /** Assistant-only: the standalone agent that produced this turn (BE #145);
+   *  `null` for non-assistant / pre-feature rows. Drives per-turn attribution. */
+  agentId: string | null;
   messageIndex: number;
   createdAt: string;
   modifiedAt: string;
@@ -86,6 +95,8 @@ export interface UpdateConversationPayload {
   userModelId?: string;
   thinkingEnabled?: boolean;
   pinned?: boolean;
+  /** Switch the conversation's active standalone agent (BE #145). */
+  agentId?: string;
 }
 
 /**
