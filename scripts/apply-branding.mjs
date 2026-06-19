@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { readBrandConfig } from '../branding-aliases.mjs';
 import { runPnpm } from './run-pnpm.mjs';
+import { makeMacIcns } from './make-mac-icon.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -40,7 +41,7 @@ function runTauri(args) {
  * Generate the Tauri brand config (and icons) from the `branding/` overlay.
  * @returns {string|null} absolute path to the generated config, or null (no-op).
  */
-export function applyBranding() {
+export async function applyBranding() {
   const brand = readBrandConfig(root); // {} when no overlay; throws on bad JSON
   const iconSource = resolve(root, 'branding', 'icon.png');
   const hasIcon = existsSync(iconSource);
@@ -62,6 +63,10 @@ export function applyBranding() {
     mkdirSync(outDir, { recursive: true });
     console.log(`[apply-branding] generating OS icons from branding/icon.png → src-tauri/${BRAND_ICON_DIR}`);
     runTauri(['icon', iconSource, '--output', outDir]);
+    // Re-shape ONLY the macOS icon.icns into a native squircle (rounded +
+    // padded) from the same square source. Windows (.ico / Square*Logo.png)
+    // keeps the full-bleed square `tauri icon` just produced (tracker #151).
+    await makeMacIcns(iconSource, `src-tauri/${BRAND_ICON_DIR}`);
     conf.bundle = { icon: ICON_FILES.map((f) => `${BRAND_ICON_DIR}/${f}`) };
   }
 
@@ -73,5 +78,5 @@ export function applyBranding() {
 
 // When invoked directly (`node scripts/apply-branding.mjs`), run the generation.
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  applyBranding();
+  await applyBranding();
 }

@@ -11,6 +11,15 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-028 — branded macOS app icon is a square tile, not a native rounded squircle (pragna2-tracker #151)
+
+- **Date:** 2026-06-18
+- **Area / file:** `scripts/make-mac-icon.mjs` (new), `scripts/apply-branding.mjs`, `scripts/tauri-with-brand.mjs`, `package.json` (+`sharp` devDep).
+- **Bug + root cause:** `tauri icon <source>` generates every platform's icons from one full-bleed SQUARE source. macOS does not auto-round app icons — they ship pre-shaped as a rounded rect with ~10% padding — so a brand whose icon is a full-bleed COLOURED tile (e.g. Salesforce: white cloud on a `#00A1E0` blue tile) rendered as a hard square tile in the Dock/Finder, not the native squircle.
+- **Fix:** `make-mac-icon.mjs` (sharp) reshapes ONLY the macOS `icon.icns` into a squircle (Apple grid: 824/1024 body, ~22.37% corner radius, transparent padding) from the square brand source, then runs `tauri icon` on the squircle and copies just `icon.icns`. Wired into `apply-branding.mjs` (the brand-overlay path). **Windows is untouched by design:** macOS reads `icon.icns`; Windows reads `icon.ico` + `Square*Logo.png`, which keep the full-bleed square `tauri icon` produced — verified no `.ico`/`Square*` files change.
+- **SCOPE NOTE (review catch):** an earlier draft also squircled the DEFAULT Pragna `src-tauri/icons/icon.icns`, sourcing it from `ios/AppIcon-512@2x.png`. That iOS variant is forced **opaque white-background**, so it produced a thick **white tile** around the (otherwise transparent) Pragna logo. The default Pragna macOS icon is a **transparent-background logo** (no tile) and must stay that way — the squircle/tile treatment only applies to brands that ship a filled colour tile. Reverted the default icns; removed the default `icons:mac` script.
+- **Web-app applicability:** **N/A** — desktop-only Tauri OS packaging; the web app has no OS app icon.
+
 ## CF-026 — reasoning timeline folds a PRIOR completed turn into the live activity umbrella on return-to-streaming (pragna2-tracker #148)
 
 - **Date:** 2026-06-18
