@@ -268,7 +268,21 @@ function ChatConversation({
   // Group the flat message list into user/system messages + assistant turns, so
   // each turn's intermediate work folds into one activity umbrella (claude.ai
   // style). The streaming turn is the last assistant turn while a run is live.
-  const groups = useMemo(() => groupChatMessages(messages), [messages]);
+  const groups = useMemo(
+    () =>
+      groupChatMessages(messages, (m) => {
+        // End a turn at a persisted TERMINAL stop so a previously-completed
+        // assistant turn isn't merged with a later adjacent one (e.g. a
+        // re-attached streaming run after a remount, whose originating user
+        // message isn't in the re-seeded list yet) — otherwise the prior turn's
+        // answer + reasoning fold into the live activity umbrella (tracker #148).
+        // `tool_calls` is mid-turn (the turn continues after tool results), so it
+        // must NOT end the turn; `null`/legacy rows don't either.
+        const fr = finishReasonById.get(m.id);
+        return fr === 'stop' || fr === 'length' || fr === 'other';
+      }),
+    [messages, finishReasonById],
+  );
   const streamingTurnKey = useMemo(() => {
     if (status !== 'running') return null;
     for (let i = groups.length - 1; i >= 0; i--) {
