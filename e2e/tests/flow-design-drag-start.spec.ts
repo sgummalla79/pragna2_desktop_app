@@ -10,6 +10,7 @@
  */
 import { test, expect } from '../fixtures';
 import { psql } from '../helpers/db';
+import { nodeFlowPosition } from '../helpers/canvas';
 import { dropFromPalette, openFlow, seedFlow } from '../helpers/flow-author';
 
 const FLOW_API_NAME = 'e2e-flow-drag-start';
@@ -30,9 +31,11 @@ test('drag Start node downward', async ({ page }) => {
   await page.waitForTimeout(200);
 
   const startBefore = await page.locator('[data-id="__start__"]').boundingBox();
-  const endBefore = await page.locator('[data-id="__end__"]').boundingBox();
   expect(startBefore).toBeTruthy();
-  expect(endBefore).toBeTruthy();
+  // End's FLOW-space position (graph coords, pan-independent) — the invariant a
+  // Start drag must leave unchanged. Screen pixels shift when React Flow
+  // auto-pans during the drag, so measure graph coords (tracker #139).
+  const endFlowBefore = await nodeFlowPosition(page, '__end__');
 
   // ── Drag Start down by ~300px ──
   const box = await page.locator('[data-id="__start__"]').boundingBox();
@@ -47,15 +50,17 @@ test('drag Start node downward', async ({ page }) => {
   await page.waitForTimeout(300);
 
   const startAfter = await page.locator('[data-id="__start__"]').boundingBox();
-  const endAfter = await page.locator('[data-id="__end__"]').boundingBox();
+  const endFlowAfter = await nodeFlowPosition(page, '__end__');
 
   // 1. Start moved down ~300px (tolerance for grid snap + pixel precision).
   expect(startAfter!.y - startBefore!.y).toBeGreaterThan(250);
   expect(startAfter!.y - startBefore!.y).toBeLessThan(350);
 
-  // 2. End stayed roughly put.
-  expect(Math.abs(endAfter!.x - endBefore!.x)).toBeLessThan(60);
-  expect(Math.abs(endAfter!.y - endBefore!.y)).toBeLessThan(60);
+  // 2. End did NOT move — asserted in FLOW space, so an auto-pan of the viewport
+  //    during the drag (which shifts End's screen pixels) doesn't false-fail.
+  //    A small epsilon covers sub-pixel transform rounding.
+  expect(Math.abs(endFlowAfter.x - endFlowBefore.x)).toBeLessThan(1);
+  expect(Math.abs(endFlowAfter.y - endFlowBefore.y)).toBeLessThan(1);
 
   // 3. Save now enabled (dirty fires on drag-end).
   await expect(page.getByRole('button', { name: /^save$/i })).toBeEnabled();
