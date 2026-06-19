@@ -87,6 +87,12 @@ export interface CreateConversationPayload {
   userModelId?: string | null;
   /** Apply the first-turn extended-thinking choice at create time. */
   thinkingEnabled?: boolean;
+  /**
+   * Standalone agent to pin the conversation to at creation (BE #153), so an
+   * agent picker on the new-chat landing collapses into a single create call.
+   * Omit/`null` → the BE seeds the user's default agent. Ignored for flow rows.
+   */
+  agentId?: string | null;
 }
 
 /** Partial-update body for `PATCH /api/conversations/{id}`. */
