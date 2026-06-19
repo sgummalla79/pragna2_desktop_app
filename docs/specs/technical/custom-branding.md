@@ -49,7 +49,8 @@ branding/ overlay ─┬─ vite.config (reads brand.config.json + files)
                    │     ├─ virtual:brand-theme.css ─▶ main.tsx (after index.css)
                    │     └─ transformIndexHtml ─▶ <title> + favicon (data URI)
                    └─ scripts/tauri-with-brand.mjs ─▶ apply-branding.mjs
-                         ├─ tauri icon branding/icon.png ─▶ src-tauri/icons-brand/
+                         ├─ tauri icon branding/icon.png ─▶ src-tauri/icons-brand/ (all platforms, square)
+                         ├─ make-mac-icon.mjs ─▶ reshape ONLY icon.icns to a macOS squircle (rounded+padded); Windows .ico/Square* stay square (CF-028, #151)
                          └─ branding/tauri.brand.conf.json ─▶ tauri <cmd> --config (merge)
 
 AGENT_ANIMATION_KEY ─▶ getAgentAnimation(key) ─▶ ThinkingStrip renders <Strategy.Component icon={AgentIcon}/>

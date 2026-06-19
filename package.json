@@ -72,6 +72,7 @@
     "@vitest/coverage-istanbul": "^3.2.6",
     "jsdom": "^29.1.1",
     "msw": "^2.14.6",
+    "sharp": "^0.35.1",
     "tailwindcss": "^4.3.0",
     "typescript": "~5.8.3",
     "vite": "^7.0.4",

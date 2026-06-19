@@ -15,7 +15,7 @@ import { runPnpm } from './run-pnpm.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const passthroughArgs = process.argv.slice(2); // e.g. ["build"] or ["dev", "--", ...]
 
-const brandConfPath = applyBranding();
+const brandConfPath = await applyBranding();
 const args = ['exec', 'tauri', ...passthroughArgs];
 if (brandConfPath) {
   // Tauri merges this over tauri.conf.json + the platform config.
