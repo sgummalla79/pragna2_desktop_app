@@ -3,9 +3,11 @@
 > **Status**: In Review
 > **Author**: Suman Gummalla
 > **Created**: 2026-06-18
-> **Last Updated**: 2026-06-18
+> **Last Updated**: 2026-06-19
 >
 > Tracker: pragna2-tracker #147 (Desktop FE) · parent plan #144 · BE contract #145.
+> Visibility rule + new-chat landing picker: BE contract #153 (single-call
+> `agent_id` on `POST /conversations`).
 
 ---
 
@@ -25,10 +27,21 @@ attribution so a switched transcript stays readable on reload.
 **Goals**
 - [ ] A picker in the chat surface shows the conversation's current active agent
       and lists the user's other `active` standalone agents.
+- [ ] **The picker appears only when there is a real choice — i.e. ≥2 active
+      agents.** With 0 active agents there is nothing to run; with exactly 1 there
+      is nothing to switch *to*, so the control is hidden and that lone (default)
+      agent is used implicitly. This rule is identical on the new-chat landing and
+      inside an existing conversation.
+- [ ] **The new-chat landing surface also shows the picker** (subject to the ≥2
+      rule). The agent is **never unselected**: the conversation is created pinned
+      to exactly the agent the picker shows — the explicit pick, or the resolved
+      default when untouched — in a **single call** (`POST /conversations` carries
+      `agent_id`, BE #153). Only when the user has *no* active agents is `agent_id`
+      omitted so the BE seeds its own default.
 - [ ] Selecting an agent switches who answers the **next** turn over the **same**
       conversation/transcript (BE PATCH `agent_id`).
-- [ ] A freshly created conversation reflects the BE-seeded default agent
-      (`is_default=true`) — unchanged behaviour, just surfaced.
+- [ ] A freshly created conversation reflects the chosen agent, or — when none is
+      chosen — the BE-seeded default agent (`is_default=true`).
 - [ ] Per-message persona attribution: each assistant bubble shows the agent that
       produced it (`AgentBadge`), alongside the existing model badge.
 - [ ] Switching is blocked while a run is in flight (consistent with the BE's
@@ -60,6 +73,12 @@ attribution so a switched transcript stays readable on reload.
       transcript.
 - [ ] Given a brand-new conversation, when it loads, then the picker shows my
       default agent (no explicit switch needed).
+- [ ] Given I have ≥2 active agents, when I open the **new-chat landing**, then the
+      picker is shown (defaulting to my default agent), and picking a non-default
+      agent before sending starts the conversation already pinned to it (one create
+      call), so the first reply comes from that agent.
+- [ ] Given I have 0 or 1 active agents, when I view either the landing or an open
+      conversation, then the picker is not rendered.
 - [ ] Given a run is streaming, when I look at the picker, then it is disabled.
 - [ ] Given assistant turns produced by different agents, when I reload, then each
       bubble shows the correct "by &lt;agent&gt;" attribution.
@@ -74,7 +93,9 @@ attribution so a switched transcript stays readable on reload.
 | Selected agent was archived/inactivated since the list loaded → BE 400 | Surface a clear inline/log error ("That agent is no longer available"); active agent in UI rolls back to the server truth (invalidate). |
 | `agent_id` names an agent not owned → BE 404 | Surface a clear error; no state change. |
 | Switch attempted mid-run | Picker disabled in UI; if somehow fired, BE 409 is surfaced and state is reconciled. |
-| Only the default agent exists (no others) | Picker still renders, showing the default; the list has the single entry. |
+| Only one active agent exists (the lone default) | Picker is **hidden** — nothing to switch to; that agent is used implicitly. Same on the landing and in-conversation. |
+| No active agents exist | Picker is hidden (the chat gate already requires a default agent to exist before sending is enabled). |
+| Landing: user picks a non-default agent, then `create` fails | The agent choice is held in landing state; the user stays on the landing and can retry (same loud-failure path as model/thinking choices). |
 | Agents list still loading | Picker renders nothing until loaded (matches `ModelPicker`); composer remains usable. |
 | Message has no `agentId` (older rows) | `AgentBadge` renders nothing (graceful, like `ModelBadge`). |
 

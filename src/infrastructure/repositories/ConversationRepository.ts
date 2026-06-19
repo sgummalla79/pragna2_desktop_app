@@ -66,6 +66,9 @@ export class ConversationRepository implements IConversationRepository {
     if (payload.thinkingEnabled !== undefined) {
       body.thinking_enabled = payload.thinkingEnabled;
     }
+    // Pin the chosen agent at create (BE #153) so the landing picker is a single
+    // call; omitted → the BE seeds the user's default agent.
+    if (payload.agentId !== undefined) body.agent_id = payload.agentId;
     const { data } = await this.http.post<ApiConversationResponse>(
       '/conversations',
       body,
