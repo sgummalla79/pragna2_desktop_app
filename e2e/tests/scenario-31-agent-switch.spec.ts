@@ -121,8 +121,16 @@ test.describe('Scenario 31 — In-chat agent switch', () => {
       await expect(picker).toContainText(name, { timeout: TIMEOUTS.UI_COMMIT });
     };
 
+    // Prompts are deliberately format-only (not knowledge/research questions):
+    // the shared test DB has flows bound as `propose_flow_*` tools, and a
+    // research-shaped question makes the model emit a flow-proposal tool call
+    // with no tool response — which then 400s the NEXT turn on OpenAI (a BE
+    // history bug, tracked separately). A "reply with X" instruction maps to no
+    // flow, so the agent just answers and the switch/attribution is exercised
+    // cleanly regardless of which flows other specs seeded.
+
     // ── Turn 1: a new chat opens on the DEFAULT agent ──
-    await sendTurn('In one sentence, what is the capital of France?');
+    await sendTurn('Reply with exactly the word ALPHA and nothing else.');
     await expect(page).toHaveURL(/\/chat\/[0-9a-f-]{36}/, { timeout: TIMEOUTS.NAV });
     const convId = page.url().split('/chat/')[1];
     await expect(picker).toContainText(defaultName, { timeout: TIMEOUTS.FE_SETTLE });
@@ -135,7 +143,7 @@ test.describe('Scenario 31 — In-chat agent switch', () => {
       .toBe(bravoAgentId);
 
     // ── Turn 2: answered by Bravo over the same thread ──
-    await sendTurn('In one sentence, what is the capital of Japan?');
+    await sendTurn('Reply with exactly the word BETA and nothing else.');
 
     // ── Switch back to the default → row updates again (multiple switches) ──
     await switchTo(defaultName);
@@ -144,7 +152,7 @@ test.describe('Scenario 31 — In-chat agent switch', () => {
       .toBe(defaultAgentId);
 
     // ── Turn 3: answered by the default again ──
-    await sendTurn('In one sentence, what is the capital of Italy?');
+    await sendTurn('Reply with exactly the word GAMMA and nothing else.');
 
     // ── Reload → the mixed-agent transcript is correctly attributed per turn ──
     // (each assistant bubble shows the persona that produced it; a later switch

@@ -73,12 +73,12 @@ test.describe('Scenario 13 — Multi-tab consistency', () => {
       await expect(tabA).toHaveURL(/\/chat\/[0-9a-f-]{36}/, { timeout: 15_000 });
       const conversationUrl = tabA.url();
 
-      // Tab B opens the SAME conversation while Tab A is still streaming.
+      // Tab B opens the SAME conversation. (We do NOT assert the in-flight user
+      // message is visible here: the FE has no live cross-tab push — Tab B
+      // reflects PERSISTED state at its own fetch time, and a mid-stream turn may
+      // not be persisted yet. Cross-tab consistency is asserted after Tab B's
+      // refresh below, which is this spec's actual contract — tracker #141.)
       await tabB.goto(conversationUrl, { waitUntil: 'domcontentloaded' });
-      await expect(tabB.locator('[data-role="user"]').last()).toContainText(
-        /photoelectric|Einstein/i,
-        { timeout: 10_000 },
-      );
 
       // Tab A's stream finishes — Stop reverts to Send (run-complete signal).
       await expect(
@@ -92,6 +92,14 @@ test.describe('Scenario 13 — Multi-tab consistency', () => {
 
       // Tab B manually refreshes to pick up the new messages.
       await tabB.reload({ waitUntil: 'domcontentloaded' });
+
+      // After the refresh Tab B reflects the persisted transcript — the user
+      // turn is now present (the contract: a second tab refreshing sees the
+      // same conversation, tracker #141).
+      await expect(tabB.locator('[data-role="user"]').last()).toContainText(
+        /photoelectric|Einstein/i,
+        { timeout: 10_000 },
+      );
 
       const replyB =
         (await tabB.locator('[data-role="assistant"]').last().textContent()) ?? '';

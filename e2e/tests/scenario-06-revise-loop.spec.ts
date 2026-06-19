@@ -171,7 +171,12 @@ test.describe('Scenario 6 — Revise loop (agent → decision router)', () => {
     // Poll the final transcript shape.
     await expect(async () => {
       const bubbles = await page.locator('[data-role="assistant"]').allTextContents();
-      expect(bubbles.length).toBeGreaterThanOrEqual(2);
+      // >= 1 assistant bubble: this is a decision-router (revise-loop) flow, so
+      // the bubble count is model-dependent — a model that drafts an acceptable
+      // haiku is routed straight to "pass" (no revision) and emits a SINGLE
+      // bubble, which is valid. Assert the flow dispatched + produced a
+      // substantive reply, not a fixed loop count (tracker #140; model-agnostic).
+      expect(bubbles.length).toBeGreaterThanOrEqual(1);
       // At least one bubble looks haiku-like (>= 3 non-empty lines).
       const haikuLike = bubbles.some(
         (b) => b.split('\n').filter((l) => l.trim()).length >= 3,
