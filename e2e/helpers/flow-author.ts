@@ -178,6 +178,22 @@ export async function setEmits(page: Page, emits: string[]): Promise<void> {
   }
 }
 
+/** Pick a model in an already-open model dropdown (`#np-agent-model` or the
+ *  chat composer picker), provider-agnostically. With an explicit `label`
+ *  (`E2E_MODEL_LABEL` / `opts.modelLabel`) match the option by name; otherwise
+ *  select the FIRST available option — whatever model the run's provider seeded.
+ *  The suite must never pin a specific model: a different provider can be seeded
+ *  each run, so a hardcoded model name would spuriously fail this step. */
+export async function selectModelOption(
+  page: Page,
+  label: RegExp | null,
+): Promise<void> {
+  const option = label
+    ? page.getByRole('option', { name: label })
+    : page.getByRole('option').first();
+  await option.click();
+}
+
 /** Fill the NodePanel's standard chat-agent fields. The node id (=
  *  agent.api_name) is renamed first; the panel is assumed to be open on the
  *  just-dropped node. If `inputs` / `outputs` are given, the Context variables
@@ -201,7 +217,7 @@ export async function configureChatAgent(
   await page.locator('#np-agent-display').fill(opts.display);
   await page.locator('#np-agent-prompt').fill(opts.prompt);
   await page.locator('#np-agent-model').click();
-  await page.getByRole('option', { name: modelLabel }).click();
+  await selectModelOption(page, modelLabel);
   await page.waitForTimeout(150);
 
   if (opts.emits) {
