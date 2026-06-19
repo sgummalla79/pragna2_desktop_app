@@ -46,6 +46,12 @@ interface ChatInputProps {
   placeholder?: string;
   /** Controls below the textarea (model picker, thinking toggle). */
   controls?: ReactNode;
+  /**
+   * Controls in the LEFT cluster, next to the attach-file button (e.g. the agent
+   * picker). Kept separate from `controls` (the right cluster) so `ChatInput`
+   * stays agnostic about what's placed where.
+   */
+  leadingControls?: ReactNode;
   /** Banner above the input (setup gating). */
   banner?: ReactNode;
   autoFocus?: boolean;
@@ -78,6 +84,7 @@ export function ChatInput({
   disabled = false,
   placeholder = 'Message the assistant…',
   controls,
+  leadingControls,
   banner,
   autoFocus,
   slashFlows,
@@ -352,6 +359,7 @@ export function ChatInput({
               </button>
             </>
           )}
+          {leadingControls}
         </div>
         {/* Right cluster — model/thinking controls blended next to send. */}
         <div className="flex shrink-0 items-center gap-2">

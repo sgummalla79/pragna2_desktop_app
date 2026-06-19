@@ -12,6 +12,7 @@ const CONV: Conversation = {
   flowId: null,
   threadId: 't1',
   userModelId: null,
+  agentId: null,
   title: 'Tax planning',
   thinkingEnabled: false,
   pinned: false,

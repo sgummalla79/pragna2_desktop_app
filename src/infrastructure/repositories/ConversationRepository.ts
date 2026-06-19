@@ -101,6 +101,7 @@ export class ConversationRepository implements IConversationRepository {
       body.thinking_enabled = payload.thinkingEnabled;
     }
     if (payload.pinned !== undefined) body.pinned = payload.pinned;
+    if (payload.agentId !== undefined) body.agent_id = payload.agentId;
     const { data } = await this.http.patch<ApiConversationResponse>(
       `/conversations/${conversationId}`,
       body,

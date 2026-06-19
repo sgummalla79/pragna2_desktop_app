@@ -3,8 +3,8 @@ import { useServices } from '@/presentation/providers/ServiceContext';
 import { invalidateConversationListQueries } from './useConversations';
 
 /**
- * Mutations against a single conversation: rename, change active model, toggle
- * pin, toggle extended-thinking, delete.
+ * Mutations against a single conversation: rename, change active model, switch
+ * active agent, toggle pin, toggle extended-thinking, delete.
  *
  * Each invalidates only the sidebar list queries (+ the affected conversation's
  * single-lookup) on success — never the per-conversation `messages` subtree,
@@ -30,6 +30,26 @@ export function useSetConversationModel() {
   return useMutation({
     mutationFn: ({ id, userModelId }: { id: string; userModelId: string }) =>
       conversationService.update(id, { userModelId }),
+    onSuccess: (_data, vars) =>
+      invalidateConversationListQueries(qc, { conversationId: vars.id }),
+  });
+}
+
+/**
+ * Switch the active standalone agent for a conversation (BE #145) — the
+ * mid-conversation agent switch. The next turn is answered by the new agent over
+ * the SAME thread/transcript (only the persona + tools change). Invalidates the
+ * list + single-lookup so the picker reflects server truth (and rolls back the
+ * UI on a rejected switch). The BE rejects an archived/inactive agent with 400,
+ * an unowned agent with 404, and a switch during an open episode with 409 — the
+ * error propagates to the call site's `onError` for surfacing.
+ */
+export function useSetConversationAgent() {
+  const { conversationService } = useServices();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, agentId }: { id: string; agentId: string }) =>
+      conversationService.update(id, { agentId }),
     onSuccess: (_data, vars) =>
       invalidateConversationListQueries(qc, { conversationId: vars.id }),
   });

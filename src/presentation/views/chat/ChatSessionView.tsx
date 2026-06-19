@@ -7,6 +7,7 @@ import { useConversation } from '@/presentation/hooks/conversations/useConversat
 import { useConversationMessages } from '@/presentation/hooks/conversations/useConversationMessages';
 import {
   useBranchConversation,
+  useSetConversationAgent,
   useSetConversationModel,
   useSetThinkingEnabled,
   useTruncateFromMessage,
@@ -32,7 +33,10 @@ import { useUiStore } from '@/presentation/store/uiStore';
 import { useRefetchOpenEpisodeOnSettle } from './hooks/useRefetchOpenEpisodeOnSettle';
 import { useChatModels } from './hooks/useChatModels';
 import { useChatPreferences } from '@/presentation/hooks/preferences/useChatPreferences';
+import { toast } from 'sonner';
 import { logger } from '@/infrastructure/logging/logger';
+import { detailOr } from '@/lib/httpError';
+import { ERRORS } from '@/constants/errors';
 import type {
   Conversation,
   PersistedMessage,
@@ -44,6 +48,7 @@ import { AttachmentViewer } from './components/AttachmentViewer';
 import { HITLFormCard } from './components/hitl/HITLFormCard';
 import { ReauthCard } from './components/hitl/ReauthCard';
 import { ModelPicker } from './components/ModelPicker';
+import { AgentPicker } from './components/AgentPicker';
 import { ThinkingToggle } from './components/ThinkingToggle';
 import { ThinkingStrip } from './components/ThinkingStrip';
 import { useChatSession, type ChatMessage as ChatMessageModel } from './hooks/useChatSession';
@@ -132,6 +137,7 @@ function ChatConversation({
 }: ChatConversationProps) {
   const navigate = useNavigate();
   const setModel = useSetConversationModel();
+  const setAgent = useSetConversationAgent();
   const setThinking = useSetThinkingEnabled();
   const truncate = useTruncateFromMessage();
   const branch = useBranchConversation();
@@ -215,6 +221,18 @@ function ChatConversation({
     const map = new Map<string, string>();
     for (const m of persisted) {
       if (m.role === 'assistant' && m.userModelId) map.set(m.id, m.userModelId);
+    }
+    return map;
+  }, [persisted]);
+
+  // Per-message producer-agent attribution: persisted assistant ids → agentId,
+  // so a transcript whose agent was switched mid-chat shows the right persona per
+  // turn. The live streaming turn has no persisted agent yet → falls back to the
+  // conversation's current active agent at the render site.
+  const persistedAgentById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const m of persisted) {
+      if (m.role === 'assistant' && m.agentId) map.set(m.id, m.agentId);
     }
     return map;
   }, [persisted]);
@@ -334,6 +352,15 @@ function ChatConversation({
         persistedModelById.get(m.id) ??
         activeModelId
       }
+      // Persisted per-turn agent wins. Only the in-flight (streaming) turn —
+      // not yet persisted — falls back to the conversation's current active
+      // agent; completed turns without a stored agent show nothing rather than
+      // being re-labeled to whatever agent is active now (a switch must not
+      // rewrite the attribution of past turns).
+      userAgentId={
+        persistedAgentById.get(m.id) ??
+        (streamingMessageIds.has(m.id) ? activeAgentId : null)
+      }
       proposalFlows={proposalFlows}
       proposalBusy={status === 'running'}
       onAcceptProposal={(flowApiName, summary, additionalContext) =>
@@ -383,6 +410,7 @@ function ChatConversation({
 
   const title = conversation?.title?.trim() || UNTITLED;
   const activeModelId = conversation?.userModelId ?? null;
+  const activeAgentId = conversation?.agentId ?? null;
   const thinkingEnabled = conversation?.thinkingEnabled ?? false;
 
   // Left offset for the title in the window title-bar strip. Left-aligned: it
@@ -488,6 +516,31 @@ function ChatConversation({
                   : 'Reply…'
             }
             slashFlows={slashFlows}
+            leadingControls={
+              // Mid-conversation agent switch (#147). Only for default-agent
+              // chats — a flow-bound conversation runs its own agent. Disabled
+              // mid-run (the BE 409s on a switch during an open episode).
+              conversation?.flowId ? null : (
+                <AgentPicker
+                  agentId={activeAgentId}
+                  onAgentChange={(agentId) =>
+                    setAgent.mutate(
+                      { id: conversationId, agentId },
+                      {
+                        onError: (err) => {
+                          // CHT_005 is the shared conversation-update code (same
+                          // as set-model / set-thinking); surface the BE's own
+                          // detail (404/400/409) when present.
+                          logger.fromError('CHT_005:set-agent', err);
+                          toast.error(detailOr(err, ERRORS.CHT_005.message));
+                        },
+                      },
+                    )
+                  }
+                  disabled={status === 'running'}
+                />
+              )
+            }
             controls={
               <>
                 <ModelPicker
