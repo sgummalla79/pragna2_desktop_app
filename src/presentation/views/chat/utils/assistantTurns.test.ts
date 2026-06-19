@@ -49,6 +49,38 @@ describe('groupChatMessages', () => {
     ]);
     expect(groups.map((g) => g.kind)).toEqual(['message', 'assistant-turn', 'message', 'assistant-turn']);
   });
+
+  // tracker #148: when a completed assistant turn ends up ADJACENT to a later
+  // one with no user message between (a re-attached streaming run after a
+  // remount), `endsTurn` splits them so the prior turn isn't folded into the
+  // live umbrella.
+  it('splits adjacent assistant turns at an endsTurn boundary (no user between)', () => {
+    const completed = new Set(['a1']); // a1 carries a persisted terminal stop
+    const groups = groupChatMessages(
+      [
+        msg({ id: 'a1', content: 'prior completed answer' }),
+        msg({ id: 'a2', content: 'resuming stream…' }),
+      ],
+      (m) => completed.has(m.id),
+    );
+    expect(groups.map((g) => g.kind)).toEqual(['assistant-turn', 'assistant-turn']);
+    expect((groups[0] as { messages: ChatMessageModel[] }).messages.map((m) => m.id)).toEqual(['a1']);
+    expect((groups[1] as { messages: ChatMessageModel[] }).messages.map((m) => m.id)).toEqual(['a2']);
+  });
+
+  it('does NOT split a single turn at a non-terminal (tool_calls / mid-turn) message', () => {
+    // endsTurn fires for none here (mimics tool_calls / null → not terminal):
+    // the tool-call message and its follow-up answer stay in ONE turn.
+    const groups = groupChatMessages(
+      [
+        msg({ id: 'a1', content: 'searching', toolCalls: [tool('web_search')] }),
+        msg({ id: 'a2', content: 'final answer' }),
+      ],
+      () => false,
+    );
+    expect(groups).toHaveLength(1);
+    expect((groups[0] as { messages: ChatMessageModel[] }).messages.map((m) => m.id)).toEqual(['a1', 'a2']);
+  });
 });
 
 describe('answerMessageId', () => {

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { Message } from '@ag-ui/client';
 import { ROUTES } from '@/constants/routes';
-import { CONTINUE_PROMPT } from '@/constants/chat';
+import { CONTINUE_PROMPT, TERMINAL_FINISH_REASONS } from '@/constants/chat';
 import { useConversation } from '@/presentation/hooks/conversations/useConversation';
 import { useConversationMessages } from '@/presentation/hooks/conversations/useConversationMessages';
 import {
@@ -268,7 +268,21 @@ function ChatConversation({
   // Group the flat message list into user/system messages + assistant turns, so
   // each turn's intermediate work folds into one activity umbrella (claude.ai
   // style). The streaming turn is the last assistant turn while a run is live.
-  const groups = useMemo(() => groupChatMessages(messages), [messages]);
+  const groups = useMemo(
+    () =>
+      groupChatMessages(messages, (m) => {
+        // End a turn at a persisted TERMINAL finish reason so a previously-
+        // completed assistant turn isn't merged with a later adjacent one (e.g. a
+        // re-attached streaming run after a remount, whose originating user
+        // message isn't in the re-seeded list yet) — otherwise the prior turn's
+        // answer + reasoning fold into the live activity umbrella (tracker #148).
+        // `tool_calls` (mid-turn) and `null`/legacy rows are not terminal — see
+        // TERMINAL_FINISH_REASONS for the rationale + the legacy-row caveat.
+        const fr = finishReasonById.get(m.id);
+        return fr != null && TERMINAL_FINISH_REASONS.has(fr);
+      }),
+    [messages, finishReasonById],
+  );
   const streamingTurnKey = useMemo(() => {
     if (status !== 'running') return null;
     for (let i = groups.length - 1; i >= 0; i--) {

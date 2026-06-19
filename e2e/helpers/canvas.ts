@@ -24,6 +24,36 @@ import type { Page } from '@playwright/test';
 
 export type HandleSide = 'top' | 'right' | 'bottom' | 'left';
 
+/**
+ * A node's position in FLOW space — read from its own CSS `transform`
+ * (`translate(x, y)`), which React Flow sets in graph coordinates, independent
+ * of the viewport pan/zoom. Use this (not `boundingBox()`, which is SCREEN
+ * space) to assert that dragging one node didn't move another: React Flow
+ * auto-pans the viewport while a node is dragged near an edge
+ * (`autoPanOnNodeDrag`), which shifts every OTHER node's screen pixels even
+ * though its graph position is unchanged (tracker #139).
+ */
+export async function nodeFlowPosition(
+  page: Page,
+  nodeId: string,
+): Promise<{ x: number; y: number }> {
+  return page
+    .locator(`.react-flow__node[data-id="${nodeId}"]`)
+    .evaluate((el) => {
+      const t = (el as HTMLElement).style.transform || getComputedStyle(el as HTMLElement).transform;
+      // Inline form: "translate(123px, 45px)" / "translate3d(123px, 45px, 0px)".
+      const tr = /translate(?:3d)?\(\s*(-?[\d.]+)px,\s*(-?[\d.]+)px/.exec(t);
+      if (tr) return { x: parseFloat(tr[1]), y: parseFloat(tr[2]) };
+      // Computed form: "matrix(a, b, c, d, e, f)" → e,f are translate x,y.
+      const mx = /matrix\(([^)]+)\)/.exec(t);
+      if (mx) {
+        const p = mx[1].split(',').map((n) => parseFloat(n.trim()));
+        return { x: p[4], y: p[5] };
+      }
+      return { x: NaN, y: NaN };
+    });
+}
+
 /** Reveal a node's handles (hover-trigger) and return one handle's box. */
 export async function revealAndGetHandle(
   page: Page,
