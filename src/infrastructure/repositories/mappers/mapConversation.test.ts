@@ -13,6 +13,7 @@ const CONV: ApiConversationResponse = {
   flow_id: null,
   thread_id: 't1',
   user_model_id: 'm1',
+  agent_id: 'agent-1',
   title: 'Hi',
   thinking_enabled: true,
   pinned: true,
@@ -27,6 +28,7 @@ describe('mapConversation', () => {
       flowId: null,
       threadId: 't1',
       userModelId: 'm1',
+      agentId: 'agent-1',
       title: 'Hi',
       thinkingEnabled: true,
       pinned: true,
@@ -42,6 +44,11 @@ describe('mapConversation', () => {
     expect(out.pinned).toBe(false);
     expect(out.pinnedAt).toBeNull();
   });
+
+  it('coalesces an absent agent_id to null (older BEs / pre-feature rows)', () => {
+    const raw = { ...CONV, agent_id: undefined } as unknown as ApiConversationResponse;
+    expect(mapConversation(raw).agentId).toBeNull();
+  });
 });
 
 describe('mapMessage', () => {
@@ -51,6 +58,7 @@ describe('mapMessage', () => {
     content: 'hello',
     tool_calls: null,
     user_model_id: 'm1',
+    agent_id: 'agent-1',
     message_index: 3,
     created_at: '2026-01-01T00:00:00Z',
     modified_at: '2026-01-01T00:01:00Z',
@@ -65,11 +73,17 @@ describe('mapMessage', () => {
       content: 'hello',
       toolCalls: null,
       userModelId: 'm1',
+      agentId: 'agent-1',
       messageIndex: 3,
       finishReason: 'stop',
       reasoning: null,
       attachments: [],
     });
+  });
+
+  it('coalesces an absent agent_id to null', () => {
+    const out = mapMessage({ ...base, agent_id: undefined });
+    expect(out.agentId).toBeNull();
   });
 
   it('maps reasoning_content → reasoning and finish_reason null → null', () => {

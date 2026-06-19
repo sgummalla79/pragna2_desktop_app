@@ -10,6 +10,7 @@ import { MarkdownMessage } from './MarkdownMessage';
 import { ReasoningPanel } from './ReasoningPanel';
 import { ToolCallBadge } from './ToolCallBadge';
 import { ModelBadge } from './ModelBadge';
+import { AgentBadge } from './AgentBadge';
 import { FlowProposalCard } from './FlowProposalCard';
 import { AttachmentChip } from './AttachmentChip';
 import { DocumentCard } from './DocumentCard';
@@ -33,6 +34,9 @@ interface ChatMessageProps {
   streaming?: boolean;
   /** Producer-model id for the "by <model>" attribution (assistant turns). */
   userModelId?: string | null;
+  /** Producing agent id for the persona attribution (assistant turns); shows
+   *  which standalone agent answered after a mid-chat switch (#147). */
+  userAgentId?: string | null;
   /**
    * The user's flows, used to detect `propose_flow_<api_name>` tool calls and
    * render a {@link FlowProposalCard} instead of a plain tool badge. Omitted
@@ -85,6 +89,7 @@ export function ChatMessage({
   message,
   streaming,
   userModelId,
+  userAgentId,
   proposalFlows,
   onAcceptProposal,
   proposalBusy,
@@ -238,6 +243,7 @@ export function ChatMessage({
       )}
       {!streaming && (
         <div className={cn('flex items-center gap-2', !message.content && 'mt-0', message.content && 'mt-0.5')}>
+          <AgentBadge agentId={userAgentId} />
           <ModelBadge userModelId={userModelId} />
           {actions?.onRegenerate && (
             <MessageActions
