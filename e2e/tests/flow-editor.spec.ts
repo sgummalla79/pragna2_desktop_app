@@ -25,6 +25,7 @@ import {
   dropFromPalette,
   openFlow,
   seedFlow,
+  selectModelOption,
 } from '../helpers/flow-author';
 
 test.describe.configure({ mode: 'serial' }); // shared DB → run in order
@@ -137,7 +138,7 @@ test.describe('Visual flow editor', () => {
       await page.locator('#np-agent-display').fill(`Agent ${id}`);
       await page.locator('#np-agent-prompt').fill(`You are agent ${id}.`);
       await page.locator('#np-agent-model').click();
-      await page.getByRole('option', { name: MODEL_PICKER_LABEL }).click();
+      await selectModelOption(page, MODEL_PICKER_LABEL);
       await page.waitForTimeout(150);
     }
     await page.getByRole('button', { name: /close panel/i }).click();

@@ -11,6 +11,14 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-025 — e2e flow-editor model picker hardcoded to `/Claude Sonnet 4.6/` → flow-authoring specs fail for any other seeded provider (pragna2-tracker #149)
+
+- **Date:** 2026-06-18
+- **Area / file:** `e2e/helpers/env.ts`, `e2e/helpers/flow-author.ts`, `e2e/tests/flow-editor.spec.ts`, `e2e/README.md`.
+- **Bug + root cause:** The e2e model selection matched the flow-editor agent-node model option by a hardcoded display-name regex (`MODEL_PICKER_LABEL` defaulted to `/Claude Sonnet 4\.6/`), used by `configureChatAgent` and `flow-editor.spec.ts`. When the test user is seeded with any other provider/model (Gemini, OpenAI, …) the `getByRole('option', { name })` never matched → the 9 flow-authoring specs timed out at the model-selection step. A baked-in model name in test logic — the suite is run with a different provider each time, so this violated the No-Hardcoding rule (looked like a regression, was a hardcoding defect).
+- **Fix:** `MODEL_PICKER_LABEL` is now `RegExp | null` (no hardcoded default; only set when `E2E_MODEL_LABEL` is provided). New shared helper `selectModelOption(page, label)` selects by name when a label is given, else the FIRST available option (whatever model is seeded) — both call sites use it. Also documented the `:8001` setup prerequisite (seed a model + default agent via `seed-model.sh` first — a fresh all-in-one container has none → empty dropdown) in `e2e/README.md`. Verified: 13/13 authoring specs pass with a Gemini seed; live chat specs pass with an OpenAI seed (provider-agnostic).
+- **Web-app applicability:** **Likely** — the web FE (`pragna2_sgummalla_works`) has a parallel Playwright suite ported from/to this one. If its flow-editor model selection pins a model name the same way, apply the same `selectModelOption` + nullable-label fix there (track separately under the web-FE component).
+
 ## CF-024 — brand wrapper scripts use `execFileSync('pnpm', …)` → `pnpm tauri:brand dev|build` fails on Windows (pragna2-tracker #143)
 
 - **Date:** 2026-06-18

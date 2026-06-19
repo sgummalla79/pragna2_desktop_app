@@ -45,13 +45,16 @@ export const AUTH0 = {
   password: process.env.E2E_AUTH0_PASSWORD ?? '',
 } as const;
 
-/** Friendly model label the flow-editor / chat model picker option is matched
- *  by. `seed-model.sh` seeds `user_models.display_name = "<label> (test)"`, so
- *  this substring regex finds the option regardless of provider. Anthropic is
- *  the default-seeded provider; override via `E2E_MODEL_LABEL`. */
-export const MODEL_PICKER_LABEL = process.env.E2E_MODEL_LABEL
+/** OPTIONAL model-picker label. The suite must never pin a specific model or
+ *  provider — a different provider (Anthropic / Gemini / OpenAI …) can be seeded
+ *  on each run, so a hardcoded model name would spuriously fail the flow-editor
+ *  model-selection step. When `E2E_MODEL_LABEL` is set, the picker matches that
+ *  regex; when it is UNSET (the default), helpers select whatever model is
+ *  available (the first option) — see `selectModelOption`. `null` = "no
+ *  preference, pick whatever is seeded". */
+export const MODEL_PICKER_LABEL: RegExp | null = process.env.E2E_MODEL_LABEL
   ? new RegExp(process.env.E2E_MODEL_LABEL)
-  : /Claude Sonnet 4\.6/;
+  : null;
 
 /** sessionStorage keys the FE's `tokenStorage` reads (see
  *  `src/infrastructure/storage/tokenStorage.ts`). The seed fixture writes the

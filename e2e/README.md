@@ -71,9 +71,47 @@ E2E_PG_CONTAINER=pragna2-api  E2E_PG_DB=pragna2   # redirect the psql helper at 
                                                   # all-in-one container's in-process DB
 ```
 
-Caveats: the in-container DB has no host port, so the PDF-render seeder
-(`scenario-20`) can't run; exclude it and the long PDF (`scenario-21`). See the
-project memory `run-desktop-e2e-against-auth0-8001` for the full procedure.
+#### Prerequisites against :8001 (do these FIRST — a fresh container has NO data)
+
+The all-in-one `:8001` image does **not** run `setup-stack.sh`, so a freshly
+(re)started container has an empty schema for the test user — **no models and no
+default agent**. Skipping these steps makes specs fail in misleading ways (empty
+model dropdown → authoring specs time out selecting a model; disabled chat input →
+chat specs fail), which looks like a code regression but is a **setup gap**. In
+order:
+
+1. **Container up:** `pragna2-api` healthy on `:8001`
+   (`docker ps | grep pragna2-api`).
+2. **Seed a model + default agent for the Auth0 test user** — the missing step.
+   Get the user id, then run `seed-model.sh` against the in-container DB:
+   ```bash
+   UID=$(docker exec -i pragna2-api psql -U postgres -d pragna2 -tA \
+     -c "SELECT id FROM users WHERE email='test_user@example.com'")
+   # dummy key — authoring specs only (live LLM calls 401):
+   E2E_PG_CONTAINER=pragna2-api E2E_PG_DB=pragna2 E2E_PROVIDER=google \
+     bash scripts/seed-model.sh "$UID"
+   # real key — also enables live chat specs (needs the BE's ENCRYPTION_KEY):
+   # ENCRYPTION_KEY=<be-key> E2E_PG_CONTAINER=pragna2-api E2E_PG_DB=pragna2 \
+   #   E2E_PROVIDER=google bash scripts/seed-model.sh "$UID" "$GOOGLE_API_KEY"
+   ```
+   `E2E_PROVIDER` is free to vary (`anthropic` / `google` / `openai` / …) — the
+   specs are model/provider-agnostic (they pick whatever model is seeded; see
+   `selectModelOption` + `MODEL_PICKER_LABEL`), so **never** re-pin a model name.
+3. **Start the FE pointed at `:8001`** (from the repo root, vite `:1420`):
+   ```bash
+   VITE_API_BASE_URL=http://localhost:8001/api VITE_E2E_NO_STRICT_MODE=1 pnpm dev
+   ```
+4. **Run, excluding the two specs the in-container DB can't serve** — the
+   PDF-render seeder (`scenario-20`, needs a host-port DB) and the long PDF
+   (`scenario-21`):
+   ```bash
+   <auth0 + E2E_PG_* env from above> \
+     npx playwright test --grep-invert "Scenario 2[01] "
+   ```
+
+Live-model chat specs additionally self-skip unless a real provider key is in the
+run env (`E2E_<PROVIDER>_API_KEY`) **and** the seeded model carries the real key
+(step 2 real-key mode). See the project memory `run-desktop-e2e-against-auth0-8001`.
 
 ## Layout
 
