@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { Message } from '@ag-ui/client';
 import { ROUTES } from '@/constants/routes';
-import { CONTINUE_PROMPT } from '@/constants/chat';
+import { CONTINUE_PROMPT, TERMINAL_FINISH_REASONS } from '@/constants/chat';
 import { useConversation } from '@/presentation/hooks/conversations/useConversation';
 import { useConversationMessages } from '@/presentation/hooks/conversations/useConversationMessages';
 import {
@@ -271,15 +271,15 @@ function ChatConversation({
   const groups = useMemo(
     () =>
       groupChatMessages(messages, (m) => {
-        // End a turn at a persisted TERMINAL stop so a previously-completed
-        // assistant turn isn't merged with a later adjacent one (e.g. a
+        // End a turn at a persisted TERMINAL finish reason so a previously-
+        // completed assistant turn isn't merged with a later adjacent one (e.g. a
         // re-attached streaming run after a remount, whose originating user
         // message isn't in the re-seeded list yet) — otherwise the prior turn's
         // answer + reasoning fold into the live activity umbrella (tracker #148).
-        // `tool_calls` is mid-turn (the turn continues after tool results), so it
-        // must NOT end the turn; `null`/legacy rows don't either.
+        // `tool_calls` (mid-turn) and `null`/legacy rows are not terminal — see
+        // TERMINAL_FINISH_REASONS for the rationale + the legacy-row caveat.
         const fr = finishReasonById.get(m.id);
-        return fr === 'stop' || fr === 'length' || fr === 'other';
+        return fr != null && TERMINAL_FINISH_REASONS.has(fr);
       }),
     [messages, finishReasonById],
   );
