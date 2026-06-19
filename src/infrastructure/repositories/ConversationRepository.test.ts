@@ -63,6 +63,31 @@ describe('ConversationRepository', () => {
     expect(body).toEqual({ thread_id: 't1', user_model_id: 'm1', thinking_enabled: true });
   });
 
+  it('create sends agent_id when an agent is pinned (BE #153)', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${BASE}/conversations`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(CONV, { status: 201 });
+      }),
+    );
+    await repo().create({ threadId: 't1', agentId: 'agent-7' });
+    expect(body).toEqual({ thread_id: 't1', agent_id: 'agent-7' });
+  });
+
+  it('create omits agent_id when no agent is pinned (BE seeds the default)', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${BASE}/conversations`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(CONV, { status: 201 });
+      }),
+    );
+    await repo().create({ threadId: 't1' });
+    expect(body).toEqual({ thread_id: 't1' });
+    expect(body).not.toHaveProperty('agent_id');
+  });
+
   it('getMessages returns [] on 404', async () => {
     server.use(http.get(`${BASE}/conversations/c1/messages`, () => new HttpResponse(null, { status: 404 })));
     expect(await repo().getMessages('c1')).toEqual([]);

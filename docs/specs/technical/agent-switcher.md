@@ -3,10 +3,11 @@
 > **Status**: In Review
 > **Author**: Suman Gummalla
 > **Created**: 2026-06-18
-> **Last Updated**: 2026-06-18
+> **Last Updated**: 2026-06-19
 >
-> Tracker: pragna2-tracker #147. BE contract verified against the running
-> `:8001` all-in-one image (OpenAPI), not assumed from the issue text.
+> Tracker: pragna2-tracker #147 (switch) + #153 (single-call create `agent_id`).
+> BE contract verified against the running `:8001` all-in-one image (OpenAPI),
+> not assumed from the issue text.
 
 ---
 
@@ -27,7 +28,14 @@ turns). No new runtime/platform concerns — pure React + data-layer wiring.
 - **Switch**: `PATCH /api/conversations/{id}` with body `{ "agent_id": "<uuid>" }`
   (the recommended option won; there is **no** `/active-agent` route).
   `UpdateConversationRequest` accepts `agent_id: string|null`.
-- **Conversation shape**: `ConversationResponse` includes `agent_id: string|null`.
+- **Create-with-agent** (BE #153): `POST /api/conversations` now accepts an optional
+  `agent_id: string|null` in `CreateConversationRequest`. When present (and
+  `flow_id` is null) the BE validates ownership + `active` status (404 / 400, same
+  rules as the switch) and pins it; when omitted/null it seeds the user's default
+  agent (prior behaviour). This lets the landing picker be a single create call
+  instead of create-then-PATCH.
+- **Conversation shape**: `ConversationResponse` includes `agent_id: string|null`
+  (also now returned by `GET /api/conversations` list, per #153).
 - **Message shape**: `MessageResponse` includes `agent_id: string|null` (per-turn
   persona attribution) alongside `user_model_id`.
 - **Errors** (from the route docstring): `agent_id` not owned → **404**;
@@ -40,15 +48,26 @@ turns). No new runtime/platform concerns — pure React + data-layer wiring.
 Clean-architecture layers touched (FE):
 
 - **Domain** (`src/domain/types/conversation.types.ts`): add `Conversation.agentId`,
-  `PersistedMessage.agentId`, `UpdateConversationPayload.agentId`. No new entities.
+  `PersistedMessage.agentId`, `UpdateConversationPayload.agentId`, and
+  `CreateConversationPayload.agentId` (single-call create pin, #153). No new entities.
 - **Application / Adapters boundary** (`infrastructure/repositories/mappers/mapConversation.ts`):
   map `agent_id` on conversation + message wire shapes. `ConversationRepository.update`
-  already forwards arbitrary `UpdateConversationPayload` fields — no repo change needed.
+  already forwards arbitrary `UpdateConversationPayload` fields — no repo change needed
+  for the switch. `ConversationRepository.create` adds one line: include `agent_id` in
+  the POST body **only when `agentId !== undefined`** (so existing callers are
+  byte-for-byte unchanged; `null` is sent through as "seed default").
 - **Presentation**:
   - `useSetConversationAgent` mutation (hooks/conversations).
   - `AgentPicker` composer control + `AgentBadge` attribution component.
   - `ChatInput` gains a narrow `leadingControls` slot (Open/Closed — it stays
     agent-agnostic); `ChatSessionView` wires the picker + per-message agent id.
+  - `ChatLandingView` holds a `userAgentId` state and renders the same `AgentPicker`
+    in its `leadingControls`; on send it passes `resolveActiveAgentId(activeAgents,
+    userAgentId)` into `conversationService.create` (single call) so the pinned
+    agent always equals the one the picker shows. No PATCH on the landing.
+  - `utils/agentSelection.ts` — `resolveActiveAgentId(activeAgents, pinnedId)`: the
+    one resolution rule shared by `AgentPicker` (display) and the landing (create),
+    so the shown agent and the sent agent can never diverge.
 
 ## 4. Data Flow
 
@@ -58,6 +77,12 @@ Clean-architecture layers touched (FE):
     -> ConversationService.update(id, { agentId })
       -> ConversationRepository.update  (PATCH /conversations/{id} { agent_id })
         -> invalidate conversation list + single-lookup  -> picker reflects new agent
+
+[new-chat landing send]
+  -> ChatLandingView.handleSend
+    -> conversationService.create({ threadId, userModelId, thinkingEnabled, agentId })
+       (POST /conversations { ..., agent_id })   // single call; null => BE seeds default
+      -> navigate(/chat/{id})  -> session view loads the row already pinned to the agent
 
 [next user turn] -> existing useChatSession.send -> BE resolves conversation.agent_id
 
@@ -70,18 +95,22 @@ Clean-architecture layers touched (FE):
 ```
 src/
   domain/types/
-    conversation.types.ts            (+ agentId on Conversation, PersistedMessage, UpdateConversationPayload)
-  infrastructure/repositories/mappers/
-    mapConversation.ts               (+ agent_id on Api*Response + map both)
+    conversation.types.ts            (+ agentId on Conversation, PersistedMessage, UpdateConversationPayload, CreateConversationPayload)
+  infrastructure/repositories/
+    ConversationRepository.ts        (+ agent_id in create() body when agentId provided — #153)
+    mappers/mapConversation.ts       (+ agent_id on Api*Response + map both)
   presentation/
     hooks/conversations/
       useConversationMutations.ts    (+ useSetConversationAgent)
     views/chat/
       components/
-        AgentPicker.tsx              (new — mirrors ModelPicker)
+        AgentPicker.tsx              (mirrors ModelPicker; hidden unless ≥2 active agents)
         AgentBadge.tsx               (new — mirrors ModelBadge)
         ChatInput.tsx                (+ leadingControls slot in the left cluster)
         ChatMessage.tsx              (+ userAgentId prop → renders AgentBadge by ModelBadge)
+      utils/
+        agentSelection.ts            (new — resolveActiveAgentId, shared by picker + landing)
+      ChatLandingView.tsx            (userAgentId state; AgentPicker in leadingControls; resolved agentId → create)
       ChatSessionView.tsx            (wire AgentPicker as leadingControls; persistedAgentById)
       components/__tests__ (or *.test.tsx) AgentPicker + AgentBadge
 ```
@@ -105,8 +134,8 @@ src/
 |---|---|
 | **Purpose** | Inline composer picker of the active agent (shadcn `Select`), mirroring `ModelPicker`. |
 | **Inputs** | `agentId: string \| null` (active id; parent owns persistence); `onAgentChange: (agentId: string) => void`; `disabled?: boolean` (mid-run). |
-| **Output** | Borderless pill `Select`; renders `null` while agents load or none exist. |
-| **Behaviour** | Lists `status === 'active'` agents from `useAgents()`. Soft-defaults the trigger to the user's default (`isDefault`) — then first active — when `agentId` is null/unresolved, so the label is never blank. |
+| **Output** | Borderless pill `Select`; renders `null` while agents load **or there are fewer than two active agents** (`activeAgents.length < 2`). |
+| **Behaviour** | Lists `status === 'active'` agents from `useAgents()`. Hidden unless ≥2 active agents (0 → nothing to run; 1 → nothing to switch to, the lone default is used implicitly) — identical on the landing and in-conversation. Soft-defaults the trigger to the user's default (`isDefault`) — then first active — when `agentId` is null/unresolved, so the label is never blank. |
 | **Side Effects** | None (pure; parent persists). |
 
 ### `AgentBadge({ agentId })`
@@ -152,6 +181,8 @@ No hard-coded model/agent names, URLs, or limits introduced.
 | Test | Type | What It Verifies |
 |---|---|---|
 | AgentPicker renders active agents, hides archived/inactive | unit (Vitest/RTL) | Only `status==='active'` listed; trigger shows active/default. |
+| AgentPicker hidden at 0 or 1 active agent; shown at ≥2 | unit | `activeAgents.length < 2` → empty DOM; two active → trigger appears defaulting to the default agent. |
+| ConversationRepository.create sends `agent_id` when pinned, omits it otherwise | unit (MSW) | Body carries `agent_id` only when `agentId` is provided; default create body unchanged. |
 | AgentPicker soft-defaults when `agentId` null | unit | Label falls back to `isDefault` agent, never blank. |
 | AgentPicker `disabled` while running | unit | Trigger is disabled; `onAgentChange` not callable. |
 | AgentPicker calls `onAgentChange` on select | unit | Selecting an item fires the callback with the agent id. |

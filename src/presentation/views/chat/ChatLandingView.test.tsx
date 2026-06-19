@@ -43,11 +43,28 @@ function chatModel(over: Partial<Model> & Pick<Model, 'id' | 'displayName'>): Mo
   };
 }
 
-const defaultAgent = { id: 'agent-1' } as unknown as Agent;
+function fullAgent(over: Partial<Agent> & Pick<Agent, 'id'>): Agent {
+  return {
+    apiName: 'a',
+    displayName: over.id,
+    description: null,
+    systemPrompt: '',
+    tools: [],
+    isDefault: false,
+    status: 'active',
+    metadata: {},
+    createdAt: '2026-01-01T00:00:00Z',
+    modifiedAt: '2026-01-01T00:00:00Z',
+    ...over,
+  } as Agent;
+}
+
+const defaultAgent = fullAgent({ id: 'agent-1', isDefault: true });
 
 interface ServiceOpts {
   models?: Model[];
   agent?: Agent | null;
+  agents?: Agent[];
   create?: ReturnType<typeof vi.fn>;
 }
 
@@ -58,7 +75,13 @@ function makeServices(opts: ServiceOpts = {}) {
   return {
     services: {
       conversationService: { create },
-      agentService: { getDefault: vi.fn().mockResolvedValue(agent) },
+      agentService: {
+        getDefault: vi.fn().mockResolvedValue(agent),
+        // The composer's AgentPicker reads this; default to empty so the
+        // gating/handoff tests stay focused. Override via `agents` to exercise
+        // the create-time agent pin.
+        list: vi.fn().mockResolvedValue(opts.agents ?? []),
+      },
       modelService: {
         list: vi.fn().mockResolvedValue(opts.models ?? [chatModel({ id: 'm1', displayName: 'Sonnet' })]),
       },
@@ -112,6 +135,22 @@ describe('ChatLandingView', () => {
     await waitFor(() =>
       expect(navigate).toHaveBeenCalledWith(`${ROUTES.CHAT}/${arg.threadId}`),
     );
+  });
+
+  it('pins the resolved default agent at create even when the picker is untouched', async () => {
+    // Two active agents → the picker shows (and defaults to) agent-1; the user
+    // never touches it, yet create must carry that concrete agent, not null.
+    const { services, create } = makeServices({
+      agents: [defaultAgent, fullAgent({ id: 'agent-2' })],
+    });
+    renderWithProviders(<ChatLandingView />, { services });
+
+    const textarea = await screen.findByPlaceholderText('Ask Pragna anything…');
+    await userEvent.type(textarea, 'Hello');
+    await userEvent.click(screen.getByRole('button', { name: 'Send message' }));
+
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+    expect(create.mock.calls[0][0]).toMatchObject({ agentId: 'agent-1' });
   });
 
   it('surfaces a retry error and does not navigate when create fails', async () => {

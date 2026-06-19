@@ -53,6 +53,35 @@ describe('AgentPicker', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it('renders nothing when only one active agent exists (nothing to switch to)', async () => {
+    const { container } = renderWithProviders(
+      <AgentPicker agentId={null} onAgentChange={vi.fn()} />,
+      {
+        services: servicesFor([
+          agent({ id: '1', displayName: 'Sales', isDefault: true }),
+          // A parked second agent does not count — only active agents are offered.
+          agent({ id: '2', displayName: 'Parked', status: 'inactive' }),
+        ]),
+      },
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('shows the trigger once two or more active agents exist', async () => {
+    const { findByLabelText } = renderWithProviders(
+      <AgentPicker agentId={null} onAgentChange={vi.fn()} />,
+      {
+        services: servicesFor([
+          agent({ id: '1', displayName: 'Sales', isDefault: true }),
+          agent({ id: '2', displayName: 'Service' }),
+        ]),
+      },
+    );
+    const trigger = await findByLabelText('Switch agent');
+    expect(trigger).toHaveTextContent('Sales');
+  });
+
   it('shows the trigger with the pinned agent when its id is active', async () => {
     const { findByLabelText } = renderWithProviders(
       <AgentPicker agentId="2" onAgentChange={vi.fn()} />,
@@ -98,7 +127,12 @@ describe('AgentPicker', () => {
   it('disables the trigger while a run is in flight', async () => {
     const { findByLabelText } = renderWithProviders(
       <AgentPicker agentId="1" onAgentChange={vi.fn()} disabled />,
-      { services: servicesFor([agent({ id: '1', displayName: 'Sales', isDefault: true })]) },
+      {
+        services: servicesFor([
+          agent({ id: '1', displayName: 'Sales', isDefault: true }),
+          agent({ id: '2', displayName: 'Service' }),
+        ]),
+      },
     );
     const trigger = await findByLabelText('Switch agent');
     expect(trigger).toBeDisabled();

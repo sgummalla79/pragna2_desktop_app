@@ -5,16 +5,18 @@ import PragnaLogo from '@brand/logo.svg?react';
 import { ROUTES } from '@/constants/routes';
 import { APP_NAME } from '@/constants/api';
 import { useServices } from '@/presentation/providers/ServiceContext';
-import { useDefaultAgent } from '@/presentation/hooks/agents/useAgents';
+import { useAgents, useDefaultAgent } from '@/presentation/hooks/agents/useAgents';
 import { usePragnaSlashFlows } from '@/presentation/hooks/flows/usePragnaSlashFlows';
 import { logger } from '@/infrastructure/logging/logger';
 import { ChatInput } from './components/ChatInput';
+import { AgentPicker } from './components/AgentPicker';
 import { ModelPicker } from './components/ModelPicker';
 import { ThinkingToggle } from './components/ThinkingToggle';
 import { SetupBanner } from './components/SetupBanner';
 import { useChatModels } from './hooks/useChatModels';
 import { useGreeting } from './hooks/useGreeting';
 import { writePendingInitialMessage } from './hooks/initialMessageHandoff';
+import { resolveActiveAgentId } from './utils/agentSelection';
 
 /**
  * Landing surface for `/chat` — shown when no conversation is open.
@@ -33,12 +35,22 @@ export default function ChatLandingView() {
   const { conversationService } = useServices();
   const { chatModels, isLoading: modelsLoading } = useChatModels();
   const { data: defaultAgent, isLoading: agentLoading } = useDefaultAgent();
+  const { data: agents } = useAgents();
   // Primes the `['pragna','flows']` cache so the session view's first-turn slash
   // dispatch sees the names synchronously on mount; also drives the popover here.
   const { data: slashFlows } = usePragnaSlashFlows();
 
   const [draft, setDraft] = useState('');
   const [userModelId, setUserModelId] = useState<string | null>(null);
+  // The agent the user explicitly picked, or `null` when they left the default.
+  // `null` does NOT mean "no agent": the conversation is always created pinned to
+  // the resolved active agent (see `resolveActiveAgentId` at send time), so the
+  // agent sent always matches the one the picker shows.
+  const [userAgentId, setUserAgentId] = useState<string | null>(null);
+  const activeAgents = useMemo(
+    () => (agents ?? []).filter((a) => a.status === 'active'),
+    [agents],
+  );
   const [thinkingEnabled, setThinkingEnabled] = useState(false);
   const [creating, setCreating] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -63,6 +75,10 @@ export default function ChatLandingView() {
         threadId: pendingConvId,
         userModelId: userModelId ?? null,
         thinkingEnabled,
+        // Pin the agent the picker shows — the explicit pick, else the resolved
+        // default — in a single create call (BE #153). Only `null` (no active
+        // agents at all) lets the BE seed its own default.
+        agentId: resolveActiveAgentId(activeAgents, userAgentId),
       });
       await queryClient.invalidateQueries({ queryKey: ['conversations'] });
       writePendingInitialMessage(pendingConvId, {
@@ -88,6 +104,8 @@ export default function ChatLandingView() {
     conversationService,
     pendingConvId,
     userModelId,
+    userAgentId,
+    activeAgents,
     thinkingEnabled,
     queryClient,
     navigate,
@@ -128,6 +146,17 @@ export default function ChatLandingView() {
                   Could not start chat: {sendError}. Press send to retry.
                 </div>
               ) : undefined
+            }
+            leadingControls={
+              // Pick the agent for the first turn (BE #153 lets create pin it in
+              // one call). Self-hides unless ≥2 active agents exist.
+              ready ? (
+                <AgentPicker
+                  agentId={userAgentId}
+                  onAgentChange={setUserAgentId}
+                  disabled={creating}
+                />
+              ) : null
             }
             controls={
               ready ? (
