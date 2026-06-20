@@ -1,0 +1,12 @@
+{
+  "serverName": "mock-mcp",
+  "tools": [
+    {
+      "name": "search",
+      "description": "Mock search that returns a non-auth error body",
+      "responses": [
+        { "kind": "error", "channel": "isError", "content": "no results found" }
+      ]
+    }
+  ]
+}
