@@ -1,0 +1,12 @@
+{
+  "serverName": "mock-mcp",
+  "tools": [
+    {
+      "name": "whoami",
+      "description": "Mock tool that RAISES an auth-looking protocol error",
+      "responses": [
+        { "kind": "authError", "channel": "raisedError", "signal": "401", "content": "HTTP 401 Unauthorized" }
+      ]
+    }
+  ]
+}

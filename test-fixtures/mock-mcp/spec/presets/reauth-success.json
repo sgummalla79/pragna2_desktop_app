@@ -1,0 +1,14 @@
+{
+  "serverName": "mock-mcp",
+  "tools": [
+    {
+      "name": "gus_query",
+      "description": "Auth-fails on call 1, succeeds on call 2 (after re-auth)",
+      "responses": [
+        { "kind": "authError", "channel": "isError", "signal": "invalid_grant", "providerInError": "gus", "content": "token refresh failed: invalid_grant" },
+        { "kind": "result", "content": "ok: 7 rows" }
+      ]
+    }
+  ],
+  "auth": { "exitCode": 0, "requireProvider": "gus" }
+}

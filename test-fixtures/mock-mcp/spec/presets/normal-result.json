@@ -1,0 +1,15 @@
+{
+  "serverName": "mock-mcp",
+  "tools": [
+    {
+      "name": "search",
+      "description": "Mock search tool",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "query": { "type": "string" } },
+        "required": ["query"]
+      },
+      "responses": [{ "kind": "result", "content": "ok: 7 rows" }]
+    }
+  ]
+}

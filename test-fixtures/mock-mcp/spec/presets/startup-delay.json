@@ -1,0 +1,11 @@
+{
+  "serverName": "mock-mcp",
+  "startupDelayMs": 60000,
+  "tools": [
+    {
+      "name": "search",
+      "description": "Mock tool behind a slow startup handshake",
+      "responses": [{ "kind": "result", "content": "ok" }]
+    }
+  ]
+}

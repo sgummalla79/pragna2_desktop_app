@@ -1,0 +1,4 @@
+# Build artifacts — never committed. Cargo.lock / package-lock.json ARE committed
+# (reproducible fixture builds).
+node/node_modules/
+rust/target/
