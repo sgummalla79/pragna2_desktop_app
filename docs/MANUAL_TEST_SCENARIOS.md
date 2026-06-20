@@ -243,6 +243,62 @@ captures **which channel** an expired downstream token surfaces on.
 
 ---
 
+## M11 — Tool/delegation resume yields exactly ONE reply (CF-029 / #158) — deterministic via the mock
+
+**Why manual:** the duplicate-reply regression (#158, fixed by the
+`reconcileBlocked` gate in `useChatSession`) only fires on the **client-delegated
+stdio** resume path, which runs **only in the native Tauri shell** — browser e2e
+has no Tauri runtime to spawn a stdio server (`mcpStdio` throws `NotInTauriError`),
+and there is no macOS WebDriver (pragna2-tracker TD-028). The
+`useChatSession.reconcileBlocked` + `useReconcileMessages` unit tests pin the gate
+deterministically; this scenario is the real-backend confirmation. It is made
+**deterministic** by the WI-1 mock fixture (`test-fixtures/mock-mcp`, #168) — a
+canned tool result, no live LLM tool flakiness on the tool side.
+
+**Prerequisites**
+- This branch built + run via `pnpm tauri dev` (native shell — stdio delegation
+  + keychain are desktop-only).
+- The Docker `pragna2-api` reachable; a chat model configured (the turn still needs
+  a live model to *decide* to call the tool).
+- The Node mock built: `cd test-fixtures/mock-mcp/node && npm install`. Its bin is a
+  single executable (`bin/mock-mcp.mjs`, shebang + `chmod +x`).
+
+**Steps**
+1. In **Developer → Edit Config**, register the mock as a client-delegated server,
+   pointing `MOCK_MCP_SPEC` at the deterministic `normal-result` preset:
+   ```json
+   {
+     "mcpServers": {
+       "mock": {
+         "command": "<repo>/test-fixtures/mock-mcp/node/bin/mock-mcp.mjs",
+         "args": [],
+         "env": { "MOCK_MCP_SPEC": "<repo>/test-fixtures/mock-mcp/spec/presets/normal-result.json" }
+       }
+     }
+   }
+   ```
+   Save — confirm the `search` tool is discovered + the connector is registered.
+2. Attach the connector to an agent (or use the default agent if it picks up the
+   tool), then in chat send a prompt that forces the tool, e.g.
+   `Use the search tool to look up "widgets" and tell me what it returns.`
+3. Let the run pause for delegation, execute the mock tool locally, and resume.
+
+**Checks**
+- [ ] The chat shows **exactly one** user bubble for that message — **not two**.
+- [ ] The chat shows **exactly one** assistant reply for that turn — **not two
+      identical** replies (the #158 symptom was a duplicated "I need more
+      information" / repeated answer).
+- [ ] The tool result (`ok: 7 rows`) is reflected in the answer; the activity
+      umbrella shows the `search` tool ran.
+- [ ] Repeating the send produces one new user bubble + one new reply each time
+      (no accumulation of duplicates across turns).
+
+**Note:** to also exercise the empty-reply fallback (#156), swap the preset for a
+tool whose result the model fails to narrate — the turn should render the
+**"The assistant returned no reply"** notice (CF-030), never a blank.
+
+---
+
 > **Promotion rule:** any behavior a future spec author finds automatable (a
 > runtime primitive ships, or a Tauri WebDriver lands for pragna2-tracker TD-028) should move
 > from here into an automated spec, and its `M<n>` entry deleted.
