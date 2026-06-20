@@ -11,6 +11,22 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-030 — tool-only turn renders a blank body when the final assistant message is empty (pragna2-tracker #156)
+
+- **Date:** 2026-06-19
+- **Area / file:** `src/presentation/views/chat/components/AssistantTurn.tsx`, `src/constants/chat.ts` (`NO_REPLY_NOTICE`).
+- **Bug + root cause:** When the backend completes a tool call but the final assistant message has `content: ""` (the BE root cause is #155 — the LLM emits no text after the tool result), `answerMessageId()` returns `null` (no text + no tool-calls qualifies as an answer). `AssistantTurn` then puts nothing in `outside` and renders only the activity umbrella — the body below is blank, so the user has no signal the tool ran and returned. Correct for a *streaming* in-progress turn (the answer may still arrive); wrong for a *completed* turn that genuinely produced no reply.
+- **Fix:** When the turn is NOT streaming, has activity steps (umbrella shown), and nothing rendered in the transcript (`outside.length === 0` — no answer id, no output card), render a subtle muted fallback notice (`NO_REPLY_NOTICE`, externalised in `constants/chat.ts` per the no-hardcoding rule) instead of a blank. The streaming guard prevents the notice flashing mid-turn. Pinned with an `answerMessageId` unit test (empty final after tool → null) + four `AssistantTurn` render tests (notice shows on completed tool-only/empty-final turns; suppressed while streaming and for normal answered turns).
+- **Web-app applicability:** **Likely** — the web app shares `AssistantTurn`/`answerMessageId`/the activity-umbrella architecture. Apply the same non-streaming `outside`-empty fallback + shared `NO_REPLY_NOTICE` copy there (track under web-fe). The BE empty-reply root cause is #155.
+
+## CF-029 — duplicate assistant reply after a tool/delegation resume (pragna2-tracker #158)
+
+- **Date:** 2026-06-19
+- **Area / file:** `src/presentation/views/chat/hooks/useReconcileMessages.ts`, `src/presentation/views/chat/hooks/useChatSession.ts`, `src/presentation/views/chat/ChatSessionView.tsx`.
+- **Bug + root cause:** A raw episode/delegation resume (`runEpisodeStream` — the Phase F client-delegation path that bypasses `onRunInitialized`/`onRunFinalized`) flips `status` to `'idle'` in its `finally` **before** the `/messages` refetch (`qc.invalidateQueries`) resolves. In that window `useReconcileMessages` fires against a **stale** persisted snapshot from a prior turn. When that stale snapshot happens to have the **same count** as in-memory but a different last id (stream id vs BE UUID), the `messages.length > persisted.length` count guard (CF-013/CF-013b) passes and only the id-mismatch branch runs — wiping the just-completed delegation turn with an old seed. The BE then re-processes the same user message → a duplicate assistant reply.
+- **Fix:** Option A — a `reconcileBlocked` gate. `useChatSession` exposes a `reconcileBlocked` boolean (backed by a depth **counter** so overlapping/nested resumes stay balanced); `runEpisodeStream` calls `blockReconcile()` before going idle and `unblockReconcile()` only **after `await`-ing** the `/messages` invalidate in `finally`. `useReconcileMessages` early-returns while blocked. So the reconciler only ever runs once the fresh persisted snapshot has landed — never against the stale one. Two regression tests added (no replace while blocked even on same-count/id-mismatch; replaces once unblocked).
+- **Web-app applicability:** **Check / likely N/A for now** — `runEpisodeStream` is the desktop-only Phase F client-delegated (stdio) resume path; the web app omits the delegation capability header. But the web app shares `useReconcileMessages`/`useChatSession`, so if it ever gains a raw-episode resume that settles status before its refetch, the same gate is needed. Track under web-fe; apply the `reconcileBlocked` guard if/when that path exists.
+
 ## CF-028 — branded macOS app icon is a square tile, not a native rounded squircle (pragna2-tracker #151)
 
 - **Date:** 2026-06-18

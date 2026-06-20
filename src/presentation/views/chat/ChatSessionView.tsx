@@ -175,10 +175,20 @@ function ChatConversation({
     startEpisode,
     attach,
     replaceMessages,
+    reconcileBlocked,
   } = useChatSession({ threadId: conversationId, initialMessages, slashFlowNames });
 
   // Reconcile in-memory → persisted once a run settles (see useReconcileMessages).
-  useReconcileMessages(status, messages, persisted, initialMessages, replaceMessages);
+  // `reconcileBlocked` holds it shut during a raw episode/delegation resume until
+  // the /messages refetch lands, so a stale snapshot can't wipe the turn (#158).
+  useReconcileMessages(
+    status,
+    messages,
+    persisted,
+    initialMessages,
+    replaceMessages,
+    reconcileBlocked,
+  );
 
   // ── Background document episode (create_pdf_long) ──────────────────────────
   // create_pdf_long acks instantly, then generates the document in a SEPARATE

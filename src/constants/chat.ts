@@ -37,6 +37,17 @@ export const TERMINAL_FINISH_REASONS: ReadonlySet<FinishReason> = new Set<Finish
 export const PROPOSE_FLOW_PREFIX = 'propose_flow_';
 
 /**
+ * Transcript fallback shown when an assistant turn COMPLETES (non-streaming) but
+ * produced no textual reply after its tool activity — the backend sent an empty
+ * final message (see pragna2-tracker #155 for the BE root cause). Without it the
+ * turn renders a blank body below the activity umbrella, leaving the user with no
+ * signal that the tool ran and its result was recorded (#156). Externalised here
+ * (per the no-hardcoding rule) so the desktop + web FE show identical copy.
+ */
+export const NO_REPLY_NOTICE =
+  'The assistant returned no reply. The tool result has been recorded.';
+
+/**
  * How long a per-conversation usage aggregate (`…/usage`) stays fresh before
  * the sidebar cost chip refetches. Bounds each row to one request per window
  * (60s, matching the web app) so a long sidebar doesn't fan out a request per
