@@ -1,9 +1,10 @@
 import { type ReactNode } from 'react';
-import { Wrench } from 'lucide-react';
+import { Info, Wrench } from 'lucide-react';
 import type {
   ChatMessage as ChatMessageModel,
   ChatToolCall,
 } from '@/presentation/views/chat/hooks/useChatSession';
+import { NO_REPLY_NOTICE } from '@/constants/chat';
 import { ActivityDisclosure } from './ActivityDisclosure';
 import { answerMessageId, isOutputToolName, isPlainToolCall } from '../utils/assistantTurns';
 import { toolArgSummary, toolDisplayLabel } from '../utils/toolDisplay';
@@ -84,6 +85,13 @@ export function AssistantTurn({
       ? toolLabels.join(' · ')
       : 'Reasoning';
 
+  // A COMPLETED turn with activity (umbrella shown) but nothing left in the
+  // transcript — `answerMessageId` was null (empty final message) and there's no
+  // output card. Without a fallback the body is blank, so the user has no signal
+  // the tool ran (#156; the empty reply itself is the BE bug #155). Render a
+  // subtle notice. Suppressed while streaming (the answer may still be arriving).
+  const showNoReplyNotice = !streaming && outside.length === 0 && steps.length > 0;
+
   return (
     <div className="flex flex-col gap-1.5">
       {steps.length > 0 && (
@@ -101,6 +109,12 @@ export function AssistantTurn({
             ))}
           </div>
         </ActivityDisclosure>
+      )}
+      {showNoReplyNotice && (
+        <div className="flex items-start gap-2 text-sm text-muted-foreground/70">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span className="italic">{NO_REPLY_NOTICE}</span>
+        </div>
       )}
       {outside.map((m) => (
         <div key={m.id}>{renderMessage(m, { hideReasoning: true })}</div>

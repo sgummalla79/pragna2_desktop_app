@@ -79,6 +79,58 @@ describe('useReconcileMessages', () => {
     expect(replaceMessages).not.toHaveBeenCalled();
   });
 
+  // ── #158: mid-delegation-resume window ─────────────────────────────────────
+
+  it('#158: does NOT replace while reconcileBlocked, even when same count but last id mismatches (stale persisted mid-resume)', () => {
+    // Scenario: a delegation resume just flipped status→idle, but the /messages
+    // refetch hasn't landed. `persisted` is a stale same-count snapshot from a
+    // prior turn whose last id is the BE UUID while in-memory still holds the
+    // stream id. The count guard passes (equal length) and only the id-mismatch
+    // branch would fire — wiping the just-completed turn → duplicate reply. The
+    // reconcileBlocked gate must suppress it until the refetch resolves.
+    const messages: ChatMessage[] = [userMsg('u1'), assistantMsg('stream-id')];
+    const persisted = [persistedMsg('u1'), persistedMsg('stale-be-uuid')];
+    const initialMessages = [aguiMsg('u1'), aguiMsg('stale-be-uuid', 'assistant')];
+
+    renderHook(() =>
+      useReconcileMessages(
+        'idle',
+        messages,
+        persisted,
+        initialMessages,
+        replaceMessages,
+        true, // reconcileBlocked — resume still settling
+      ),
+    );
+
+    expect(replaceMessages).not.toHaveBeenCalled();
+  });
+
+  it('#158: replaces once the resume settles (reconcileBlocked flips false) and ids still mismatch', () => {
+    const messages: ChatMessage[] = [userMsg('u1'), assistantMsg('stream-id')];
+    const persisted = [persistedMsg('u1'), persistedMsg('be-uuid')];
+    const initialMessages = [aguiMsg('u1'), aguiMsg('be-uuid', 'assistant')];
+
+    const { rerender } = renderHook(
+      ({ blocked }: { blocked: boolean }) =>
+        useReconcileMessages(
+          'idle',
+          messages,
+          persisted,
+          initialMessages,
+          replaceMessages,
+          blocked,
+        ),
+      { initialProps: { blocked: true } },
+    );
+
+    expect(replaceMessages).not.toHaveBeenCalled();
+
+    rerender({ blocked: false });
+
+    expect(replaceMessages).toHaveBeenCalledWith(initialMessages);
+  });
+
   // ── Normal reconciliation (tool-use turn / stream id mismatch) ─────────────
 
   it('replaces when last message is assistant and IDs differ (stream id vs BE UUID)', () => {

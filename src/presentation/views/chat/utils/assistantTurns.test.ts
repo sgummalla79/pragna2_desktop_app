@@ -102,6 +102,18 @@ describe('answerMessageId', () => {
   it('returns null when the last message has no text', () => {
     expect(answerMessageId([msg({ id: 'a1', content: '   ' })])).toBeNull();
   });
+
+  it('#156: returns null when the turn ends with an empty-content message after a tool call', () => {
+    // Pins the behaviour that makes AssistantTurn fall back to the no-reply
+    // notice — the BE sent an empty final message (#155), so there is no answer
+    // id and the renderer must not leave the body blank.
+    expect(
+      answerMessageId([
+        msg({ id: 'a1', content: '', toolCalls: [tool('orgcs_GetUserInfo')] }),
+        msg({ id: 'a2', content: '' }),
+      ]),
+    ).toBeNull();
+  });
 });
 
 describe('isOutputToolName / isPlainToolCall', () => {
