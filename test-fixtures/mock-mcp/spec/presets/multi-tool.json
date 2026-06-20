@@ -1,0 +1,22 @@
+{
+  "serverName": "mock-mcp",
+  "tools": [
+    {
+      "name": "search",
+      "description": "Mock search",
+      "inputSchema": { "type": "object", "properties": { "query": { "type": "string" } } },
+      "responses": [{ "kind": "result", "content": "search: 3 hits" }]
+    },
+    {
+      "name": "fetch",
+      "description": "Mock fetch",
+      "inputSchema": { "type": "object", "properties": { "url": { "type": "string" } } },
+      "responses": [{ "kind": "result", "content": "fetch: body" }]
+    },
+    {
+      "name": "summarize",
+      "description": "Mock summarize",
+      "responses": [{ "kind": "result", "content": "summary: ok" }]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "serverName": "mock-mcp",
+  "tools": [
+    {
+      "name": "gus_query",
+      "description": "Re-auth subprocess exits non-zero (auth cancelled/rejected)",
+      "responses": [
+        { "kind": "authError", "channel": "isError", "signal": "invalid_grant", "providerInError": "gus", "content": "token refresh failed: invalid_grant" }
+      ]
+    }
+  ],
+  "auth": { "exitCode": 1 }
+}

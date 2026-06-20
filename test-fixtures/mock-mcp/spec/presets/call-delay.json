@@ -1,0 +1,10 @@
+{
+  "serverName": "mock-mcp",
+  "tools": [
+    {
+      "name": "slow",
+      "description": "Mock tool whose call blocks past the host call timeout",
+      "responses": [{ "kind": "result", "callDelayMs": 130000, "content": "too late" }]
+    }
+  ]
+}

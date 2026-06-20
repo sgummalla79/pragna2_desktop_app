@@ -1,0 +1,12 @@
+{
+  "serverName": "mock-mcp",
+  "tools": [
+    {
+      "name": "whoami",
+      "description": "Mock tool that fails with an HTTP 401 auth signal",
+      "responses": [
+        { "kind": "authError", "channel": "isError", "signal": "401", "content": "HTTP 401 Unauthorized" }
+      ]
+    }
+  ]
+}

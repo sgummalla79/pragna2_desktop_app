@@ -1,0 +1,17 @@
+{
+  "serverName": "mock-mcp",
+  "tools": [
+    {
+      "name": "whoami",
+      "description": "Mock tool that fails with an OAuth invalid_grant body",
+      "responses": [
+        {
+          "kind": "authError",
+          "channel": "isError",
+          "signal": "invalid_grant",
+          "content": "token refresh failed with status 400: {\"error\":\"invalid_grant\",\"error_description\":\"Token has been expired or revoked.\"}"
+        }
+      ]
+    }
+  ]
+}

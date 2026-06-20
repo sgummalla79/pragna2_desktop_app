@@ -1,0 +1,16 @@
+{
+  "name": "@pragna2/mock-mcp-node",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Deterministic stdio MCP mock server (Node, official SDK) — test fixture only.",
+  "bin": { "mock-mcp": "bin/mock-mcp.mjs" },
+  "scripts": {
+    "serve": "node bin/mock-mcp.mjs serve",
+    "conformance": "node ../equivalence/conformance.mjs"
+  },
+  "engines": { "node": ">=24" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  }
+}

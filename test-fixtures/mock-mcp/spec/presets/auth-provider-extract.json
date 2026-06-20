@@ -1,0 +1,18 @@
+{
+  "serverName": "mock-mcp",
+  "tools": [
+    {
+      "name": "gus_query",
+      "description": "Mock aggregator tool whose error names the downstream provider",
+      "responses": [
+        {
+          "kind": "authError",
+          "channel": "isError",
+          "signal": "invalid_grant",
+          "providerInError": "gus",
+          "content": "token refresh failed: invalid_grant"
+        }
+      ]
+    }
+  ]
+}
