@@ -23,12 +23,38 @@ use crate::domain::mcp::{
     StdioLaunchConfig, ToolSchema, REAUTH_REASON_TOKEN_EXPIRED,
 };
 
-/// Bound the handshake when spawning a server.
-const STARTUP_TIMEOUT: Duration = Duration::from_secs(30);
-/// Hard per-tool-call wall-clock bound (a hung/blocking-reauth tool → Timeout).
-const CALL_TIMEOUT: Duration = Duration::from_secs(120);
+/// Default handshake bound when spawning a server.
+const STARTUP_TIMEOUT_DEFAULT: Duration = Duration::from_secs(30);
+/// Default hard per-tool-call wall-clock bound (a hung/blocking-reauth tool → Timeout).
+const CALL_TIMEOUT_DEFAULT: Duration = Duration::from_secs(120);
+/// Env vars that override the timeouts (milliseconds). Unset → the defaults
+/// above, so production behavior is unchanged; tests set a small bound to exercise
+/// the `Timeout` paths in <1s rather than 30s/120s (see pragna2-tracker #170).
+const STARTUP_TIMEOUT_ENV: &str = "MCP_STARTUP_TIMEOUT_MS";
+const CALL_TIMEOUT_ENV: &str = "MCP_CALL_TIMEOUT_MS";
 /// Keychain key prefix for a connector's launch config.
 const KEYRING_CONFIG_PREFIX: &str = "mcp_stdio:";
+
+/// Resolve a `Duration` from an env override (milliseconds), falling back to
+/// `default` when the var is unset or unparseable. Read at call time so a test
+/// can scope the override to its own process.
+fn timeout_from_env(var: &str, default: Duration) -> Duration {
+    std::env::var(var)
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .map(Duration::from_millis)
+        .unwrap_or(default)
+}
+
+/// The handshake bound (`MCP_STARTUP_TIMEOUT_MS` or the 30s default).
+fn startup_timeout() -> Duration {
+    timeout_from_env(STARTUP_TIMEOUT_ENV, STARTUP_TIMEOUT_DEFAULT)
+}
+
+/// The per-tool-call bound (`MCP_CALL_TIMEOUT_MS` or the 120s default).
+fn call_timeout() -> Duration {
+    timeout_from_env(CALL_TIMEOUT_ENV, CALL_TIMEOUT_DEFAULT)
+}
 
 type ClientService = RunningService<RoleClient, ()>;
 
@@ -42,7 +68,7 @@ impl McpRegistry {
     /// Spawn an EPHEMERAL service, list its tools, tear it down (registration
     /// discovery — never added to the warm registry).
     pub async fn discover(cfg: &StdioLaunchConfig) -> Result<Vec<ToolSchema>, McpHostError> {
-        let service = tokio::time::timeout(STARTUP_TIMEOUT, spawn_service(cfg))
+        let service = tokio::time::timeout(startup_timeout(), spawn_service(cfg))
             .await
             .map_err(|_| McpHostError::Timeout)??;
         let listed = service
@@ -72,7 +98,7 @@ impl McpRegistry {
     ) -> Result<DelegatedCallOutcome, McpHostError> {
         let mut map = self.services.lock().await;
         if !map.contains_key(&id) {
-            let service = tokio::time::timeout(STARTUP_TIMEOUT, spawn_service(cfg))
+            let service = tokio::time::timeout(startup_timeout(), spawn_service(cfg))
                 .await
                 .map_err(|_| McpHostError::Timeout)??;
             map.insert(id, service);
@@ -80,7 +106,7 @@ impl McpRegistry {
         let service = map.get(&id).expect("inserted above");
         let arguments = args.as_object().cloned();
         let call = tokio::time::timeout(
-            CALL_TIMEOUT,
+            call_timeout(),
             service.call_tool(CallToolRequestParam {
                 name: upstream_name.to_string().into(),
                 arguments,
