@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AssistantTurn } from './AssistantTurn';
+import { NO_REPLY_NOTICE } from '@/constants/chat';
 import type {
   ChatMessage as ChatMessageModel,
   ChatToolCall,
@@ -72,7 +73,7 @@ describe('AssistantTurn', () => {
     expect(screen.getByText('Reasoning')).toBeInTheDocument();
   });
 
-  it('a tools-only turn shows just the umbrella (no answer bubble)', () => {
+  it('a completed tools-only turn shows the umbrella + the no-reply notice (no answer bubble)', () => {
     render(
       <AssistantTurn
         messages={[msg({ id: 'a1', content: 'searching', toolCalls: [tool('mcp_tavily_tavily_search')] })]}
@@ -83,6 +84,52 @@ describe('AssistantTurn', () => {
     );
     expect(screen.queryByTestId('msg-a1')).toBeNull();
     expect(screen.getByText('Tavily Search')).toBeInTheDocument();
+    // #156: completed turn, no textual answer → subtle fallback notice, not a blank.
+    expect(screen.getByText(NO_REPLY_NOTICE)).toBeInTheDocument();
+  });
+
+  it('#156: renders the no-reply notice when a completed turn ends with an empty final message after a tool call', () => {
+    render(
+      <AssistantTurn
+        messages={[
+          msg({ id: 'a1', content: '', toolCalls: [tool('orgcs_GetUserInfo')] }),
+          msg({ id: 'a2', content: '' }), // empty final message from the LLM
+        ]}
+        renderMessage={renderMessage}
+        hasAttachment={noAttachments}
+        streaming={false}
+      />,
+    );
+    expect(screen.getByText(NO_REPLY_NOTICE)).toBeInTheDocument();
+    expect(screen.queryByTestId('msg-a2')).toBeNull(); // no answer bubble
+  });
+
+  it('#156: does NOT show the no-reply notice while the turn is still streaming', () => {
+    render(
+      <AssistantTurn
+        messages={[msg({ id: 'a1', content: '', toolCalls: [tool('orgcs_GetUserInfo')] })]}
+        renderMessage={renderMessage}
+        hasAttachment={noAttachments}
+        streaming
+      />,
+    );
+    expect(screen.queryByText(NO_REPLY_NOTICE)).toBeNull();
+  });
+
+  it('#156: does NOT show the no-reply notice for a normal turn that has a textual answer', () => {
+    render(
+      <AssistantTurn
+        messages={[
+          msg({ id: 'a1', content: 'working', toolCalls: [tool('mcp_tavily_tavily_search')] }),
+          msg({ id: 'a2', content: 'Here is the answer.' }),
+        ]}
+        renderMessage={renderMessage}
+        hasAttachment={noAttachments}
+        streaming={false}
+      />,
+    );
+    expect(screen.queryByText(NO_REPLY_NOTICE)).toBeNull();
+    expect(screen.getByTestId('msg-a2')).toBeInTheDocument();
   });
 
   it('keeps a generated-document message outside the umbrella (via hasAttachment)', () => {

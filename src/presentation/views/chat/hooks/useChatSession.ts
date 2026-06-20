@@ -150,6 +150,12 @@ export interface ChatSessionApi {
    * a run settles, so attachment / model-attribution lookups resolve). Idempotent.
    */
   replaceMessages: (replacement: Message[]) => void;
+  /**
+   * True while a raw episode/delegation resume is settling (from its start until
+   * its `/messages` refetch resolves). Consumers gate reconciliation on this so
+   * the persisted snapshot is never read mid-resume while it is still stale (#158).
+   */
+  reconcileBlocked: boolean;
 }
 
 export interface UseChatSessionOptions {
@@ -221,6 +227,24 @@ export function useChatSession(
   const [streamingMessageIds, setStreamingMessageIds] = useState<Set<string>>(
     () => new Set(),
   );
+
+  // #158: while a raw episode/delegation resume (`runEpisodeStream`) is settling,
+  // its `finally` flips `status` to `'idle'` BEFORE the `/messages` refetch lands.
+  // In that window the persisted snapshot is stale, and reconciling against it
+  // wipes the just-completed turn → the BE re-processes the same user message and
+  // replies twice. `reconcileBlocked` gates `useReconcileMessages` shut until the
+  // refetch resolves. A depth counter (not a bare boolean) keeps overlapping /
+  // nested resumes balanced — the flag only clears once every resume has settled.
+  const reconcileBlockDepthRef = useRef(0);
+  const [reconcileBlocked, setReconcileBlocked] = useState(false);
+  const blockReconcile = useCallback(() => {
+    reconcileBlockDepthRef.current += 1;
+    setReconcileBlocked(true);
+  }, []);
+  const unblockReconcile = useCallback(() => {
+    reconcileBlockDepthRef.current = Math.max(0, reconcileBlockDepthRef.current - 1);
+    if (reconcileBlockDepthRef.current === 0) setReconcileBlocked(false);
+  }, []);
 
   // Captured base URL so `sendWithOverrides` / slash dispatch can restore it
   // after a run that mutated the URL per-turn (the override is never sticky).
@@ -737,6 +761,10 @@ export function useChatSession(
       if (!agent || !threadId) return;
       const controller = new AbortController();
       rawAbortRef.current = controller;
+      // Hold reconciliation shut from BEFORE status goes idle until AFTER the
+      // /messages refetch in `finally` resolves, so the reconciler never sees the
+      // idle status with a stale persisted snapshot mid-resume (#158).
+      blockReconcile();
       setStatus('running');
       setError(null);
       setProgressLabel(null);
@@ -767,12 +795,19 @@ export function useChatSession(
         if (!errored) setStatus('idle');
         rawAbortRef.current = null;
         invalidateConversationListQueries(qc, { conversationId: threadId });
-        qc.invalidateQueries({
-          queryKey: ['conversations', threadId, 'messages'],
-        });
+        // Await the /messages refetch before unblocking reconciliation, so the
+        // reconciler only ever runs once the fresh persisted snapshot has landed
+        // (never against the stale one from a prior turn) — closes the #158 race.
+        try {
+          await qc.invalidateQueries({
+            queryKey: ['conversations', threadId, 'messages'],
+          });
+        } finally {
+          unblockReconcile();
+        }
       }
     },
-    [agent, threadId, resolveOpenEpisode, qc],
+    [agent, threadId, resolveOpenEpisode, qc, blockReconcile, unblockReconcile],
   );
 
   // Phase F: headless client-delegated tool execution. Run each call locally via
@@ -943,6 +978,7 @@ export function useChatSession(
     startEpisode,
     attach,
     replaceMessages,
+    reconcileBlocked,
   };
 }
 
