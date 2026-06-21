@@ -77,8 +77,11 @@ function services(overrides: Partial<Services> = {}): Partial<Services> {
 async function renderAndOpenEditor(svc = services()) {
   const user = userEvent.setup();
   renderWithProviders(<LocalServersView />, { services: svc });
-  const editBtn = await screen.findByRole('button', { name: /edit config/i });
+  const editBtn = await screen.findByRole('button', { name: /^config$/i });
   await user.click(editBtn);
+  // The editor opens on the Tree tab by default; switch to Edit so the raw
+  // JSON textarea is available for the assertions that follow.
+  await user.click(screen.getByRole('button', { name: /^edit$/i }));
   return user;
 }
 
