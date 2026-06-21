@@ -86,3 +86,35 @@ pub async fn mcp_stdio_reauth(connector_id: String, service: Option<String>) -> 
         .await
         .map_err(|e| e.to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::parse_id;
+
+    /// A well-formed UUID parses to the same id the frontend sent.
+    #[test]
+    fn parse_id_accepts_a_valid_uuid() {
+        let raw = "550e8400-e29b-41d4-a716-446655440000";
+        let id = parse_id(raw).expect("a valid uuid should parse");
+        assert_eq!(id.to_string(), raw);
+    }
+
+    /// A malformed connector id surfaces as a `String` error (the shape the FE
+    /// boundary expects) — never a panic. This is the only branch the
+    /// `State`/keychain-bound commands own that is unit-testable in isolation.
+    #[test]
+    fn parse_id_rejects_garbage_as_a_string_error() {
+        let err = parse_id("not-a-uuid").expect_err("garbage must not parse");
+        assert!(
+            err.starts_with("invalid connector id"),
+            "unexpected error message: {err}"
+        );
+    }
+
+    /// An empty id is rejected the same way (guards the FE passing a blank).
+    #[test]
+    fn parse_id_rejects_an_empty_string() {
+        let err = parse_id("").expect_err("empty must not parse");
+        assert!(err.starts_with("invalid connector id"), "got: {err}");
+    }
+}
