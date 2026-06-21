@@ -16,5 +16,6 @@ export {
   usesWindowsChrome,
   usesMacOverlayChrome,
 } from './runtime';
+export { setNativeWindowTitle } from './window';
 export { secureStore } from './secureStore';
 export { mcpStdio, NotInTauriError } from './mcpStdio';

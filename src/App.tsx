@@ -5,6 +5,7 @@ import { ServiceProvider } from '@/presentation/providers/ServiceProvider';
 import { AppRoutes } from '@/presentation/router/AppRoutes';
 import { useBootstrap } from '@/presentation/hooks/auth/useBootstrap';
 import { useVersionCheck } from '@/presentation/hooks/useVersionCheck';
+import { useBrandWindowTitle } from '@/presentation/hooks/useBrandWindowTitle';
 import { VersionBanner } from '@/presentation/components/VersionBanner';
 import { UpdateRequiredScreen } from '@/presentation/components/UpdateRequiredScreen';
 import { AppTitleBar } from '@/components/ui/AppTitleBar';
@@ -21,6 +22,7 @@ const queryClient = new QueryClient({
 function BootstrapGate() {
   useBootstrap();
   useVersionCheck();
+  useBrandWindowTitle();
   return null;
 }
 
