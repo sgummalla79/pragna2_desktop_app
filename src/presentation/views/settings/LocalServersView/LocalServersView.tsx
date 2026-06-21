@@ -16,7 +16,6 @@ import {
 
 
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import {
   Sheet,
   SheetContent,
@@ -80,7 +79,7 @@ export default function LocalServersView() {
   );
 
   const [editorText, setEditorText] = useState(EMPTY_CONFIG);
-  const [editorTab, setEditorTab] = useState<'edit' | 'tree'>('edit');
+  const [editorTab, setEditorTab] = useState<'edit' | 'tree'>('tree');
   const [saving, setSaving] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -292,44 +291,6 @@ export default function LocalServersView() {
         </div>
       </header>
 
-      {/* Example config (collapsible) — sits above the Configured servers list.
-          Mirrors the expandable connector card pattern (controlled state, a
-          clickable header row, chevron, and a conditional bordered body). */}
-      <Card className="mb-6 overflow-hidden p-0">
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => setExampleOpen((v) => !v)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              setExampleOpen((v) => !v);
-            }
-          }}
-          aria-expanded={exampleOpen}
-          aria-controls="local-servers-example-body"
-          aria-label="Example config"
-          className="flex w-full cursor-pointer items-center gap-3 p-4 text-left text-sm font-medium text-foreground"
-        >
-          {exampleOpen ? (
-            <ChevronDown size={16} aria-hidden="true" className="shrink-0" />
-          ) : (
-            <ChevronRight size={16} aria-hidden="true" className="shrink-0" />
-          )}
-          <span className="flex-1">Example config</span>
-        </div>
-        {exampleOpen && (
-          <div
-            id="local-servers-example-body"
-            className="border-t border-border bg-background px-4 py-3"
-          >
-            <pre className="overflow-x-auto rounded-md bg-muted/30 px-3 py-2 font-mono text-xs text-muted-foreground">
-              <code>{EXAMPLE_CONFIG}</code>
-            </pre>
-          </div>
-        )}
-      </Card>
-
       {/* Configured servers */}
       <section className="mb-8">
         <div className="mb-2 flex items-center justify-between gap-3">
@@ -341,16 +302,18 @@ export default function LocalServersView() {
             className="shrink-0"
             onClick={() => {
               setError(null);
+              // Tree view is the default each time the editor is opened.
+              setEditorTab('tree');
               setPanelOpen(true);
             }}
           >
             <Pencil className="mr-2 h-4 w-4" aria-hidden />
-            Edit Config
+            Config
           </Button>
         </div>
         {localServers.length === 0 ? (
           <p className="rounded-md border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
-            No servers added yet. Use Edit Config to add one.
+            No servers added yet. Use Config to add one.
           </p>
         ) : (
           <ul className="divide-y divide-border rounded-md border border-border">
@@ -431,6 +394,45 @@ export default function LocalServersView() {
               keychain.
             </SheetDescription>
           </SheetHeader>
+
+          {/* Example config (collapsible) — authoring guidance, sits at the top
+              of the editor flyout. Mirrors the expandable card pattern:
+              controlled state, a clickable header row, chevron, and a
+              conditional body. */}
+          <div className="shrink-0 overflow-hidden rounded-md border border-border">
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => setExampleOpen((v) => !v)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setExampleOpen((v) => !v);
+                }
+              }}
+              aria-expanded={exampleOpen}
+              aria-controls="local-servers-example-body"
+              aria-label="Example config"
+              className="flex w-full cursor-pointer items-center gap-3 p-3 text-left text-sm font-medium text-foreground"
+            >
+              {exampleOpen ? (
+                <ChevronDown size={16} aria-hidden="true" className="shrink-0" />
+              ) : (
+                <ChevronRight size={16} aria-hidden="true" className="shrink-0" />
+              )}
+              <span className="flex-1">Example config</span>
+            </div>
+            {exampleOpen && (
+              <div
+                id="local-servers-example-body"
+                className="border-t border-border bg-background px-3 py-2"
+              >
+                <pre className="overflow-x-auto rounded-md bg-muted/30 px-3 py-2 font-mono text-xs text-muted-foreground">
+                  <code>{EXAMPLE_CONFIG}</code>
+                </pre>
+              </div>
+            )}
+          </div>
 
           {/* Edit / Tree tab toggle */}
           <div className="flex shrink-0 items-center gap-1 self-start rounded-md border border-border bg-muted/30 p-0.5">
