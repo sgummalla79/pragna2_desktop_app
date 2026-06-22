@@ -90,6 +90,27 @@ describe('graphToYaml ⇄ buildEditorGraph round-trip', () => {
     expect(data.outputs).toEqual(['notes']);
   });
 
+  it('omits user_model when the agent has no model (inherits the conversation model)', () => {
+    // pragna2-tracker #185 / BE #184: the per-node model is optional. A blank
+    // model must serialize as ABSENT (not user_model: ""), so the backend
+    // treats it as "use the conversation's selected model at run time".
+    const node = agentNode();
+    (node.data as AgentNodeData).agent.userModel = '';
+    const nodes = [boundary(NODE_START), node, boundary(NODE_END)];
+    const edges = [
+      edge('e1', NODE_START, 'agent_1', { condition: 'default' }),
+      edge('e2', 'agent_1', NODE_END, { condition: 'default' }),
+    ];
+
+    const yamlText = graphToYaml(META, nodes, edges);
+    expect(yamlText).not.toContain('user_model');
+
+    // Round-trips back to a blank model (buildEditorGraph defaults absent → '').
+    const back = buildEditorGraph(yamlText);
+    const agent = back.nodes.find((n) => n.type === NODE_TYPE_AGENT)!;
+    expect((agent.data as AgentNodeData).agent.userModel).toBe('');
+  });
+
   it('round-trips a dynamic-dispatch (per_item) edge between two agents', () => {
     const a1 = agentNode();
     const a2: Node<AgentNodeData> = {

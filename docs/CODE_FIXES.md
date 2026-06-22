@@ -11,6 +11,22 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-033 — Dialogs opened inside the flow editor are invisible/unclickable ("dead" MCP & Knowledge panel buttons) (pragna2-tracker #189; blocks #41)
+
+- **Date:** 2026-06-22
+- **Area / file:** `src/components/ui/dialog.tsx` (`DialogOverlay`, `DialogContent`).
+- **Bug + root cause:** The shared Radix `Dialog` rendered its overlay and content at **`z-50`**. The full-page flow editor (`FlowDetailView`) is a `fixed inset-0 z-[300]` surface. Radix portals the dialog to `document.body`, so a dialog opened from inside the editor (e.g. the MCP **ConnectorPanel** "Add a connector", the **KnowledgePanel** library picker, **DecisionPanel**, the **NodePanel** delete-confirm) rendered at `z-50` — **behind** the `z-[300]` editor — so it was invisible and its buttons did nothing ("dead"). The Sheets in the same editor avoided this by using `z-[400]`/`z-[399]`; the dialogs never got the same treatment. This blocked testing tracker #41 (MCP node config).
+- **Fix:** Raised the shared dialog to the top-modal layer — `DialogOverlay` → `z-[399]`, `DialogContent` → `z-[400]` — matching the Sheet layering, so dialogs render above the editor (and other chrome ≤ z-300). Components with their own higher z (e.g. `AddConnectorWizard` at `z-[700]`) are unaffected. Regression test (`dialog.test.tsx`) asserts the z-index classes (jsdom has no real stacking).
+- **Web-app applicability:** **Likely** — `pragna2_sgummalla_works` shares the same `ui/dialog.tsx` (z-50) and a full-page flow editor; any dialog opened from inside that editor has the identical hidden-behind-the-editor defect. Apply the same z bump (track under web-fe).
+
+## CF-032 — Agent Flow → Import YAML: pasting a large YAML overflows the sheet, no scrollbar, cannot import
+
+- **Date:** 2026-06-22
+- **Area / file:** `src/presentation/views/settings/FlowDetailView/FlowYamlActions.tsx` (Import sheet paste area, ~`:200`–`:214`).
+- **Bug + root cause:** The shared `Textarea` base class is `field-sizing-content` (`src/components/ui/textarea.tsx`), so the control auto-grows to fit its content with **no max height**. The Import sheet wrapped it in a plain `flex flex-col` region with no bounded/scrollable container (unlike the sibling **YAML view sheet** in the same file, which correctly uses `min-h-0 flex-1 overflow-y-auto`). Pasting a large YAML grew the textarea taller than the `SheetContent` (which is `fixed top/bottom`, i.e. viewport-bounded, with no overflow handling), pushing the footer's **Replace canvas** button off-screen. Nothing had `overflow`, so no scrollbar appeared and the import could not be completed; the per-keystroke content re-measure on a huge value also made the sheet feel frozen.
+- **Fix:** Made the paste area mirror the proven YAML-view-sheet pattern, scoped to this component (no change to the shared `sheet.tsx`/`textarea.tsx`): wrapper → `flex min-h-0 flex-1 flex-col gap-1.5`; textarea → `field-sizing-fixed min-h-0 flex-1 resize-none overflow-auto …`. `field-sizing-fixed` overrides the base `field-sizing-content` (verified `twMerge` keeps `field-sizing-fixed`), so the textarea fills the available height and scrolls internally instead of growing unbounded; the footer stays on-screen at any paste size. Regression test added asserting the textarea carries `field-sizing-fixed`/`overflow-auto`/`flex-1`/`min-h-0` and not `field-sizing-content`.
+- **Web-app applicability:** **Likely** — if `pragna2_sgummalla_works` has the same Flow editor Import-YAML sheet built on a `field-sizing-content` textarea without a bounded scroll region, it has the identical overflow/cannot-import defect. Apply the same bounded `flex-1 min-h-0` wrapper + `field-sizing-fixed` textarea there (track under web-fe).
+
 ## CF-031 — `tsc -b` build fails on `Releases/V1` — stale `@ts-expect-error` directives in `vite.config.ts` (pragna2-tracker #177)
 
 - **Date:** 2026-06-21

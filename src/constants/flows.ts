@@ -26,3 +26,15 @@ export const FLOW_YAML_MIME = 'application/x-yaml';
 
 /** `accept` filter for the YAML-import file picker. */
 export const FLOW_YAML_ACCEPT = '.yaml,.yml';
+
+/**
+ * Sentinel `<Select>` value representing an agent node with **no** explicit chat
+ * model. The per-node model is optional: a blank `userModel` means "inherit the
+ * conversation's selected model at run time" (resolved by the backend —
+ * pragna2-tracker #184). Radix `Select` items cannot use an empty-string value,
+ * so the editor maps this sentinel ⇄ a blank `userModel`.
+ */
+export const FLOW_AGENT_MODEL_INHERIT = '__conversation_model__';
+
+/** Human label for the "no explicit model — use the conversation's model" option. */
+export const FLOW_AGENT_MODEL_INHERIT_LABEL = 'Use conversation model';
