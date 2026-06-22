@@ -73,9 +73,12 @@ function nodeEntry(data: AgentNodeData): Record<string, unknown> {
   const entry: Record<string, unknown> = {
     api_name: data.nodeId,
     display_name: a.displayName,
-    user_model: a.userModel,
     system_prompt: a.systemPrompt,
   };
+  // `user_model` is optional: a blank model means "inherit the conversation's
+  // selected model at run time" (BE resolves it — pragna2-tracker #184). Omit it
+  // when empty so the YAML carries no model rather than an empty string.
+  if (a.userModel) entry.user_model = a.userModel;
   if (a.description) entry.description = a.description;
   if (a.tools.length) entry.tools = [...a.tools];
   if (a.emits.length) entry.emits = [...a.emits];

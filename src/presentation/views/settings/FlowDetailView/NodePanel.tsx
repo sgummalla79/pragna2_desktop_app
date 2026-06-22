@@ -34,6 +34,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  FLOW_AGENT_MODEL_INHERIT,
+  FLOW_AGENT_MODEL_INHERIT_LABEL,
+} from '@/constants/flows';
 import { cn } from '@/lib/utils';
 import { useModels } from '@/presentation/hooks/models/useModels';
 import { useTools } from '@/presentation/hooks/tools/useTools';
@@ -174,12 +178,24 @@ export function NodePanel() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="np-agent-model">Model</Label>
-            <Select value={agent.userModel} onValueChange={(v) => updateAgent(nodeId, { userModel: v })}>
+            <Label htmlFor="np-agent-model">Model (optional)</Label>
+            <Select
+              value={agent.userModel || FLOW_AGENT_MODEL_INHERIT}
+              onValueChange={(v) =>
+                updateAgent(nodeId, {
+                  userModel: v === FLOW_AGENT_MODEL_INHERIT ? '' : v,
+                })
+              }
+            >
               <SelectTrigger id="np-agent-model" className="w-full">
-                <SelectValue placeholder="— pick a model —" />
+                <SelectValue placeholder={FLOW_AGENT_MODEL_INHERIT_LABEL} />
               </SelectTrigger>
               <SelectContent>
+                {/* Blank model — the backend resolves it to the conversation's
+                    selected model at run time (pragna2-tracker #184). */}
+                <SelectItem value={FLOW_AGENT_MODEL_INHERIT}>
+                  {FLOW_AGENT_MODEL_INHERIT_LABEL}
+                </SelectItem>
                 {flowEligibleModels.map((m) => (
                   <SelectItem key={m.id} value={m.modelName}>
                     {m.displayName}
@@ -187,6 +203,10 @@ export function NodePanel() {
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-[11px] text-muted-foreground">
+              Leave as "{FLOW_AGENT_MODEL_INHERIT_LABEL}" to run this agent on
+              whatever model the conversation has selected when the flow runs.
+            </p>
             {flowEligibleModels.length === 0 && (
               <p className="text-[11px] text-muted-foreground">
                 No models enabled for Flows. Toggle "Available for flows" on a model in Settings →

@@ -47,6 +47,7 @@ import { FLOW_EDGE_TYPES } from './ConditionEdge';
 import { ConnectorPanel } from './ConnectorPanel';
 import { DecisionPanel } from './DecisionPanel';
 import { EdgePanel } from './EdgePanel';
+import { FlowYamlErrors } from './FlowYamlErrors';
 import { KnowledgePanel } from './KnowledgePanel';
 import { NodePanel } from './NodePanel';
 import { PalettePanel } from './PalettePanel';
@@ -180,35 +181,28 @@ function EditorInner({ flow }: Props) {
         dirty={dirty}
       />
 
-      {/* Banner / validation errors. */}
+      {/* Banner / validation errors. Errors render as a collapsible block
+          (FlowYamlErrors) so a long list can be folded away. */}
       {(banner || errors.length > 0) && (
         <div className="shrink-0 border-b border-border px-4 py-2">
-          {(() => {
-            const isErr = banner?.kind === 'err' || errors.length > 0;
-            const tone = isErr ? 'bg-red-900' : 'bg-emerald-800';
-            const summary =
-              banner?.text ??
-              (errors.length === 1 ? '1 issue blocking save' : `${errors.length} issues blocking save`);
-            return (
-              <div role="status" className={cn('rounded-md text-white', tone)}>
-                <div className="flex items-center gap-2 px-3 py-2 text-sm">
-                  {isErr && <AlertCircle size={16} aria-hidden="true" />}
-                  <span className="font-medium">{summary}</span>
-                </div>
-                {errors.length > 0 && (
-                  <ul className="space-y-1 border-t border-white/15 px-3 py-2 font-mono text-xs">
-                    {errors.map((e, i) => (
-                      <li key={i}>
-                        <span className="text-white/70">{e.path || '(document)'}</span>
-                        {' — '}
-                        {e.message}
-                      </li>
-                    ))}
-                  </ul>
+          {errors.length > 0 ? (
+            <FlowYamlErrors errors={errors} />
+          ) : (
+            banner && (
+              <div
+                role="status"
+                className={cn(
+                  'rounded-md text-white',
+                  banner.kind === 'err' ? 'bg-red-900' : 'bg-emerald-800',
                 )}
+              >
+                <div className="flex items-center gap-2 px-3 py-2 text-sm">
+                  {banner.kind === 'err' && <AlertCircle size={16} aria-hidden="true" />}
+                  <span className="font-medium">{banner.text}</span>
+                </div>
               </div>
-            );
-          })()}
+            )
+          )}
         </div>
       )}
 

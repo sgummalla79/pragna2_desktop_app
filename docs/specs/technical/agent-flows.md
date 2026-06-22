@@ -71,7 +71,12 @@ primitives. Files:
   `ConditionEdge.tsx` (`FLOW_EDGE_TYPES.condition`: selectable bezier, condition label/color, a
   per-item chip when dynamic dispatch is set — now editable from the EdgePanel, see below).
 - **Panels:** `PalettePanel` (add nodes), `NodePanel` (agent fields; model select from `useModels`
-  filtered `availableForFlows && enabled && !archived`, storing `model.modelName`; emits via the
+  filtered `availableForFlows && enabled && !archived`, storing `model.modelName`. The model is
+  **optional** (pragna2-tracker #185 / BE #184): the select carries an explicit "Use conversation
+  model" item (`FLOW_AGENT_MODEL_INHERIT` sentinel ⇄ blank `userModel`, since Radix `Select` forbids
+  an empty-string value), `graphToYaml` **omits** `user_model` when blank, and `buildEditorGraph`
+  defaults an absent `user_model` back to `''`; the backend resolves a blank model to the
+  conversation's selected model at run time. Emits via the
   reused `AgentsView/ChipInput`; the **tools** chip passes `suggestions` from `useTools()` enabled
   `api_name`s → autocomplete dropdown + an "not in your tools" flag on unknown chips, free-form
   still allowed — pragna2-tracker TD-010), `DecisionPanel` (conditions), `ConnectorPanel`
@@ -89,23 +94,36 @@ primitives. Files:
   unmount; renders the **`FlowMetaBar`** (top), `ReactFlow` (`ReactFlowProvider`,
   `ConnectionMode.Loose`) wired to the store
   (`onNodesChange`/`onEdgesChange`/`onConnect`/`isValidConnection`), the palette, and the selection
-  panel; **Save** serializes via `graphToYaml`, runs `useValidateFlowYaml` (errors shown by path,
-  save skipped if invalid), then `useSaveFlowFromYamlById` and `markClean`. Imports
-  `reactflow/dist/style.css`.
+  panel; **Save** serializes via `graphToYaml`, runs `useValidateFlowYaml` (errors shown by path in
+  a collapsible `FlowYamlErrors` block, save skipped if invalid), then `useSaveFlowFromYamlById` and
+  `markClean`. Imports `reactflow/dist/style.css`.
 - **`FlowMetaBar.tsx`** — the editor's top control bar. Top row: **flow identity** (EntityIcon +
-  display name + api_name pill + `/slash` pill + **Unsaved/Saved pill** — amber when dirty, green
-  when clean). Second row: **graph meta** controls all `items-center` aligned — Description input
-  (placeholder-only, Save-gated via YAML round-trip), Expose-as-/slash checkbox, Slash name input
-  (when exposed), and the right-cluster (Import / Export / YAML buttons from `FlowYamlActions`).
-  Inline hints for missing description and invalid slash name. **Enabled/Disabled** removed from
-  this bar — it lives on the flow card on the main list (not duplicated here). No `useUpdateFlow`
-  dependency.
-- **`FlowYamlActions.tsx`** — three Sheet flyouts: **Import** (drag-and-drop zone with
-  drag-over highlight + "Choose file…" button + paste textarea; `buildEditorGraph` → `hydrate` +
-  `markDirty`; malformed → inline `FLW_010` alert); **Export** (direct download — `graphToYaml` →
-  Blob → `<api_name>.yaml`, fallback `agentic-flow`); **YAML** (read-only view of the serialised
-  canvas + Download button). Both sheets use `z-[400]` / `overlayClassName="z-[399]"` to sit above
-  the `z-[300]` full-page editor surface. Self-contained: reads/writes store directly.
+  display name + api_name pill + **Unsaved/Saved pill** — amber when dirty, green when clean).
+  Second row: the **Description** input (placeholder-only, Save-gated via YAML round-trip) + the
+  right-cluster (Import / Export / YAML buttons from `FlowYamlActions`). **Slash exposure, the slash
+  name input, and the `/slash` pill are intentionally absent** — they live only on the flow card on
+  the main list, which owns the immediate `/slash-exposure` mutation; keeping them out of the editor
+  avoids the editor's Save (which serializes `exposed_as_slash`/`slash_api_name` from the hydrated
+  meta) clobbering a card-set exposure. **Enabled/Disabled** likewise lives on the card. No
+  `useUpdateFlow` dependency.
+- **`FlowYamlActions.tsx`** — **Import** + **Export** + an editable **YAML** sheet: **Import**
+  (drag-and-drop zone with drag-over highlight + "Choose file…" button + bounded-scroll paste
+  textarea; `buildEditorGraph` → `hydrate` + `markDirty`; malformed → inline `FLW_010` alert);
+  **Export** (direct download — `graphToYaml` → Blob → `<api_name>.yaml`, fallback `agentic-flow`);
+  **YAML** → opens `FlowYamlEditorSheet`. `z-[400]` / `overlayClassName="z-[399]"` to sit above the
+  `z-[300]` full-page editor surface. Self-contained: reads/writes store directly.
+- **`FlowYamlEditorSheet.tsx`** — the editable YAML editor (CodeMirror `@uiw/react-codemirror` +
+  `@codemirror/lang-yaml`), seeded with the current-canvas YAML on open. **Validate** →
+  `useValidateFlowYaml` → a collapsible `FlowYamlErrors` block (issues by path). **Apply to Canvas**
+  → parse-guards with `js-yaml.load` (because `buildEditorGraph` SWALLOWS YAML syntax errors and
+  would otherwise wipe the canvas), then `buildEditorGraph` → `hydrate` + `markDirty` + close. It
+  **does NOT persist** — Save (in `FlowEditor`) stays the single persistence path, so a document
+  with canvas-only-fixable issues (e.g. a placeholder connector id) can be applied and finished.
+  **Horizontally resizable**: a left-edge drag handle sets the sheet width (right edge fixed at the
+  `right-2.5` inset), clamped `[420px, viewport]`; default `720px`.
+- **`FlowYamlErrors.tsx`** — collapsible (`ui/collapsible.tsx`, Radix Collapsible) validation-errors
+  block (summary count + per-error `path — message`), default open. Shared by `FlowEditor`'s Save
+  banner and `FlowYamlEditorSheet`.
 - **`FlowEditor.tsx`** footer — **Save / Cancel** buttons in a `border-t px-6 py-4` footer row
   matching the Agent form pattern. Save: `graphToYaml` → `useValidateFlowYaml` (errors shown by
   path, skip if invalid) → `useSaveFlowFromYamlById` → `markClean`. Cancel: `reset()` + `navigate(

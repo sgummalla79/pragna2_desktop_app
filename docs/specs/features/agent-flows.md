@@ -28,14 +28,26 @@ Shipped in two phases on one branch:
 - [ ] Delete a flow (confirmed); toggle slash exposure + set the `/slash` name (kebab-validated).
 - [ ] Add nodes from a palette (agent / decision / MCP connector / knowledge / end), drag to
       position, connect nodes, and delete nodes/edges on the canvas.
-- [ ] Edit a selected node in a side panel — agent (id, display name, model, system prompt, tools,
-      emits), decision (conditions), connector (pick MCP connectors + per-tool subset), knowledge
-      (pick libraries) — and a selected edge's routing condition.
+- [ ] Edit a selected node in a side panel — agent (id, display name, **model — optional**, system
+      prompt, tools, emits), decision (conditions), connector (pick MCP connectors + per-tool
+      subset), knowledge (pick libraries) — and a selected edge's routing condition.
+- [ ] **Agent model is optional** (pragna2-tracker #185 / BE #184): an agent node may be left on
+      "Use conversation model" (no explicit model). A blank model is serialized as **absent** in the
+      YAML and, at run time, the backend resolves it to the **conversation's selected model** — so a
+      flow no longer requires a model to be pinned on every node.
 - [ ] **Save**: serialize the canvas to YAML, validate server-side (errors shown by path), and
       persist by flow id; node positions + all fields round-trip through the YAML.
-- [ ] **Editor meta bar** (FEAT-003): edit the flow **description**, toggle **Expose as /slash** +
-      set the slash name inline, and **Import / Export / View YAML** — all from the editor's top
-      bar. Controls center-align with the description input.
+- [ ] **Editor meta bar** (FEAT-003): edit the flow **description** and access **Import / Export /
+      Edit YAML** from the editor's top bar. **Slash exposure + the slash name (and the /slash pill)
+      are NOT in the editor** — they are managed only on the flow card in the list (which owns the
+      immediate `/slash-exposure` mutation), so the editor's Save can't clobber a card-set exposure.
+- [ ] **Editable YAML editor** (the "YAML" button): a CodeMirror YAML editor seeded with the
+      current canvas. **Validate** runs server-side validation and lists issues by path in a
+      **collapsible errors block**; **Apply to Canvas** parses the edited YAML and replaces the
+      canvas (marking it dirty) but does NOT persist — so a document with issues that can only be
+      fixed on the canvas (e.g. a placeholder MCP connector id) can still be applied, finished in
+      the node panels, then Saved. Malformed YAML is reported (it never silently wipes the canvas).
+      The sheet is **horizontally resizable** (drag the left edge) for long lines.
 - [ ] **Save / Cancel footer**: Save (validate → persist) and Cancel (reset + navigate back) in a
       footer bar at the bottom of the editor, matching the Agent form footer pattern. An
       **Unsaved / Saved pill** sits in the identity row next to the api_name pill.
@@ -45,10 +57,10 @@ Shipped in two phases on one branch:
       macOS overlay traffic lights (CF-019).
 
 **Non-Goals (deferred — see §6)**
-- A standalone **live editable YAML / source** view (the web app's is read-only too — not a parity
-  item). **Import/export of YAML is shipped** (FEAT-003): import replaces the canvas, export
-  downloads `<api_name>.yaml`. UI for node **reducers** is still deferred (web app has no UI either;
-  data round-trips).
+- **Import/export + an editable YAML editor are shipped** (FEAT-003): import replaces the canvas,
+  export downloads `<api_name>.yaml`, and the "YAML" button opens an editable CodeMirror editor with
+  Validate + Apply-to-Canvas (the editor does NOT persist — Save stays the single persistence path).
+  UI for node **reducers** is still deferred (web app has no UI either; data round-trips).
 - Running a flow / slash dispatch / HITL forms in chat (deferred — pragna2-tracker TD-013, pragna2-tracker TD-014).
 
 > **Now shipped (pragna2-tracker TD-021, 2026-06-10):** dynamic-dispatch fan-out editing
