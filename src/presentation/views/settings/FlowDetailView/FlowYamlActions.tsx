@@ -12,6 +12,7 @@
 
 import { useRef, useState } from 'react';
 import { Download, Eye, Upload } from 'lucide-react';
+import { load as loadYaml } from 'js-yaml';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -92,6 +93,23 @@ export function FlowYamlActions({ apiName }: Props) {
   }
 
   function confirmImport() {
+    // Parse-guard FIRST: buildEditorGraph SWALLOWS YAML syntax errors (yielding
+    // an empty graph), so without this a malformed paste would silently REPLACE
+    // the canvas with nothing instead of erroring. Reject malformed / non-mapping
+    // YAML here so the FLW_010 alert shows and the canvas is left untouched
+    // (pragna2-tracker #187; mirrors FlowYamlEditorSheet's Apply-to-Canvas).
+    let parsed: unknown;
+    try {
+      parsed = loadYaml(importText);
+    } catch (err) {
+      logger.fromError('FLW_010:import', err instanceof Error ? err : new Error(String(err)));
+      setImportError(ERRORS.FLW_010.message);
+      return;
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      setImportError(ERRORS.FLW_010.message);
+      return;
+    }
     try {
       const graph = buildEditorGraph(importText);
       hydrate(graph);
