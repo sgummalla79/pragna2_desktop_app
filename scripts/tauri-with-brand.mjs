@@ -11,9 +11,18 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve, relative } from 'node:path';
 import { applyBranding } from './apply-branding.mjs';
 import { runPnpm } from './run-pnpm.mjs';
+import { freeDevPorts } from './free-dev-ports.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const passthroughArgs = process.argv.slice(2); // e.g. ["build"] or ["dev", "--", ...]
+
+// `dev` uses Vite's strictPort (:1420); a leftover instance makes it fail with
+// "Port 1420 is already in use". Free the dev ports first so `pnpm tauri:brand
+// dev` is self-cleaning (the brand-path equivalent of `pnpm dev:clean`). Only
+// for `dev` — `build` has no dev server to clear.
+if (passthroughArgs.includes('dev')) {
+  freeDevPorts();
+}
 
 const brandConfPath = await applyBranding();
 const args = ['exec', 'tauri', ...passthroughArgs];
