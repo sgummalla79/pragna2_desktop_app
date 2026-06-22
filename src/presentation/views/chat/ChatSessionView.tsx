@@ -475,7 +475,7 @@ function ChatConversation({
       {/* Messages. */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6">
-          {groups.map((g) =>
+          {groups.map((g, i) =>
             g.kind === 'message' ? (
               <div key={g.message.id}>
                 {renderMessage(g.message, { hideReasoning: false })}
@@ -488,6 +488,10 @@ function ChatConversation({
                 hasAttachment={(id) => (attachmentsByMessageId.get(id)?.length ?? 0) > 0}
                 streaming={g.messages[0].id === streamingTurnKey}
                 progressLabel={progressLabel}
+                // The error state belongs to the latest run, so only the last
+                // turn is the failed one — suppress its benign "no reply" notice
+                // in favour of the error banner below (#191).
+                runFailed={status === 'error' && i === groups.length - 1}
               />
             ),
           )}

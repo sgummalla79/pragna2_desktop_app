@@ -25,6 +25,14 @@ interface AssistantTurnProps {
   streaming: boolean;
   /** Live progress label for the streaming turn's umbrella header. */
   progressLabel?: string | null;
+  /**
+   * True when THIS turn's run FAILED (the conversation is in an error state and
+   * the global error banner explains why). Suppresses the benign "no reply"
+   * notice so a failed run — e.g. a flow that aborted on the step limit — is not
+   * mistaken for the assistant simply choosing not to answer (pragna2-tracker
+   * #191). Only the last/current turn is ever marked failed.
+   */
+  runFailed?: boolean;
 }
 
 type ActivityStep =
@@ -47,6 +55,7 @@ export function AssistantTurn({
   hasAttachment,
   streaming,
   progressLabel,
+  runFailed,
 }: AssistantTurnProps) {
   const answerId = answerMessageId(messages);
 
@@ -89,8 +98,12 @@ export function AssistantTurn({
   // transcript — `answerMessageId` was null (empty final message) and there's no
   // output card. Without a fallback the body is blank, so the user has no signal
   // the tool ran (#156; the empty reply itself is the BE bug #155). Render a
-  // subtle notice. Suppressed while streaming (the answer may still be arriving).
-  const showNoReplyNotice = !streaming && outside.length === 0 && steps.length > 0;
+  // subtle notice. Suppressed while streaming (the answer may still be arriving),
+  // AND when the run FAILED (#191) — a failed run is an error, not an empty
+  // answer, so the benign "no reply" wording would mislead; the global error
+  // banner is the correct signal there.
+  const showNoReplyNotice =
+    !streaming && !runFailed && outside.length === 0 && steps.length > 0;
 
   return (
     <div className="flex flex-col gap-1.5">
