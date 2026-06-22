@@ -11,6 +11,14 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-035 — A FAILED run showed the benign "no reply" notice instead of reading as an error (pragna2-tracker #191)
+
+- **Date:** 2026-06-22
+- **Area / file:** `src/presentation/views/chat/components/AssistantTurn.tsx`, `src/presentation/views/chat/ChatSessionView.tsx`.
+- **Bug + root cause:** When an assistant/flow run **failed** (e.g. a flow episode aborting on the LangGraph step limit → HTTP 500), `useChatSession` correctly set `status: 'error'` + an `error` message and the global error banner rendered — but `AssistantTurn` had no access to that state, so its completed-turn fallback still rendered `NO_REPLY_NOTICE` ("The assistant returned no reply…"). That conflated a **failed run** with a benign **empty reply** (the #155/#156 case), so the user read "no reply" and assumed the model declined, when the run had actually crashed.
+- **Fix:** Thread a `runFailed` flag into `AssistantTurn` — `status === 'error'` scoped to the **last** turn (the error belongs to the latest run; older empty turns keep their legitimate notice). `showNoReplyNotice` now also requires `!runFailed`, so a failed turn shows its activity umbrella but not the misleading notice; the existing global error banner remains the failure signal (no duplicate messaging). Regression test added (same tools-only-empty shape with `runFailed` → notice suppressed).
+- **Web-app applicability:** **Likely** — the web app shares `AssistantTurn` + the `NO_REPLY_NOTICE` pattern and the `status: 'error'` session model; apply the same `runFailed` suppression there (track under web-fe). A richer per-turn error message (vs. relying on the banner) is deferred to BE #190 surfacing a clean failure reason.
+
 ## CF-034 — Importing malformed YAML silently wipes the flow canvas instead of erroring (pragna2-tracker #187)
 
 - **Date:** 2026-06-22
