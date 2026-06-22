@@ -67,9 +67,7 @@ const PKG_VERSION: string = readFileSync(
   "utf-8",
 ).trim();
 
-// @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
-// @ts-expect-error process is a nodejs global
 const apiTarget = process.env.VITE_API_PROXY_TARGET || "http://localhost:8000";
 
 // satori (bundled by @sgummalla-works/sketchon for the browser diagram renderer)
