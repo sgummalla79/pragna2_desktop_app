@@ -11,6 +11,14 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-031 — `tsc -b` build fails on `Releases/V1` — stale `@ts-expect-error` directives in `vite.config.ts` (pragna2-tracker #177)
+
+- **Date:** 2026-06-21
+- **Area / file:** `vite.config.ts:70`, `:72`.
+- **Bug + root cause:** Two `// @ts-expect-error process is a nodejs global` directives guarded the `process.env.TAURI_DEV_HOST` / `process.env.VITE_API_PROXY_TARGET` accesses. The underlying type issue they suppressed no longer occurs (`process` is now resolved via the available Node types in the config's type context), so each directive suppresses nothing and TypeScript raises `TS2578: Unused '@ts-expect-error' directive`. Because `tsc -b` (the real build/typecheck) treats that as an error, the build exits non-zero on a clean `origin/Releases/V1` tree — pre-existing, not introduced by recent work.
+- **Fix:** Removed both stale `@ts-expect-error` directives. TS2578 only fires when there is no underlying error to suppress, so removal is safe — confirmed `npx tsc -b` exits 0 afterward.
+- **Web-app applicability:** **Check** — `pragna2_sgummalla_works` has its own `vite.config.ts`. If it carries the same `@ts-expect-error process …` directives over `process.env` access, it likely has the identical stale-directive build failure; remove them there too (track under web-fe).
+
 ## CF-030 — tool-only turn renders a blank body when the final assistant message is empty (pragna2-tracker #156)
 
 - **Date:** 2026-06-19
