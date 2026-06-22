@@ -11,6 +11,14 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-039 — Windows app icon appears square (no rounded corners) (pragna2-tracker #198)
+
+- **Date:** 2026-06-22
+- **Area / file:** `src-tauri/build.rs`; `src-tauri/icons/icon.ico`, `32x32.png`, `64x64.png`, `128x128.png`, `128x128@2x.png`; `branding.salesforce/icon.png`
+- **Bug + root cause:** Two separate issues combined to produce the square icon: (1) `branding.salesforce/icon.png` (and the default icon PNGs/ICO) were RGB with no alpha channel — the blue background extended to sharp square corners with no transparency. (2) `build.rs` only declared `cargo:rerun-if-changed` for `tauri.conf.json` and `tauri.windows.conf.json`, not for the `.ico` files. Cargo therefore reused the stale cached `resource.lib` (with the old embedded icon) even after the icon on disk was updated — the new `.ico` was never compiled into the binary until `tauri.conf.json` was separately touched.
+- **Fix:** Applied a 17% rounded-rectangle alpha mask to `branding.salesforce/icon.png`, converting it from RGB to RGBA with transparent corners. Regenerated all `src-tauri/icons` PNGs and `icon.ico` from the same fixed source. Added `cargo:rerun-if-changed=icons/icon.ico` and `cargo:rerun-if-changed=icons-brand/icon.ico` in `build.rs` so future icon regeneration automatically triggers a Rust recompile and re-embed.
+- **Web-app applicability:** **No** — the web app has no `.ico` or Tauri resource embedding; this is desktop-only.
+
 ## CF-036 — Generated PDF opens to a BLANK viewer window (macOS WKWebView) (pragna2-tracker #195)
 
 - **Date:** 2026-06-22
