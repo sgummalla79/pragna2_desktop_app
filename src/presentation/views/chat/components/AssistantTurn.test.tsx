@@ -88,6 +88,25 @@ describe('AssistantTurn', () => {
     expect(screen.getByText(NO_REPLY_NOTICE)).toBeInTheDocument();
   });
 
+  it('#191: suppresses the no-reply notice when the run FAILED (error banner is the signal)', () => {
+    // Same shape as the tools-only empty turn above (which DOES show the notice),
+    // but runFailed=true → a failed run is an error, not an empty answer, so the
+    // benign "no reply" wording must not show.
+    render(
+      <AssistantTurn
+        messages={[msg({ id: 'a1', content: 'searching', toolCalls: [tool('mcp_tavily_tavily_search')] })]}
+        renderMessage={renderMessage}
+        hasAttachment={noAttachments}
+        streaming={false}
+        runFailed
+      />,
+    );
+    // Umbrella still renders (the work that ran is shown)…
+    expect(screen.getByText('Tavily Search')).toBeInTheDocument();
+    // …but NOT the misleading no-reply notice.
+    expect(screen.queryByText(NO_REPLY_NOTICE)).toBeNull();
+  });
+
   it('#156: renders the no-reply notice when a completed turn ends with an empty final message after a tool call', () => {
     render(
       <AssistantTurn
