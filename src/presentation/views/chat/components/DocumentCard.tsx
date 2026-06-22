@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Download, FileText } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { downloadBlob } from '@/lib/download';
+import { saveBytes } from '@/infrastructure/platform';
 import { isPdfType } from '@/constants/attachments';
 import { useServices } from '@/presentation/providers/ServiceContext';
 import { logger } from '@/infrastructure/logging/logger';
@@ -36,9 +37,14 @@ export function DocumentCard({ attachment, onOpen }: DocumentCardProps) {
     setDownloading(true);
     try {
       const blob = await attachmentService.fetchContent(attachment.id);
-      downloadBlob(blob, filename);
+      // Native Save As in Tauri (the webview's `<a download>` is a no-op in
+      // WKWebView); blob-anchor download in a plain browser. `saved === false`
+      // means the user cancelled the dialog — not an error, so stay silent.
+      const outcome = await saveBytes(blob, filename);
+      if (outcome.saved) toast.success(`Saved ${name}`);
     } catch (err: unknown) {
       logger.fromError('attachment:download:failed', err, { id: attachment.id });
+      toast.error(`Couldn’t save ${name}`);
     } finally {
       setDownloading(false);
     }
