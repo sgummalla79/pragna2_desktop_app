@@ -9,9 +9,22 @@ import { AttachmentViewer } from './AttachmentViewer';
 /**
  * AttachmentViewer fetches bytes via `useAttachmentBlob` (which calls
  * `attachmentService.fetchContent`) and branches on content type: image →
- * <img>, pdf → <iframe>, else → a download link. Loading/error/expired states
- * are also covered. The blob URL machinery (createObjectURL) is stubbed below.
+ * <img>, pdf → a lazily-loaded canvas viewer, else → a download button. Saving
+ * routes through the platform `saveBytes`. Loading/error/expired states are also
+ * covered. The heavy pdf.js viewer and `saveBytes` are mocked; the blob URL
+ * machinery (createObjectURL) is stubbed below.
  */
+vi.mock('./PdfCanvasViewer', () => ({
+  PdfCanvasViewer: ({ blob }: { blob: Blob }) => (
+    <div data-testid="pdf-canvas" data-has-blob={String(Boolean(blob))} />
+  ),
+}));
+
+const saveBytesMock = vi.fn().mockResolvedValue({ saved: true });
+vi.mock('@/infrastructure/platform', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/infrastructure/platform')>()),
+  saveBytes: (...a: unknown[]) => saveBytesMock(...a),
+}));
 
 const base: Attachment = {
   id: 'a1',
@@ -64,7 +77,7 @@ describe('AttachmentViewer', () => {
     expect(img).toHaveAttribute('src', 'blob:viewer');
   });
 
-  it('renders a PDF in an <iframe> with the toolbar suppressed', async () => {
+  it('renders a PDF through the canvas viewer (not a blob iframe)', async () => {
     const { Wrapper } = wrap();
     render(
       <AttachmentViewer
@@ -73,16 +86,13 @@ describe('AttachmentViewer', () => {
       />,
       { wrapper: Wrapper },
     );
-    // <iframe title=...> is exposed; assert via its title.
-    await waitFor(() => {
-      const frame = document.querySelector('iframe');
-      expect(frame).not.toBeNull();
-      expect(frame).toHaveAttribute('src', 'blob:viewer#toolbar=0');
-      expect(frame).toHaveAttribute('title', 'doc.pdf');
-    });
+    const canvas = await screen.findByTestId('pdf-canvas');
+    expect(canvas).toHaveAttribute('data-has-blob', 'true');
+    // The old blank-in-WKWebView blob iframe must be gone.
+    expect(document.querySelector('iframe')).toBeNull();
   });
 
-  it('offers a download link for an unpreviewable content type', async () => {
+  it('offers a native-save download button for an unpreviewable content type', async () => {
     const { Wrapper } = wrap();
     render(
       <AttachmentViewer
@@ -94,9 +104,11 @@ describe('AttachmentViewer', () => {
     expect(
       await screen.findByText("Preview isn’t available for this file type."),
     ).toBeInTheDocument();
-    const link = screen.getByRole('link', { name: /Download notes\.txt/ });
-    expect(link).toHaveAttribute('href', 'blob:viewer');
-    expect(link).toHaveAttribute('download', 'notes.txt');
+    const button = screen.getByRole('button', { name: /Download notes\.txt/ });
+    await userEvent.click(button);
+    await waitFor(() =>
+      expect(saveBytesMock).toHaveBeenCalledWith(expect.any(Blob), 'notes.txt'),
+    );
   });
 
   it('shows the expired placeholder and never fetches when expired', () => {

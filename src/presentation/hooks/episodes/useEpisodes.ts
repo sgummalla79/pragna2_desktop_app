@@ -11,6 +11,7 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useServices } from '@/presentation/providers/ServiceContext';
+import { OPEN_EPISODE_ACTIVE_POLL_MS } from '@/constants/episodes';
 import type { EpisodeSnapshot } from '@/domain/types/episode.types';
 
 /** Query key for "is there an open episode on this conversation?". */
@@ -30,8 +31,11 @@ export function openEpisodeQueryKey(conversationId: string | undefined) {
  *
  * Disabled when `conversationId` is falsy (a brand-new chat has no episode yet).
  * A 404 (delete/navigate race, or no conversation) resolves to `null`, not an
- * error. Not polled — invalidate explicitly from the run-settle transition
- * ({@link useRefetchOpenEpisodeOnSettle}) and episode mutations.
+ * error. The run-settle transition ({@link useRefetchOpenEpisodeOnSettle}) and
+ * episode mutations still invalidate it explicitly; additionally, while the
+ * returned episode is `active` (e.g. a `create_pdf_long` document generating in
+ * the background) the query polls on {@link OPEN_EPISODE_ACTIVE_POLL_MS} so the
+ * `active` → terminal transition is observed without a manual chat switch.
  */
 export function useOpenEpisode(conversationId: string | undefined) {
   const { episodeService } = useServices();
@@ -54,5 +58,9 @@ export function useOpenEpisode(conversationId: string | undefined) {
     },
     enabled: Boolean(conversationId),
     staleTime: 30_000,
+    // Poll only while a background episode is actively generating; an idle/paused
+    // (`awaiting_user`) or absent (`null`) episode does not need polling.
+    refetchInterval: (query) =>
+      query.state.data?.status === 'active' ? OPEN_EPISODE_ACTIVE_POLL_MS : false,
   });
 }

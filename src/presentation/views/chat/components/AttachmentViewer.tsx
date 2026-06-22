@@ -1,9 +1,18 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Download, Loader2, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { isImageType, isPdfType } from '@/constants/attachments';
 import type { Attachment } from '@/domain/types/attachment.types';
 import { useOverlayTitleBarInset } from '@/presentation/hooks/useOverlayTitleBarInset';
+import { saveBytes } from '@/infrastructure/platform';
+import { logger } from '@/infrastructure/logging/logger';
 import { useAttachmentBlob } from '../hooks/useAttachmentBlob';
+
+// Lazily loaded so the heavy pdf.js bundle is fetched only when a PDF is actually
+// viewed (and stays out of the synchronous module graph / main chunk).
+const PdfCanvasViewer = lazy(() =>
+  import('./PdfCanvasViewer').then((m) => ({ default: m.PdfCanvasViewer })),
+);
 
 interface AttachmentViewerProps {
   /** The attachment to view, or `null` (closed). */
@@ -18,11 +27,31 @@ interface AttachmentViewerProps {
  * download link. Closes on backdrop click or Escape.
  */
 export function AttachmentViewer({ attachment, onClose }: AttachmentViewerProps) {
-  const { url, loading, error } = useAttachmentBlob(attachment?.id ?? null);
+  const { url, blob, loading, error } = useAttachmentBlob(attachment?.id ?? null);
+  const [saving, setSaving] = useState(false);
   // Clear the macOS overlay traffic lights (full-screen overlay, top-left
   // header). No-op off macOS-overlay chrome. Called before the early return to
   // keep hook order stable.
   const headerInset = useOverlayTitleBarInset();
+
+  /**
+   * Save the open attachment. Routes through the platform `saveBytes` (native
+   * Save As in Tauri; blob-anchor download in a plain browser) — the prior bare
+   * `<a download>` was a silent no-op in macOS WKWebView.
+   */
+  const handleSave = async () => {
+    if (!blob || !attachment || saving) return;
+    setSaving(true);
+    try {
+      const outcome = await saveBytes(blob, attachment.filename);
+      if (outcome.saved) toast.success(`Saved ${attachment.filename}`);
+    } catch (err: unknown) {
+      logger.fromError('attachment:viewer:save:failed', err, { id: attachment.id });
+      toast.error(`Couldn’t save ${attachment.filename}`);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (!attachment) return;
@@ -54,14 +83,15 @@ export function AttachmentViewer({ attachment, onClose }: AttachmentViewerProps)
         <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
           {attachment.filename}
         </span>
-        {url && (
-          <a
-            href={url}
-            download={attachment.filename}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[12px] text-foreground hover:bg-accent"
+        {blob && (
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[12px] text-foreground hover:bg-accent disabled:opacity-60"
           >
-            <Download size={13} aria-hidden /> Download
-          </a>
+            <Download size={13} aria-hidden /> {saving ? 'Saving…' : 'Download'}
+          </button>
         )}
         <button
           type="button"
@@ -90,24 +120,25 @@ export function AttachmentViewer({ attachment, onClose }: AttachmentViewerProps)
             alt={attachment.filename}
             className="max-h-full max-w-full rounded-md object-contain"
           />
-        ) : pdf ? (
-          <iframe
-            src={`${url}#toolbar=0`}
-            title={attachment.filename}
-            className="h-full w-full rounded-md border-0 bg-background"
-          />
+        ) : pdf && blob ? (
+          <Suspense
+            fallback={<Loader2 size={28} className="animate-spin text-muted" aria-hidden />}
+          >
+            <PdfCanvasViewer blob={blob} className="rounded-md" />
+          </Suspense>
         ) : (
           <div className="flex flex-col items-center gap-3 text-center">
             <p className="text-sm text-muted-foreground">
               Preview isn’t available for this file type.
             </p>
-            <a
-              href={url}
-              download={attachment.filename}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[13px] text-primary-foreground hover:bg-primary/90"
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[13px] text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
             >
-              <Download size={14} aria-hidden /> Download {attachment.filename}
-            </a>
+              <Download size={14} aria-hidden /> {saving ? 'Saving…' : `Download ${attachment.filename}`}
+            </button>
           </div>
         )}
       </div>
