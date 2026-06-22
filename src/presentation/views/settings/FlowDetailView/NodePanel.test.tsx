@@ -165,6 +165,18 @@ describe('NodePanel', () => {
     expect(ids).toContain('researcher');
   });
 
+  it('presents the chat model as optional with an inherit-conversation-model hint', () => {
+    // pragna2-tracker #185 / BE #184: the per-node model is optional; a blank
+    // model inherits the conversation's selected model at run time.
+    hydrate([agentNode('researcher')], 'researcher'); // userModel: '' (blank)
+    renderWithProviders(<NodePanel />, { services: services([model()]) });
+
+    expect(screen.getByText('Model (optional)')).toBeInTheDocument();
+    expect(
+      screen.getByText(/whatever model the conversation has selected/i),
+    ).toBeInTheDocument();
+  });
+
   it('shows the "no flow-eligible models" hint when none qualify', () => {
     hydrate([agentNode('researcher')], 'researcher');
     // Model exists but not available for flows -> filtered out.

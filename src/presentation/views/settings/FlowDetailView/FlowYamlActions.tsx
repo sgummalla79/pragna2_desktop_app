@@ -33,6 +33,7 @@ import {
 import { logger } from '@/infrastructure/logging/logger';
 
 import { buildEditorGraph } from './buildEditorGraph';
+import { FlowYamlEditorSheet } from './FlowYamlEditorSheet';
 import { graphToYaml } from './graphToYaml';
 import { useFlowEditorStore } from './useFlowEditorStore';
 
@@ -41,7 +42,7 @@ interface Props {
   apiName: string;
 }
 
-/** Import / Export / View-YAML buttons (+ their Sheet flyouts) for the flow editor toolbar. */
+/** Import / Export / Edit-YAML buttons (+ their Sheet flyouts) for the flow editor toolbar. */
 export function FlowYamlActions({ apiName }: Props) {
   const hydrate = useFlowEditorStore((s) => s.hydrate);
   const markDirty = useFlowEditorStore((s) => s.markDirty);
@@ -134,7 +135,7 @@ export function FlowYamlActions({ apiName }: Props) {
         variant="outline"
         size="xs"
         onClick={openYaml}
-        title="View the current canvas as YAML"
+        title="Edit the flow as YAML (validate + save)"
       >
         <Eye size={13} aria-hidden="true" /> YAML
       </Button>
@@ -197,10 +198,17 @@ export function FlowYamlActions({ apiName }: Props) {
             </Button>
           </div>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex min-h-0 flex-1 flex-col gap-1.5">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               — or paste YAML —
             </span>
+            {/* Bounded, scrollable paste area (mirrors the YAML view sheet's
+                `min-h-0 flex-1 overflow-y-auto` region). `field-sizing-fixed`
+                overrides the Textarea's default `field-sizing-content`, which
+                would otherwise grow the textarea to fit pasted content with no
+                max height — pushing the footer off-screen with no scrollbar so a
+                large YAML could not be imported. Fixed sizing + `flex-1`/`min-h-0`
+                makes it fill the available height and scroll internally instead. */}
             <Textarea
               value={importText}
               onChange={(e) => {
@@ -209,7 +217,7 @@ export function FlowYamlActions({ apiName }: Props) {
               }}
               placeholder={`api_name: my-flow\ndisplay_name: My Flow\ndescription: …\nnodes: …`}
               rows={10}
-              className="resize-y font-mono text-xs"
+              className="field-sizing-fixed min-h-0 flex-1 resize-none overflow-auto font-mono text-xs"
               aria-label="YAML document"
             />
             {importError && (
@@ -240,44 +248,13 @@ export function FlowYamlActions({ apiName }: Props) {
         </SheetContent>
       </Sheet>
 
-      {/* ── YAML view sheet ─────────────────────────────────────────────── */}
-      <Sheet open={yamlOpen} onOpenChange={setYamlOpen}>
-        <SheetContent className="z-[400] sm:max-w-xl" overlayClassName="z-[399]">
-          <SheetHeader>
-            <SheetTitle>Flow YAML</SheetTitle>
-            <SheetDescription>
-              Read-only view of the current canvas serialised as YAML. Use
-              Export to download it, or Import to replace the canvas.
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="min-h-0 flex-1 overflow-y-auto rounded-md border border-border bg-background">
-            <pre className="whitespace-pre-wrap break-all px-3 py-2 font-mono text-xs text-foreground">
-              {yamlText}
-            </pre>
-          </div>
-
-          <SheetFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setYamlOpen(false)}
-            >
-              Close
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-            >
-              <Download size={13} aria-hidden="true" className="mr-1" />
-              Download
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+      {/* ── Editable YAML sheet ─────────────────────────────────────────── */}
+      <FlowYamlEditorSheet
+        open={yamlOpen}
+        onOpenChange={setYamlOpen}
+        apiName={apiName}
+        initialYaml={yamlText}
+      />
     </>
   );
 }

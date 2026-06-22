@@ -9,9 +9,10 @@ import { FlowMetaBar } from './FlowMetaBar';
 
 /**
  * FlowMetaBar owns the editor's top control bar. Tests cover its own logic:
- * graph-meta edits flow into the store (Save-gated) and the "description
- * required before exposing" hint. Save / Cancel live in FlowEditor's footer;
- * Enabled/Disabled lives on the flow card on the main flows list.
+ * the Description edit flows into the store (Save-gated). Slash exposure + the
+ * slash name (and the /slash pill) are managed on the flow card on the main
+ * list — NOT in the editor — so the bar must not render them. Save / Cancel
+ * live in FlowEditor's footer; Enabled/Disabled lives on the flow card.
  */
 
 function makeFlow(over: Partial<Flow> = {}): Flow {
@@ -79,14 +80,19 @@ describe('FlowMetaBar', () => {
     expect(useFlowEditorStore.getState().meta.description).toBe('Researches accounts');
   });
 
-  it('warns that a description is required when exposing without one', async () => {
-    seedMeta({ description: null, exposedAsSlash: false });
+  it('does not render slash-exposure controls — they live on the flow card', () => {
+    seedMeta({ exposedAsSlash: true, slashApiName: 'do-research' });
     renderWithProviders(
-      <FlowMetaBar flow={makeFlow()} dirty={false} />,
+      <FlowMetaBar
+        flow={makeFlow({ exposedAsSlash: true, slashApiName: 'do-research' })}
+        dirty={false}
+      />,
       { services: services() },
     );
-    await userEvent.click(screen.getByRole('checkbox', { name: /Expose as \/slash/ }));
-    expect(screen.getByText(/Add a description before exposing/)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', { name: /Expose as \/slash/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Slash name')).not.toBeInTheDocument();
   });
 
   it('shows Unsaved pill when dirty, Saved pill when clean', () => {
@@ -100,7 +106,7 @@ describe('FlowMetaBar', () => {
     expect(screen.getByText('Unsaved')).toBeInTheDocument();
   });
 
-  it('shows the flow identity (name + api_name pill, slash pill when exposed)', () => {
+  it('shows the flow identity (name + api_name pill) but no slash pill', () => {
     seedMeta();
     renderWithProviders(
       <FlowMetaBar
@@ -111,6 +117,7 @@ describe('FlowMetaBar', () => {
     );
     expect(screen.getByText('Research')).toBeInTheDocument(); // display name
     expect(screen.getByText('research')).toBeInTheDocument(); // api_name pill
-    expect(screen.getByText('/do-research')).toBeInTheDocument(); // slash pill
+    // Slash exposure is shown on the flow card, not in the editor.
+    expect(screen.queryByText('/do-research')).not.toBeInTheDocument();
   });
 });

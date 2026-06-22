@@ -83,6 +83,24 @@ describe('FlowYamlActions — import', () => {
     expect(useFlowEditorStore.getState().dirty).toBe(true);
   });
 
+  it('bounds the paste area so a large YAML scrolls instead of overflowing', async () => {
+    // Regression: the Textarea base class is `field-sizing-content`, which grows
+    // the control to fit pasted content with no max height — a large YAML pushed
+    // the footer off-screen with no scrollbar, so it could not be imported. The
+    // paste area must override to fixed sizing and scroll within a bounded,
+    // flex-growing region (mirroring the YAML view sheet).
+    renderWithProviders(<FlowYamlActions apiName="research" />);
+    await userEvent.click(screen.getByRole('button', { name: /Import/ }));
+
+    const textarea = screen.getByLabelText('YAML document');
+    expect(textarea).toHaveClass('field-sizing-fixed');
+    expect(textarea).toHaveClass('overflow-auto');
+    expect(textarea).toHaveClass('flex-1');
+    expect(textarea).toHaveClass('min-h-0');
+    // The auto-grow default must not survive the className merge.
+    expect(textarea).not.toHaveClass('field-sizing-content');
+  });
+
   it('shows an error and leaves the canvas untouched on a malformed document', async () => {
     buildEditorGraph.mockImplementation(() => {
       throw new Error('bad yaml');
