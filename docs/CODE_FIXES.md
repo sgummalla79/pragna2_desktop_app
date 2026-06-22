@@ -11,6 +11,14 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-034 — Importing malformed YAML silently wipes the flow canvas instead of erroring (pragna2-tracker #187)
+
+- **Date:** 2026-06-22
+- **Area / file:** `src/presentation/views/settings/FlowDetailView/FlowYamlActions.tsx` (`confirmImport`); root in `buildEditorGraph.ts`.
+- **Bug + root cause:** `buildEditorGraph(yamlText)` wraps its `yaml.load` in `try { … } catch { /* keep doc = {} */ }` (`buildEditorGraph.ts` ~L135–142), so malformed YAML never throws — it returns an empty graph. `confirmImport` relied on `buildEditorGraph` throwing to show the `FLW_010` "couldn't read that YAML" alert; because it swallows, pasting/dropping a syntactically broken document **silently replaced the canvas with an empty graph** (data loss) instead of erroring.
+- **Fix:** Parse-guard `confirmImport` with `js-yaml`'s `load` BEFORE calling `buildEditorGraph` — on a thrown `YAMLException` or a non-mapping result, show `FLW_010` and return without hydrating, leaving the canvas untouched. Mirrors the guard already in `FlowYamlEditorSheet`'s Apply-to-Canvas (CF-033 batch). Regression test added (a YAML syntax error short-circuits before `buildEditorGraph` and leaves the canvas untouched).
+- **Web-app applicability:** **Likely** — the web app shares `buildEditorGraph` (same swallow) and a YAML import path; a malformed import there silently wipes the canvas too. Add the same parse-guard (track under web-fe). A deeper fix would be to stop swallowing in `buildEditorGraph` itself, but that changes its contract for the other callers (e.g. `FlowEditor` hydration), so the call-site guard is the targeted fix.
+
 ## CF-033 — Dialogs opened inside the flow editor are invisible/unclickable ("dead" MCP & Knowledge panel buttons) (pragna2-tracker #189; blocks #41)
 
 - **Date:** 2026-06-22

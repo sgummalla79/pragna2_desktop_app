@@ -114,4 +114,21 @@ describe('FlowYamlActions — import', () => {
     // Canvas not replaced.
     expect(useFlowEditorStore.getState().meta.apiName).not.toBe('imported');
   });
+
+  it('rejects a YAML SYNTAX error before touching the canvas (parse guard, #187)', async () => {
+    // Regression #187: buildEditorGraph swallows YAML syntax errors (→ empty
+    // graph), so a malformed paste used to silently REPLACE the canvas with
+    // nothing. The parse guard must short-circuit BEFORE buildEditorGraph and
+    // leave the canvas untouched.
+    buildEditorGraph.mockReturnValue(FAKE_GRAPH);
+    renderWithProviders(<FlowYamlActions apiName="research" />);
+    await userEvent.click(screen.getByRole('button', { name: /Import/ }));
+    // Unterminated double-quoted scalar — js-yaml throws on this.
+    await userEvent.type(screen.getByLabelText('YAML document'), 'api_name: "unterminated');
+    await userEvent.click(screen.getByRole('button', { name: 'Replace canvas' }));
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(buildEditorGraph).not.toHaveBeenCalled(); // guard short-circuited
+    expect(useFlowEditorStore.getState().meta.apiName).not.toBe('imported');
+  });
 });
