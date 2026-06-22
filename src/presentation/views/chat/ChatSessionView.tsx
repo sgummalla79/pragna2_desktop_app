@@ -31,6 +31,7 @@ import {
 } from '@/constants/windowChrome';
 import { useUiStore } from '@/presentation/store/uiStore';
 import { useRefetchOpenEpisodeOnSettle } from './hooks/useRefetchOpenEpisodeOnSettle';
+import { useSurfaceFinishedEpisode } from './hooks/useSurfaceFinishedEpisode';
 import { useChatModels } from './hooks/useChatModels';
 import { useChatPreferences } from '@/presentation/hooks/preferences/useChatPreferences';
 import { toast } from 'sonner';
@@ -198,6 +199,10 @@ function ChatConversation({
   // the ack run settles (the doc episode is spawned just before RUN_FINISHED).
   const openEpisode = useOpenEpisode(conversationId);
   useRefetchOpenEpisodeOnSettle(status, conversationId);
+  // Stream-independent safety net: when the polled open-episode leaves `active`
+  // (the background document finished + posted back), refetch messages so the
+  // DocumentCard surfaces without a manual chat switch.
+  useSurfaceFinishedEpisode(openEpisode.data, conversationId);
 
   // Auto-attach to a live/active episode (mount-with-active, or the doc episode
   // discovered on settle). Guarded so we don't double-POST while the open-episode

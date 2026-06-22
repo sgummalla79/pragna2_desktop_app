@@ -13,6 +13,8 @@
     "opener:default",
     "oauth:allow-start",
     "oauth:allow-cancel",
+    "dialog:allow-save",
+    "fs:allow-write-file",
     {
       "identifier": "http:default",
       "allow": [

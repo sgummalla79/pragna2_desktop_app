@@ -11,6 +11,33 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-036 — Generated PDF opens to a BLANK viewer window (macOS WKWebView) (pragna2-tracker #195)
+
+- **Date:** 2026-06-22
+- **Area / file:** `src/presentation/views/chat/components/AttachmentViewer.tsx`; new `src/presentation/views/chat/components/PdfCanvasViewer.tsx`, `src/infrastructure/pdf/pdfjs.ts`; `src/presentation/views/chat/hooks/useAttachmentBlob.ts` (now also returns the raw `Blob`).
+- **Found by:** Manual use — a `create_pdf_long` Salesforce report generated fine on the backend (verified: a valid 41-page PDF, 105,941 bytes, served `/attachments/{id}/content` → 200 OK repeatedly), but opening the card showed a **blank** full-window viewer.
+- **Bug + root cause:** The viewer rendered the PDF as `<iframe src="blob:…#toolbar=0">`. **macOS WKWebView (Tauri's webview) does not render a PDF from a `blob:` URL inside an iframe** — it paints a blank frame. The bytes were correct; the webview simply won't display them this way. (Chromium-based WebView2 on Windows *would* render it, so this is a macOS-specific failure.)
+- **Fix:** Render the PDF to a `<canvas>` with pdf.js (`pdfjs-dist`), which works in every webview. `PdfCanvasViewer` loads the document from the fetched bytes (`getDocument({data})`), renders pages fit-to-width and lazily (IntersectionObserver) so long reports stay light, and is `React.lazy`-loaded so the heavy pdf.js bundle is code-split out of the main chunk and the synchronous module graph. `useAttachmentBlob` now also exposes the raw `Blob` for the renderer. Component test updated to assert the canvas path (no iframe).
+- **Web-app applicability:** **Likely (different webview, same anti-pattern).** The web app runs in a real browser where blob-iframe PDFs *do* render, so it may not show blank — but it shares the `AttachmentViewer`/blob-iframe approach and would benefit from the same robust canvas viewer (and is exposed if ever wrapped in a WKWebView). Track under web-fe.
+
+## CF-037 — PDF/attachment Download button does nothing (silent no-op in WKWebView) (pragna2-tracker #196)
+
+- **Date:** 2026-06-22
+- **Area / file:** `src/presentation/views/chat/components/DocumentCard.tsx`, `src/presentation/views/chat/components/AttachmentViewer.tsx`; new `src/infrastructure/platform/saveFile.ts` (+ `index.ts` re-export); `src-tauri/src/lib.rs`, `src-tauri/Cargo.toml`, `src-tauri/capabilities/default.json`.
+- **Found by:** Manual use — clicking **Download** on a generated PDF did nothing (no file, no error).
+- **Bug + root cause:** Both download paths used a synthetic `<a download>` click on an object URL (`downloadBlob`, and the viewer's `<a href={blobUrl} download>`). **WKWebView ignores the HTML5 `download` attribute on blob anchors**, so the click is a silent no-op. The catch block only logged — no user-facing feedback — so a failure was invisible.
+- **Fix:** New platform-layer `saveBytes(blob, filename)` (the only place allowed to call OS save APIs): in the Tauri runtime it shows a native "Save As" dialog (`@tauri-apps/plugin-dialog` `save()` — which auto-scopes the chosen path) and writes it (`@tauri-apps/plugin-fs` `writeFile`); in a plain browser it falls back to the blob-anchor `downloadBlob`. Gated on `isTauriRuntime()` (not OS) per the Platform Abstraction rule, so the e2e/browser fallback keeps working. `DocumentCard` + `AttachmentViewer` now route downloads through it with success/error **toasts** (cancel is silent). Rust registers the two plugins; capabilities grant `dialog:allow-save` + `fs:allow-write-file`. 5 unit tests in `saveFile.test.ts`.
+- **Web-app applicability:** **Likely partial.** The web app's blob-anchor download works in a real browser, so the *symptom* may be absent there — but the silent-failure (log-only, no toast) error handling is shared and should get user-facing feedback. The native-dialog path is desktop-only. Track under web-fe.
+
+## CF-038 — A finished background (create_pdf_long) document card only appears after switching chats (pragna2-tracker #197)
+
+- **Date:** 2026-06-22
+- **Area / file:** `src/presentation/hooks/episodes/useEpisodes.ts` (`useOpenEpisode`), new `src/presentation/views/chat/hooks/useSurfaceFinishedEpisode.ts`, `src/presentation/views/chat/ChatSessionView.tsx`, new `src/constants/episodes.ts`.
+- **Found by:** Manual use — after a long PDF generated (~6 min in a background episode), the DocumentCard did **not** appear; it showed up only after switching to another chat and back.
+- **Bug + root cause:** `useOpenEpisode` had `staleTime: 30_000` and **no `refetchInterval`** — it was invalidated exactly once (on the chat run's `running→settled` edge, via `useRefetchOpenEpisodeOnSettle`), fetched the now-`active` doc episode, and then **never re-checked while the user stayed on the page**. The only other refresh was `onRunFinalized` from the attached SSE stream, but a multi-minute stream is fragile (can drop before `RUN_FINISHED`). So the `active → completed` transition (and the posted-back PDF message) went unobserved until a chat switch remounted and re-polled.
+- **Fix:** (1) `useOpenEpisode` now polls (`refetchInterval`) on `OPEN_EPISODE_ACTIVE_POLL_MS` **only while** the episode is `active`. (2) New stream-independent `useSurfaceFinishedEpisode` watches the open-episode query and, on the `active → not-active` transition (the query returns `null` once terminal), invalidates the messages + conversation-list queries so the card surfaces on its own. Wired into `ChatSessionView` alongside the existing settle/auto-attach hooks (the auto-attach dedups by episode id, so polling causes no double-stream). 4 unit tests in `useSurfaceFinishedEpisode.test.tsx`.
+- **Web-app applicability:** **Likely affected** — the web app shares `useOpenEpisode` (ported from it) + the `create_pdf_long` background-episode + attach pattern, with the same no-poll behaviour. Apply the same polling + surface-on-close safety net (track under web-fe).
+
 ## CF-035 — A FAILED run showed the benign "no reply" notice instead of reading as an error (pragna2-tracker #191)
 
 - **Date:** 2026-06-22

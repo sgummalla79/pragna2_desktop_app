@@ -95,6 +95,14 @@ pub fn run() {
         // login, /userinfo, signup). Runs in Rust so the webview's CORS policy
         // doesn't apply — works identically in dev and a packaged build.
         .plugin(tauri_plugin_http::init())
+        // Native "Save As" dialog + filesystem write for downloading generated
+        // documents (e.g. a `create_pdf` PDF). The webview's HTML5 `<a download>`
+        // is a no-op in macOS WKWebView, so the FE routes downloads through these
+        // plugins when running in the Tauri runtime (browser fallback still uses
+        // the blob-anchor path). `dialog.save()` auto-scopes the chosen path so
+        // `fs.writeFile()` may write it without a preconfigured fs scope.
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
             greet,
             secure_store_set,
