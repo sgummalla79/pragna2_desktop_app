@@ -41,6 +41,7 @@ import {
 import type { YamlError } from '@/domain/types/flowYaml.types';
 import { logger } from '@/infrastructure/logging/logger';
 import { useValidateFlowYaml } from '@/presentation/hooks/flows/useFlows';
+import { useSheetResize } from '@/presentation/hooks/useSheetResize';
 
 import { buildEditorGraph } from './buildEditorGraph';
 import { FlowYamlErrors } from './FlowYamlErrors';
@@ -71,8 +72,11 @@ export function FlowYamlEditorSheet({ open, onOpenChange, apiName, initialYaml }
   const [draft, setDraft] = useState(initialYaml);
   const [errors, setErrors] = useState<YamlError[]>([]);
   const [banner, setBanner] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
-  const [width, setWidth] = useState<number | null>(null);
-  const [resizing, setResizing] = useState(false);
+  const { width: effectiveWidth, startResize } = useSheetResize(
+    YAML_SHEET_DEFAULT_WIDTH_PX,
+    YAML_SHEET_MIN_WIDTH_PX,
+    YAML_SHEET_EDGE_INSET_PX,
+  );
 
   const busy = validateMutation.isPending;
 
@@ -85,37 +89,6 @@ export function FlowYamlEditorSheet({ open, onOpenChange, apiName, initialYaml }
       setBanner(null);
     }
   }, [open, initialYaml]);
-
-  // Horizontal resize: dragging the left edge widens/narrows the sheet. The
-  // right edge is fixed (right-2.5), so width = (viewport right − inset) − x.
-  useEffect(() => {
-    if (!resizing) return;
-    function onMove(e: PointerEvent) {
-      const cap = window.innerWidth - YAML_SHEET_EDGE_INSET_PX * 2;
-      const desired = window.innerWidth - YAML_SHEET_EDGE_INSET_PX - e.clientX;
-      setWidth(Math.max(Math.min(desired, cap), Math.min(YAML_SHEET_MIN_WIDTH_PX, cap)));
-    }
-    function onUp() {
-      setResizing(false);
-    }
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-    return () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-    };
-  }, [resizing]);
-
-  // Effective width, clamped to the current viewport (so a previously-dragged
-  // wide width still fits after a window shrink).
-  const viewportCap =
-    typeof window !== 'undefined'
-      ? window.innerWidth - YAML_SHEET_EDGE_INSET_PX * 2
-      : YAML_SHEET_DEFAULT_WIDTH_PX;
-  const effectiveWidth = Math.max(
-    Math.min(width ?? YAML_SHEET_DEFAULT_WIDTH_PX, viewportCap),
-    Math.min(YAML_SHEET_MIN_WIDTH_PX, viewportCap),
-  );
 
   const isDark =
     typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
@@ -192,11 +165,7 @@ export function FlowYamlEditorSheet({ open, onOpenChange, apiName, initialYaml }
           role="separator"
           aria-orientation="vertical"
           aria-label="Resize YAML editor"
-          onPointerDown={(e) => {
-            if (e.button !== 0) return;
-            setResizing(true);
-            e.preventDefault();
-          }}
+          onPointerDown={startResize}
           className="absolute inset-y-0 left-0 w-1.5 cursor-ew-resize hover:bg-primary/40"
         />
 

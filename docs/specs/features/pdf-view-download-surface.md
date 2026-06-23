@@ -3,7 +3,7 @@
 > **Status**: Implemented
 > **Author**: Suman Gummalla
 > **Created**: 2026-06-22
-> **Last Updated**: 2026-06-22
+> **Last Updated**: 2026-06-22 (viewer presented as a resizable slide-over Sheet)
 
 ---
 
@@ -19,6 +19,12 @@ native "Save As" dialog, and a finished background document surfaces on its own.
 The root causes were platform limitations of Tauri's macOS webview (WKWebView)
 plus a missing reactive refresh — the backend was healthy throughout (it produced
 and served a valid, complete PDF).
+
+The viewer is presented as a **right-anchored slide-over Sheet** — the same
+floating, resizable rounded panel as the flow YAML editor — rather than a
+full-screen takeover, so the document opens beside the chat and the conversation
+stays in context. Its left edge drags to resize (shared `useSheetResize` hook);
+Escape, the close button, or a backdrop click dismisses it.
 
 ## 2. Goals & Non-Goals
 
@@ -43,7 +49,8 @@ and served a valid, complete PDF).
 
 ## 4. Acceptance Criteria
 
-- [x] Given a PDF attachment, when I open it, then its pages render on canvas (scrollable, fit-to-width), never a blank frame.
+- [x] Given a PDF attachment, when I open it, then it opens as a right-side slide-over Sheet (not full-screen) and its pages render on canvas (scrollable, fit-to-width), never a blank frame.
+- [x] Given the viewer is open, when I drag its left edge, then the panel resizes (clamped to the viewport) and the PDF reflows fit-to-width.
 - [x] Given the viewer is open in Tauri, when I click Download, then a native Save dialog appears and the chosen file is written; a success toast confirms it.
 - [x] Given I cancel the Save dialog, then nothing is written and no error is shown.
 - [x] Given a download fails (e.g. fetch/write error), then an error toast tells me it couldn't be saved (no silent failure).

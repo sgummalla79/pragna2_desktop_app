@@ -7,12 +7,14 @@ import type { Attachment } from '@/domain/types/attachment.types';
 import { AttachmentViewer } from './AttachmentViewer';
 
 /**
- * AttachmentViewer fetches bytes via `useAttachmentBlob` (which calls
- * `attachmentService.fetchContent`) and branches on content type: image →
- * <img>, pdf → a lazily-loaded canvas viewer, else → a download button. Saving
- * routes through the platform `saveBytes`. Loading/error/expired states are also
- * covered. The heavy pdf.js viewer and `saveBytes` are mocked; the blob URL
- * machinery (createObjectURL) is stubbed below.
+ * AttachmentViewer is a right-anchored Sheet (Radix Dialog, content portalled to
+ * document.body — `screen` queries still reach it). It fetches bytes via
+ * `useAttachmentBlob` (`attachmentService.fetchContent`) and branches on content
+ * type: image → <img>, pdf → a lazily-loaded canvas viewer, else → an
+ * unpreviewable notice; a footer Download button saves via the platform
+ * `saveBytes`. Loading/error/expired states are also covered. The heavy pdf.js
+ * viewer and `saveBytes` are mocked; the blob URL machinery (createObjectURL) is
+ * stubbed below.
  */
 vi.mock('./PdfCanvasViewer', () => ({
   PdfCanvasViewer: ({ blob }: { blob: Blob }) => (
@@ -54,12 +56,14 @@ beforeEach(() => {
 });
 
 describe('AttachmentViewer', () => {
-  it('renders nothing when attachment is null (closed)', () => {
+  it('renders no dialog when attachment is null (closed sheet)', () => {
     const { Wrapper, fetchContent } = wrap();
-    const { container } = render(<AttachmentViewer attachment={null} onClose={vi.fn()} />, {
+    render(<AttachmentViewer attachment={null} onClose={vi.fn()} />, {
       wrapper: Wrapper,
     });
-    expect(container).toBeEmptyDOMElement();
+    // A closed Radix sheet mounts no content (portal is empty) and the hook,
+    // passed a null id, never fetches.
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect(fetchContent).not.toHaveBeenCalled();
   });
 
@@ -92,7 +96,7 @@ describe('AttachmentViewer', () => {
     expect(document.querySelector('iframe')).toBeNull();
   });
 
-  it('offers a native-save download button for an unpreviewable content type', async () => {
+  it('shows an unpreviewable notice and a footer Download that saves via saveBytes', async () => {
     const { Wrapper } = wrap();
     render(
       <AttachmentViewer
@@ -104,7 +108,7 @@ describe('AttachmentViewer', () => {
     expect(
       await screen.findByText("Preview isn’t available for this file type."),
     ).toBeInTheDocument();
-    const button = screen.getByRole('button', { name: /Download notes\.txt/ });
+    const button = await screen.findByRole('button', { name: 'Download' });
     await userEvent.click(button);
     await waitFor(() =>
       expect(saveBytesMock).toHaveBeenCalledWith(expect.any(Blob), 'notes.txt'),
@@ -129,18 +133,14 @@ describe('AttachmentViewer', () => {
     expect(await screen.findByText("Couldn’t load this file.")).toBeInTheDocument();
   });
 
-  it('closes on the Close button and on backdrop click', async () => {
+  it('closes via the Sheet close button (onOpenChange → onClose)', async () => {
     const onClose = vi.fn();
     const { Wrapper } = wrap();
     render(<AttachmentViewer attachment={base} onClose={onClose} />, { wrapper: Wrapper });
-
+    // The dialog is labelled by its title (the filename).
+    expect(await screen.findByRole('dialog', { name: base.filename })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).toHaveBeenCalledTimes(1);
-
-    // Backdrop is the dialog container; clicking it (not the inner stop-propagated
-    // regions) also closes.
-    await userEvent.click(screen.getByRole('dialog', { name: base.filename }));
-    expect(onClose).toHaveBeenCalledTimes(2);
   });
 
   it('closes on Escape', async () => {

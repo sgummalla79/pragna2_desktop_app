@@ -1,9 +1,18 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
-import { Download, Loader2, X } from 'lucide-react';
+import { lazy, Suspense, useState } from 'react';
+import { Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
 import { isImageType, isPdfType } from '@/constants/attachments';
 import type { Attachment } from '@/domain/types/attachment.types';
-import { useOverlayTitleBarInset } from '@/presentation/hooks/useOverlayTitleBarInset';
+import { useSheetResize } from '@/presentation/hooks/useSheetResize';
 import { saveBytes } from '@/infrastructure/platform';
 import { logger } from '@/infrastructure/logging/logger';
 import { useAttachmentBlob } from '../hooks/useAttachmentBlob';
@@ -14,6 +23,15 @@ const PdfCanvasViewer = lazy(() =>
   import('./PdfCanvasViewer').then((m) => ({ default: m.PdfCanvasViewer })),
 );
 
+// Viewer-sheet sizing (px). Layout literals kept named per the no-hardcoding rule
+// (mirrors the flow YAML editor sheet). The default is wider than the YAML
+// editor's so a fit-to-width PDF page reads comfortably; `EDGE_INSET` matches the
+// `SheetContent` right inset (`right-2.5` = 10px) so the right edge stays put
+// while the left edge drags.
+const VIEWER_SHEET_DEFAULT_WIDTH_PX = 860;
+const VIEWER_SHEET_MIN_WIDTH_PX = 420;
+const VIEWER_SHEET_EDGE_INSET_PX = 10;
+
 interface AttachmentViewerProps {
   /** The attachment to view, or `null` (closed). */
   attachment: Attachment | null;
@@ -21,23 +39,33 @@ interface AttachmentViewerProps {
 }
 
 /**
- * Full-screen overlay that views a sent attachment. Fetches the bytes through
- * the authenticated client (`useAttachmentBlob`) and renders an image inline,
- * a PDF in an `<iframe>` (native webview viewer), or — for other types — a
- * download link. Closes on backdrop click or Escape.
+ * Right-anchored slide-over panel that views a sent attachment — same Sheet
+ * presentation as the flow YAML editor (a floating, resizable rounded box inset
+ * from the window edges), not a full-screen takeover.
+ *
+ * Fetches the bytes through the authenticated client (`useAttachmentBlob`) and
+ * renders an image inline, a PDF on a pdf.js canvas (`PdfCanvasViewer` — an
+ * `<iframe>`/`blob:` PDF is blank in macOS WKWebView, see CF-036), or — for other
+ * types — a download button. The left edge drags to resize; the built-in Sheet
+ * close button / Escape / backdrop click closes it.
  */
 export function AttachmentViewer({ attachment, onClose }: AttachmentViewerProps) {
   const { url, blob, loading, error } = useAttachmentBlob(attachment?.id ?? null);
   const [saving, setSaving] = useState(false);
-  // Clear the macOS overlay traffic lights (full-screen overlay, top-left
-  // header). No-op off macOS-overlay chrome. Called before the early return to
-  // keep hook order stable.
-  const headerInset = useOverlayTitleBarInset();
+  const { width, startResize } = useSheetResize(
+    VIEWER_SHEET_DEFAULT_WIDTH_PX,
+    VIEWER_SHEET_MIN_WIDTH_PX,
+    VIEWER_SHEET_EDGE_INSET_PX,
+  );
+
+  const image = attachment ? isImageType(attachment.contentType) : false;
+  const pdf = attachment ? isPdfType(attachment.contentType) : false;
+  const kindLabel = pdf ? 'PDF' : image ? 'Image' : 'Document';
 
   /**
    * Save the open attachment. Routes through the platform `saveBytes` (native
-   * Save As in Tauri; blob-anchor download in a plain browser) — the prior bare
-   * `<a download>` was a silent no-op in macOS WKWebView.
+   * Save As in Tauri; blob-anchor download in a plain browser) — a bare
+   * `<a download>` is a silent no-op in macOS WKWebView (CF-037).
    */
   const handleSave = async () => {
     if (!blob || !attachment || saving) return;
@@ -53,95 +81,72 @@ export function AttachmentViewer({ attachment, onClose }: AttachmentViewerProps)
     }
   };
 
-  useEffect(() => {
-    if (!attachment) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [attachment, onClose]);
-
-  if (!attachment) return null;
-
-  const image = isImageType(attachment.contentType);
-  const pdf = isPdfType(attachment.contentType);
-
   return (
-    <div
-      className="fixed inset-0 z-[700] flex flex-col bg-foreground/60 backdrop-blur-sm"
-      onClick={onClose}
-      role="dialog"
-      aria-label={attachment.filename}
-    >
-      {/* Header. */}
-      <div
-        className="flex shrink-0 items-center gap-2 border-b border-border bg-popover px-4 py-2.5"
-        style={headerInset}
-        onClick={(e) => e.stopPropagation()}
+    <Sheet open={Boolean(attachment)} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent
+        className="z-[400] gap-3 sm:max-w-none"
+        overlayClassName="z-[399]"
+        style={{ width }}
       >
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-          {attachment.filename}
-        </span>
-        {blob && (
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[12px] text-foreground hover:bg-accent disabled:opacity-60"
-          >
-            <Download size={13} aria-hidden /> {saving ? 'Saving…' : 'Download'}
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-        >
-          <X size={16} aria-hidden />
-        </button>
-      </div>
+        {/* Left-edge drag handle — horizontal resize. */}
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize viewer"
+          onPointerDown={startResize}
+          className="absolute inset-y-0 left-0 w-1.5 cursor-ew-resize hover:bg-primary/40"
+        />
 
-      {/* Body. */}
-      <div
-        className="flex min-h-0 flex-1 items-center justify-center p-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {attachment.expired ? (
-          <p className="text-sm text-muted-foreground">This file has expired.</p>
-        ) : loading ? (
-          <Loader2 size={28} className="animate-spin text-muted" aria-hidden />
-        ) : error || !url ? (
-          <p className="text-sm text-destructive">Couldn’t load this file.</p>
-        ) : image ? (
-          <img
-            src={url}
-            alt={attachment.filename}
-            className="max-h-full max-w-full rounded-md object-contain"
-          />
-        ) : pdf && blob ? (
-          <Suspense
-            fallback={<Loader2 size={28} className="animate-spin text-muted" aria-hidden />}
-          >
-            <PdfCanvasViewer blob={blob} className="rounded-md" />
-          </Suspense>
-        ) : (
-          <div className="flex flex-col items-center gap-3 text-center">
-            <p className="text-sm text-muted-foreground">
-              Preview isn’t available for this file type.
-            </p>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[13px] text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
-            >
-              <Download size={14} aria-hidden /> {saving ? 'Saving…' : `Download ${attachment.filename}`}
-            </button>
-          </div>
+        {attachment && (
+          <>
+            <SheetHeader>
+              <SheetTitle className="truncate">{attachment.filename}</SheetTitle>
+              <SheetDescription>{kindLabel}</SheetDescription>
+            </SheetHeader>
+
+            <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-md border border-border">
+              {attachment.expired ? (
+                <p className="text-sm text-muted-foreground">This file has expired.</p>
+              ) : loading ? (
+                <Loader2 size={28} className="animate-spin text-muted" aria-hidden />
+              ) : error || !url ? (
+                <p className="text-sm text-destructive">Couldn’t load this file.</p>
+              ) : image ? (
+                <img
+                  src={url}
+                  alt={attachment.filename}
+                  className="max-h-full max-w-full object-contain"
+                />
+              ) : pdf && blob ? (
+                <Suspense
+                  fallback={
+                    <Loader2 size={28} className="animate-spin text-muted" aria-hidden />
+                  }
+                >
+                  <PdfCanvasViewer blob={blob} />
+                </Suspense>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Preview isn’t available for this file type.
+                </p>
+              )}
+            </div>
+
+            <SheetFooter className="sm:justify-start">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSave}
+                disabled={saving || !blob}
+              >
+                <Download size={13} aria-hidden className="mr-1" />
+                {saving ? 'Saving…' : 'Download'}
+              </Button>
+            </SheetFooter>
+          </>
         )}
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }

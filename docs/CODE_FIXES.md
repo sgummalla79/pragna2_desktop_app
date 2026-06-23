@@ -19,6 +19,16 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 - **Fix:** Applied a 17% rounded-rectangle alpha mask to `branding.salesforce/icon.png`, converting it from RGB to RGBA with transparent corners. Regenerated all `src-tauri/icons` PNGs and `icon.ico` from the same fixed source. Added `cargo:rerun-if-changed=icons/icon.ico` and `cargo:rerun-if-changed=icons-brand/icon.ico` in `build.rs` so future icon regeneration automatically triggers a Rust recompile and re-embed.
 - **Web-app applicability:** **No** — the web app has no `.ico` or Tauri resource embedding; this is desktop-only.
 
+## CF-040 — Overlay header title crammed against, and floating above, the macOS traffic lights (pragna2-tracker #199)
+
+- **Date:** 2026-06-22
+- **Area / file:** `src/constants/windowChrome.ts` (`TRAFFIC_LIGHT_CLEARANCE_PX`, new `OVERLAY_TITLEBAR_MIN_HEIGHT_PX`), `src/presentation/hooks/useOverlayTitleBarInset.ts` (+ its test).
+- **Found by:** Manual use — in the PDF viewer (`AttachmentViewer`) the filename "Document.pdf" sat tight against the macOS traffic lights and read as vertically off (floating above the lights), looking non-native.
+- **Bug + root cause:** The shared overlay-header inset (`useOverlayTitleBarInset`) only set `paddingLeft` = `TRAFFIC_LIGHT_SAFE_INSET_PX`. Two shortfalls: (1) horizontal — `TRAFFIC_LIGHT_CLEARANCE_PX` was only 10px, so after the ~74px-wide light group the title started at ~84px with barely any breathing room. (2) vertical — the native lights are centered on `TRAFFIC_LIGHT_Y` (28px from the window top), but the header was ~40px tall with `items-center`, so its content centered at ~20px — ~8px **above** the lights' center. The title therefore floated above the lights instead of sitting on their line.
+- **Fix:** (1) Bump `TRAFFIC_LIGHT_CLEARANCE_PX` 10 → 16 for a native-feeling gap (flows through the derived `TRAFFIC_LIGHT_SAFE_INSET_PX`). (2) Add derived `OVERLAY_TITLEBAR_MIN_HEIGHT_PX = 2 × TRAFFIC_LIGHT_Y` and return it as `minHeight` from `useOverlayTitleBarInset`, so the header's vertical center coincides with the lights' center and the title/lights/header actions share one line. Both applied **only** on macOS-overlay chrome (`usesMacOverlayChrome`) — browser-fallback/e2e/Windows get `undefined`, unchanged. Fix lands in the shared hook, so it also corrects the same latent misalignment in the other overlay headers (`AgentFormModal`, `FlowDetailView`). Hook test asserts both `paddingLeft` + `minHeight`.
+- **Note:** In the same branch the PDF/attachment viewer was reworked from a full-screen overlay into a right-anchored **Sheet** (matching the flow YAML editor — see the `pdf-view-download-surface` specs), so the viewer no longer consumes `useOverlayTitleBarInset`. This alignment fix now serves the remaining overlay-header surfaces (`AgentFormModal`, `FlowDetailView`); the Sheet's own header sits clear of the traffic lights.
+- **Web-app applicability:** **No.** This is desktop-only chrome — the web app has no overlay title bar / native traffic lights, and the hook already returns `undefined` off macOS-overlay chrome. No web-fe change.
+
 ## CF-036 — Generated PDF opens to a BLANK viewer window (macOS WKWebView) (pragna2-tracker #195)
 
 - **Date:** 2026-06-22
