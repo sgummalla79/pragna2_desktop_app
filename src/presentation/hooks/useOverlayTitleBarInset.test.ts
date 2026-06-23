@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 
 import { useOverlayTitleBarInset } from './useOverlayTitleBarInset';
-import { TRAFFIC_LIGHT_SAFE_INSET_PX } from '@/constants/windowChrome';
+import {
+  OVERLAY_TITLEBAR_MIN_HEIGHT_PX,
+  TRAFFIC_LIGHT_SAFE_INSET_PX,
+} from '@/constants/windowChrome';
 
 /**
  * The hook's only job is: apply a left inset clearing the macOS overlay traffic
@@ -20,10 +23,13 @@ describe('useOverlayTitleBarInset', () => {
     usesMacOverlayChrome.mockReset();
   });
 
-  it('returns a left inset clearing the traffic lights on macOS-overlay chrome', () => {
+  it('returns a left inset + min-height aligning content with the traffic lights on macOS-overlay chrome', () => {
     usesMacOverlayChrome.mockReturnValue(true);
     const { result } = renderHook(() => useOverlayTitleBarInset());
-    expect(result.current).toEqual({ paddingLeft: TRAFFIC_LIGHT_SAFE_INSET_PX });
+    expect(result.current).toEqual({
+      paddingLeft: TRAFFIC_LIGHT_SAFE_INSET_PX,
+      minHeight: OVERLAY_TITLEBAR_MIN_HEIGHT_PX,
+    });
   });
 
   it('returns undefined off macOS-overlay chrome (Windows / browser-fallback)', () => {
