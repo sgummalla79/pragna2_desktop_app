@@ -3,7 +3,7 @@
 > **Status**: Implemented
 > **Author**: Suman Gummalla
 > **Created**: 2026-06-22
-> **Last Updated**: 2026-06-22
+> **Last Updated**: 2026-06-22 (viewer is a resizable slide-over Sheet; shared `useSheetResize`)
 
 ---
 
@@ -32,6 +32,16 @@ touch the backend (verified healthy — it produced a valid 41-page PDF and serv
 - **Adapters / Presentation**: new `PdfCanvasViewer` component (lazy-loaded),
   reworked `AttachmentViewer` + `DocumentCard`, new `useSurfaceFinishedEpisode`
   hook, polling added to `useOpenEpisode`.
+- **Presentation / Viewer presentation**: `AttachmentViewer` is a right-anchored
+  `Sheet` (Radix Dialog flyout) — the same presentation as the flow YAML editor,
+  not a full-screen overlay. The left-edge horizontal-resize logic is extracted
+  to a shared `useSheetResize(defaultWidth, minWidth, edgeInset)` hook
+  (`presentation/hooks/`) used by **both** the viewer (860px default) and
+  `FlowYamlEditorSheet` (720px default), so the two sheets resize identically and
+  the math lives in one place. Because the Sheet floats on the right inset from
+  the window edges, it clears the macOS traffic lights on its own — the viewer no
+  longer uses `useOverlayTitleBarInset` (that hook still serves the other overlay
+  headers; see CF-040).
 - **Rust (src-tauri)**: register `tauri-plugin-dialog` + `tauri-plugin-fs`; grant
   `dialog:allow-save` + `fs:allow-write-file` capabilities.
 

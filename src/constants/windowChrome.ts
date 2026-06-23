@@ -31,8 +31,9 @@ export const TRAFFIC_LIGHT_Y = 28;
 const TRAFFIC_LIGHT_GROUP_WIDTH_PX = 52;
 
 /** Small breathing margin between the traffic lights and the first piece of
- *  content placed to their right, px. */
-const TRAFFIC_LIGHT_CLEARANCE_PX = 10;
+ *  content placed to their right, px. Tuned to a native-feeling gap so an
+ *  overlay header's title doesn't read as crammed against the lights (CF-039). */
+const TRAFFIC_LIGHT_CLEARANCE_PX = 16;
 
 /** Left inset that clears the overlay traffic lights for content anchored to the
  *  window's TOP-LEFT — i.e. the header bar of a full-screen overlay surface that
@@ -43,6 +44,17 @@ const TRAFFIC_LIGHT_CLEARANCE_PX = 10;
  *  needs no inset. Derived — never inline a literal at the call site. px. */
 export const TRAFFIC_LIGHT_SAFE_INSET_PX =
   TRAFFIC_LIGHT_X + TRAFFIC_LIGHT_GROUP_WIDTH_PX + TRAFFIC_LIGHT_CLEARANCE_PX;
+
+/** Minimum height for the header bar of a full-screen overlay surface on
+ *  macOS-overlay chrome, px. The native traffic lights are vertically centered
+ *  on {@link TRAFFIC_LIGHT_Y}; a header with `items-center` centers its own
+ *  content on `height / 2`, so unless the bar is exactly `2 × TRAFFIC_LIGHT_Y`
+ *  tall the title floats above (or below) the lights. Pinning the header to this
+ *  min-height makes its vertical center coincide with the lights' center so the
+ *  title, the lights, and the header actions all sit on one line (CF-039).
+ *  Derived — never inline at the call site. Applied ONLY on macOS-overlay chrome
+ *  (see `useOverlayTitleBarInset`). px. */
+export const OVERLAY_TITLEBAR_MIN_HEIGHT_PX = 2 * TRAFFIC_LIGHT_Y;
 
 /** Inset of each sidebar box from the window edge (left + top + bottom), px. */
 export const SIDEBAR_BOX_INSET_PX = 10;
