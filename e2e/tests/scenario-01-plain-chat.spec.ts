@@ -17,7 +17,7 @@
  * label).
  */
 import { test, expect } from '../fixtures';
-import { psql } from '../helpers/db';
+import { disableAllFlows } from '../helpers/db';
 import { TIMEOUTS } from '../helpers/timeouts';
 
 const HAS_REAL_KEY = Boolean(process.env.E2E_LLM_API_KEY ?? process.env.E2E_ANTHROPIC_API_KEY ?? process.env.E2E_OPENAI_API_KEY ?? process.env.E2E_GOOGLE_API_KEY);
@@ -29,11 +29,12 @@ test.describe('Scenario 1 — Plain chat', () => {
   );
 
   test.beforeEach(async ({ page }) => {
-    // Data isolation: the flow specs leave slash-exposed flows behind in the
-    // shared serial DB, and the default agent will PROPOSE one ("Suggested
-    // flow: …") instead of answering a plain question. Un-expose them so this
-    // plain-chat turn gets a direct reply. Slash specs re-expose their own flow.
-    psql('UPDATE flows SET exposed_as_slash = false WHERE exposed_as_slash = true;');
+    // Data isolation: the flow specs leave flows behind in the shared serial
+    // DB, and the default agent PROPOSES any ENABLED flow ("Suggested flow: …")
+    // instead of answering a plain question. Disable them (un-exposing alone is
+    // insufficient — propose_flow keys on `enabled`, not slash exposure) so this
+    // plain-chat turn gets a direct reply. Slash specs re-enable their own flow.
+    disableAllFlows();
     // /chat lands on the chat landing view (centred composer).
     await page.goto('/chat', { waitUntil: 'networkidle' });
   });

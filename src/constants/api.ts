@@ -11,19 +11,39 @@ export const API_BASE_URL: string =
   envOr(import.meta.env.VITE_API_BASE_URL as string | undefined, 'http://localhost:8000/api');
 
 // Base for the AG-UI native chat surface, nested under `/api` alongside the REST
-// API. Three routes hang off it: `POST {PRAGNA_BASE_URL}/chat` (default chat
-// agent), `POST {PRAGNA_BASE_URL}/flows/{name}` (slash-exposed flow, deferred),
-// and `GET {PRAGNA_BASE_URL}/flows` (slash discovery, deferred).
+// API. Three routes hang off it: `POST {CHAT_API_BASE_URL}/chat` (default chat
+// agent), `POST {CHAT_API_BASE_URL}/flows/{name}` (slash-exposed flow, deferred),
+// and `GET {CHAT_API_BASE_URL}/flows` (slash discovery, deferred).
 //
 // Unlike the web app — which uses a RELATIVE `/api/pragna` so the Vite dev proxy
 // avoids CORS — the desktop webview has no proxy and a non-HTTP origin, so this
-// MUST be an ABSOLUTE URL. We derive it from `API_BASE_URL` (which already
-// carries the `/api` prefix) so a single env var configures both surfaces;
-// `VITE_PRAGNA_BASE_URL` can override it independently when needed.
-export const PRAGNA_BASE_URL: string = envOr(
-  import.meta.env.VITE_PRAGNA_BASE_URL as string | undefined,
-  `${API_BASE_URL}/pragna`,
+// MUST be an ABSOLUTE URL. The chat route prefix is brand-specific (e.g. the
+// `pragna2-api` BE serves `/api/pragna`, the `nexus-kit` BE serves
+// `/api/nexus-kit`), so the WHOLE base is configurable rather than baked.
+//
+// Precedence (first non-blank wins):
+//   1. `VITE_CHAT_API_BASE_URL` — brand-neutral override (preferred).
+//   2. `VITE_PRAGNA_BASE_URL`   — legacy alias, kept for back-compat.
+//   3. `${API_BASE_URL}/pragna` — committed default for the pragna2-api BE.
+export const CHAT_API_BASE_URL: string = envOr(
+  import.meta.env.VITE_CHAT_API_BASE_URL as string | undefined,
+  envOr(
+    import.meta.env.VITE_PRAGNA_BASE_URL as string | undefined,
+    `${API_BASE_URL}/pragna`,
+  ),
 );
+
+// The chat surface's path segment RELATIVE to API_BASE_URL (e.g. `/pragna` or
+// `/nexus-kit`). The streaming transport (TauriHttpAgent) uses the absolute
+// CHAT_API_BASE_URL, but the axios-backed slash-discovery repository is
+// resource-relative to the `/api` baseURL, so it needs just the trailing
+// segment. Derived from CHAT_API_BASE_URL so a SINGLE env var
+// (VITE_CHAT_API_BASE_URL) configures BOTH surfaces — no second source to drift.
+// CHAT_API_BASE_URL is `${API_BASE_URL}<segment>` by construction, so the prefix
+// strips cleanly; the pathname fallback covers a fully-custom absolute override.
+export const CHAT_API_PATH: string = CHAT_API_BASE_URL.startsWith(API_BASE_URL)
+  ? CHAT_API_BASE_URL.slice(API_BASE_URL.length)
+  : new URL(CHAT_API_BASE_URL).pathname.replace(/^\/api/, '');
 
 export const LOG_LEVEL: string =
   envOr(import.meta.env.VITE_LOG_LEVEL as string | undefined, 'info');

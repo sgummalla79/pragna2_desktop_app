@@ -6,7 +6,7 @@
  * then asserts BOTH sides of the contract:
  *   - what the BE SENT — the intercepted GET /messages + /attachments responses
  *   - what the FE RENDERED — the DocumentCard, the suppressed raw tool badge,
- *     the attachment viewer (authed-blob iframe, hidden native toolbar),
+ *     the attachment viewer (authed-blob pdf.js canvas — CF-036),
  *     Download, and reload persistence.
  *
  * No API key needed, so this runs in CI on every change — it catches exactly the
@@ -17,8 +17,9 @@
  *   - auth: the seed-token `page` fixture (no login form), so no `login(page)`.
  *   - the desktop opens documents in the full-screen `AttachmentViewer`
  *     (`role="dialog"`, `aria-label={filename}`) rather than a split-view
- *     `pdf-canvas` pane — same authed-blob `<iframe src=…#toolbar=0>` + Download,
- *     so the "open / read / download" assertions port directly; the web app's
+ *     pane — a pdf.js `<canvas>` reader (CF-036) fed by the same authed-blob
+ *     fetch + Download, so the "open / read / download" assertions port
+ *     directly; the web app's
  *     side-by-side geometry test is replaced by "viewer opens over the messages,
  *     close restores them" (the desktop's equivalent affordance).
  */
@@ -66,7 +67,7 @@ test.describe('Scenario 20 — create_pdf BE↔FE cross-check', () => {
     await expect(page.getByText('create_pdf', { exact: false })).toHaveCount(0);
   });
 
-  test('clicking the card opens the viewer: authed-blob iframe, no native toolbar, Download (FE + BE serve)', async ({
+  test('clicking the card opens the viewer: authed-blob pdf.js canvas, Download (FE + BE serve)', async ({
     page,
   }) => {
     await page.goto(`/chat/${seeded.conversation_id}`, { waitUntil: 'networkidle' });
@@ -87,13 +88,15 @@ test.describe('Scenario 20 — create_pdf BE↔FE cross-check', () => {
     expect(contentResp.status()).toBe(200);
     expect(contentResp.headers()['content-type']).toContain('application/pdf');
 
-    // Inline reader: object-URL iframe with the native toolbar hidden.
-    const iframe = viewer.locator('iframe');
-    await expect(iframe).toHaveAttribute('src', /^blob:.*#toolbar=0$/);
+    // Inline reader: the PDF renders to a pdf.js <canvas> (CF-036: a blob
+    // `<iframe>` is blank in the macOS WKWebView, so AttachmentViewer switched to
+    // PdfCanvasViewer). The blob is still fetched through the authed client
+    // (asserted above via waitForAttachmentContent).
+    await expect(viewer.locator('canvas').first()).toBeVisible();
 
-    // Download affordance present (an authed-blob <a download> in the header).
+    // Download affordance present (saves the authed-blob; a button, not a link).
     await expect(
-      viewer.getByRole('link', { name: /download/i }).first(),
+      viewer.getByRole('button', { name: /download/i }).first(),
     ).toBeVisible();
   });
 

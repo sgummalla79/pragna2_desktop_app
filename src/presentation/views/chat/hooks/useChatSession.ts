@@ -5,7 +5,7 @@ import {
   API_BASE_URL,
   CLIENT_CAPABILITIES_HEADER,
   CLIENT_CAPABILITY_STDIO_DELEGATION,
-  PRAGNA_BASE_URL,
+  CHAT_API_BASE_URL,
 } from '@/constants/api';
 import { ERRORS } from '@/constants/errors';
 import { SLASH_COMMAND_RE } from '@/constants/slashCommands';
@@ -170,7 +170,7 @@ export interface UseChatSessionOptions {
   /**
    * Slash-exposed flow names (the bare `slash_api_name`, no leading `/`). When a
    * sent message starts with `/{name}` and `{name}` is in this set, the turn is
-   * dispatched to `POST {PRAGNA_BASE_URL}/flows/{name}` instead of the default
+   * dispatched to `POST {CHAT_API_BASE_URL}/flows/{name}` instead of the default
    * chat agent; the URL is restored on run finalize. Unknown `/foo` prefixes
    * fall through to normal chat (the text is sent verbatim).
    */
@@ -303,7 +303,7 @@ export function useChatSession(
   const agent = useMemo<TauriHttpAgent | null>(() => {
     if (!accessToken) return null;
     return new TauriHttpAgent({
-      url: `${PRAGNA_BASE_URL}/chat`,
+      url: `${CHAT_API_BASE_URL}/chat`,
       headers: {
         Authorization: `Bearer ${accessToken}`,
         // Phase F: declare that this (desktop) client can execute client-delegated
@@ -633,7 +633,7 @@ export function useChatSession(
       const slashName = SLASH_COMMAND_RE.exec(trimmed)?.[1];
       if (slashName && slashFlowNamesRef.current?.has(slashName)) {
         if (overrideUrlRef.current === null) overrideUrlRef.current = agent.url;
-        agent.url = `${PRAGNA_BASE_URL}/flows/${encodeURIComponent(slashName)}`;
+        agent.url = `${CHAT_API_BASE_URL}/flows/${encodeURIComponent(slashName)}`;
       }
 
       // Drop an orphaned optimistic user message left by a PRIOR failed run

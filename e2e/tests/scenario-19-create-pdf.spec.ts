@@ -21,7 +21,7 @@
  */
 import { test, expect } from '../fixtures';
 import { assistantAttachments, type ApiMessage } from '../helpers/network';
-import { unexposeSlashFlows } from '../helpers/db';
+import { disableAllFlows } from '../helpers/db';
 
 const HAS_REAL_KEY = Boolean(process.env.E2E_LLM_API_KEY ?? process.env.E2E_ANTHROPIC_API_KEY ?? process.env.E2E_OPENAI_API_KEY ?? process.env.E2E_GOOGLE_API_KEY);
 
@@ -33,8 +33,8 @@ test.describe('Scenario 19 — create_pdf document tool', () => {
 
   test.beforeEach(async ({ page }) => {
     // Isolation: un-expose leftover slash flows so the agent calls create_pdf
-    // instead of proposing a flow (see helpers/db.ts unexposeSlashFlows).
-    unexposeSlashFlows();
+    // instead of proposing a flow (see helpers/db.ts disableAllFlows).
+    disableAllFlows();
     await page.goto('/chat', { waitUntil: 'networkidle' });
   });
 
@@ -44,7 +44,7 @@ test.describe('Scenario 19 — create_pdf document tool', () => {
   // path is covered DETERMINISTICALLY by scenario-20 which seeds the PDF turn).
   // Marked fixme so the suite isn't flaky on the model's choice; un-fixme if the
   // agent is made to reliably emit create_pdf for this prompt.
-  test.fixme('ask for a PDF → document card → viewer + download', async ({ page }) => {
+  test('ask for a PDF → document card → viewer + download', async ({ page }) => {
     test.setTimeout(180_000);
 
     // Collect every /messages payload the FE receives so we can cross-check
@@ -94,13 +94,11 @@ test.describe('Scenario 19 — create_pdf document tool', () => {
     await card.click();
     const viewer = page.getByRole('dialog');
     await expect(viewer).toBeVisible({ timeout: 10_000 });
-    await expect(viewer.locator('iframe')).toHaveAttribute(
-      'src',
-      /^blob:.*#toolbar=0$/,
-      { timeout: 15_000 },
-    );
+    // The PDF renders to a pdf.js <canvas> (CF-036: a blob `<iframe>` is blank in
+    // the macOS WKWebView, so AttachmentViewer switched to PdfCanvasViewer).
+    await expect(viewer.locator('canvas').first()).toBeVisible({ timeout: 15_000 });
     await expect(
-      viewer.getByRole('link', { name: /download/i }).first(),
+      viewer.getByRole('button', { name: /download/i }).first(),
     ).toBeVisible({ timeout: 15_000 });
 
     // ── what BE sent ── the latest /messages payload the FE received must
