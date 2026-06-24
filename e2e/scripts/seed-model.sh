@@ -42,21 +42,48 @@ MODEL_API_NAME="${E2E_MODEL:-$DEFAULT_MODEL}"
 # in lock-step across providers.
 MODEL_LABEL="${E2E_MODEL_LABEL:-$DEFAULT_LABEL} (test)"
 BE_REPO="${E2E_BE_REPO:-/Users/sgummalla/Desktop/work/repos/pragna2-api}"
+# When set, encrypt the real API key INSIDE this BE container with its own
+# AESCipher + its own ENCRYPTION_KEY (read from the container's persisted secrets
+# file) — so the key never leaves the container and the host needs no BE_REPO/uv
+# and no copy of ENCRYPTION_KEY. When unset, fall back to the host BE repo.
+BE_CONTAINER="${E2E_BE_CONTAINER:-}"
+# Override the in-container secrets file path; default derives from the
+# container's $PGDATA (where the BE entrypoint persists the generated key).
+BE_SECRETS_FILE="${E2E_BE_SECRETS_FILE:-}"
 
 # ── Compute the value stored in user_providers.encrypted_api_key ────────
+# Both modes use the BE's exact AESCipher so the runtime decrypt path resolves.
 if [ -n "$REAL_API_KEY" ]; then
-  [ -n "${ENCRYPTION_KEY:-}" ] || {
-    echo "ENCRYPTION_KEY env var is required when a real API key is provided"
-    exit 1
-  }
-  # Use the BE's exact AESCipher so the runtime decrypt path resolves
-  # correctly. ENCRYPTION_KEY is a 64-char hex string → 32 raw bytes.
-  ENCRYPTED_KEY=$(cd "$BE_REPO" && uv run python -c "
+  if [ -n "$BE_CONTAINER" ]; then
+    # Container-aware: encrypt inside the BE container with ITS key + cipher. The
+    # key is read from the container's persisted secrets file; it never reaches
+    # the host. Run as root so the secrets file is readable; use the venv python.
+    ENCRYPTED_KEY=$(docker exec -u root \
+      -e PLAINKEY="$REAL_API_KEY" -e SECRETS_OVERRIDE="$BE_SECRETS_FILE" \
+      "$BE_CONTAINER" sh -c '
+        SF="${SECRETS_OVERRIDE:-${PGDATA:-/var/lib/postgresql/data/pgdata}/.nexus-kit-secrets.env}"
+        KEY=$(grep -hE "^ENCRYPTION_KEY=" "$SF" 2>/dev/null | head -1 | cut -d= -f2-)
+        [ -n "$KEY" ] || { echo "seed-model: no ENCRYPTION_KEY in $SF" >&2; exit 1; }
+        cd /app && PYTHONPATH=/app ENCKEY="$KEY" /app/.venv/bin/python -c "
+import os
+from src.infrastructure.crypto.aes_cipher import AESCipher
+print(AESCipher(bytes.fromhex(os.environ[\"ENCKEY\"])).encrypt(os.environ[\"PLAINKEY\"]))
+"')
+  else
+    # Host path: encrypt with the BE repo's AESCipher using $ENCRYPTION_KEY (a
+    # 64-char hex string → 32 raw bytes).
+    [ -n "${ENCRYPTION_KEY:-}" ] || {
+      echo "ENCRYPTION_KEY env var is required when a real API key is provided" \
+           "(or set E2E_BE_CONTAINER to encrypt in-container)"
+      exit 1
+    }
+    ENCRYPTED_KEY=$(cd "$BE_REPO" && uv run python -c "
 import os, sys
 from src.infrastructure.crypto.aes_cipher import AESCipher
 key_bytes = bytes.fromhex(os.environ['ENCRYPTION_KEY'])
 print(AESCipher(key_bytes).encrypt(sys.argv[1]))
 " "$REAL_API_KEY")
+  fi
   KEY_LABEL="real (encrypted)"
 else
   ENCRYPTED_KEY="dummy"
