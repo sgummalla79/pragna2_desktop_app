@@ -12,6 +12,10 @@ export const API_BASE_URL = process.env.E2E_API_BASE_URL ?? `${BE_URL}/api`;
 
 export const PG_CONTAINER = process.env.E2E_PG_CONTAINER ?? 'pragna-desktop-e2e';
 export const TEST_DB = process.env.E2E_PG_DB ?? 'pragna_it';
+/** Postgres role the `docker exec … psql` helper connects as. The throwaway
+ *  local stack uses `postgres`; a containerised BE may own its DB under a
+ *  different role (e.g. `nexus_kit`). Externalised so neither is hardcoded. */
+export const PG_USER = process.env.E2E_PG_USER ?? 'postgres';
 
 /** The test user the suite authenticates and seeds data as. Defaults to the
  *  local-stack seeded user; override via `E2E_TEST_EMAIL` / `E2E_TEST_NAME`
