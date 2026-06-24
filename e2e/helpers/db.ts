@@ -11,12 +11,12 @@
  *  assertion sees a real error, not a baffling empty string. */
 import { execSync } from 'node:child_process';
 
-import { PG_CONTAINER, TEST_DB } from './env';
+import { PG_CONTAINER, PG_USER, TEST_DB } from './env';
 
 /** Run a psql command (via stdin) and return its raw stdout. Throws on
  *  non-zero exit so test assertions see real errors, not empty strings. */
 export function psql(sql: string): string {
-  return execSync(`docker exec -i ${PG_CONTAINER} psql -U postgres -d ${TEST_DB} -tA`, {
+  return execSync(`docker exec -i ${PG_CONTAINER} psql -U ${PG_USER} -d ${TEST_DB} -tA`, {
     encoding: 'utf8',
     input: sql,
   }).trim();

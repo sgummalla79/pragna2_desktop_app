@@ -22,6 +22,8 @@ REAL_API_KEY="${2:-}"
 
 PG_NAME="${E2E_PG_CONTAINER:-pragna-desktop-e2e}"
 DB_NAME="${E2E_PG_DB:-pragna_it}"
+# Postgres role for psql (throwaway stack: postgres; containerised BE may use its own, e.g. nexus_kit).
+PG_USER="${E2E_PG_USER:-postgres}"
 PROVIDER_API_NAME="${E2E_PROVIDER:-anthropic}"
 # Per-provider default chat model (each is seeded in model_pricing) + the
 # human display_name shown in the flow-editor model picker. Override the model
@@ -62,20 +64,20 @@ else
 fi
 
 # ── Resolve provider FK ────────────────────────────────────────────────
-PROVIDER_ID="$(docker exec "$PG_NAME" psql -U postgres -d "$DB_NAME" -tA -c \
+PROVIDER_ID="$(docker exec "$PG_NAME" psql -U "$PG_USER" -d "$DB_NAME" -tA -c \
   "SELECT id FROM llm_providers WHERE api_name='$PROVIDER_API_NAME'")"
 [ -n "$PROVIDER_ID" ] || { echo "llm_provider '$PROVIDER_API_NAME' not seeded"; exit 1; }
 
 # ── Insert user_provider with the chosen encrypted_api_key ──────────────
-docker exec "$PG_NAME" psql -U postgres -d "$DB_NAME" >/dev/null -c \
+docker exec "$PG_NAME" psql -U "$PG_USER" -d "$DB_NAME" >/dev/null -c \
   "INSERT INTO user_providers (id, user_id, llm_provider_id, encrypted_api_key, enabled, archived, metadata)
    VALUES (gen_random_uuid(), '$USER_ID', '$PROVIDER_ID', '$ENCRYPTED_KEY', true, false, '{}'::jsonb)"
 
-UP_ID="$(docker exec "$PG_NAME" psql -U postgres -d "$DB_NAME" -tA -c \
+UP_ID="$(docker exec "$PG_NAME" psql -U "$PG_USER" -d "$DB_NAME" -tA -c \
   "SELECT id FROM user_providers WHERE user_id='$USER_ID' AND llm_provider_id='$PROVIDER_ID' LIMIT 1")"
 
 # ── Insert the user_model, enabled for both chat and flows ──────────────
-docker exec "$PG_NAME" psql -U postgres -d "$DB_NAME" >/dev/null -c \
+docker exec "$PG_NAME" psql -U "$PG_USER" -d "$DB_NAME" >/dev/null -c \
   "INSERT INTO user_models (id, user_id, user_provider_id, api_name, display_name, enabled, available_for_chat, available_for_flows, archived, metadata)
    VALUES (gen_random_uuid(), '$USER_ID', '$UP_ID', '$MODEL_API_NAME', '$MODEL_LABEL', true, true, true, false, '{}'::jsonb)"
 
@@ -85,7 +87,7 @@ docker exec "$PG_NAME" psql -U postgres -d "$DB_NAME" >/dev/null -c \
 # "create your default agent" banner when it's absent). A fresh e2e user has
 # none, so every live-chat scenario would hit a disabled input. Seed a minimal
 # active default so the gate opens. Idempotent: skipped if one already exists.
-docker exec "$PG_NAME" psql -U postgres -d "$DB_NAME" >/dev/null -c \
+docker exec "$PG_NAME" psql -U "$PG_USER" -d "$DB_NAME" >/dev/null -c \
   "INSERT INTO agents (id, user_id, api_name, display_name, system_prompt, tools, is_default, status, metadata)
    SELECT gen_random_uuid(), '$USER_ID', 'default-agent', 'Default Agent',
           'You are a helpful assistant.', '[]'::jsonb, true, 'active', '{}'::jsonb

@@ -1,4 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
+import { loadEnvFile } from './helpers/loadEnv';
+
+// Configure the whole run from `e2e/.env` (like the client's `.env`) before any
+// helper reads `process.env.E2E_*`. Shell-exported vars still win. See loadEnv.ts.
+loadEnvFile();
 
 /**
  * Browser tests for the pragna2 DESKTOP frontend, run in browser-fallback mode.
