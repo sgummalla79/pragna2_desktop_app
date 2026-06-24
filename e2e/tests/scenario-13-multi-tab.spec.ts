@@ -20,11 +20,12 @@
  * placeholder; turns carry `data-role`; run-complete is the Stop button
  * reverting to Send; the auto-title is read from the session header `<h1>`.
  */
-import { type Page } from '@playwright/test';
+import { type Page, type Locator } from '@playwright/test';
 
 import { test, expect } from '../fixtures';
 import { TOKEN_KEYS } from '../helpers/env';
 import { readTokens } from '../helpers/tokens';
+import { disableAllFlows } from '../helpers/db';
 
 const HAS_REAL_KEY = Boolean(process.env.E2E_LLM_API_KEY ?? process.env.E2E_ANTHROPIC_API_KEY ?? process.env.E2E_OPENAI_API_KEY ?? process.env.E2E_GOOGLE_API_KEY);
 const PROMPT = `Explain the photoelectric effect in 3 paragraphs covering Einstein's 1905 paper, the role of photons, and one modern application.`;
@@ -32,6 +33,27 @@ const PROMPT = `Explain the photoelectric effect in 3 paragraphs covering Einste
 /** Inject the seed token pair into a freshly-created tab so `bootstrap()`
  *  restores the session with no login UI — the same mechanism fixtures.ts uses
  *  for the default `page`, applied here to a `context.newPage()` tab. */
+/** Read an assistant bubble's text once it has stopped growing. The FE
+ *  smooth-streams text (`useSmoothStreamingText`), so the rendered text keeps
+ *  catching up to the full reply for a moment AFTER the run completes (and again
+ *  after a reload re-animates the persisted message). A bare `textContent()`
+ *  read therefore captures a partial chunk. Poll until two consecutive reads
+ *  (`settleMs` apart) are equal and non-empty — i.e. the animation has settled. */
+async function readStableReply(
+  bubble: Locator,
+  settleMs = 700,
+  maxPolls = 40,
+): Promise<string> {
+  let prev = '';
+  for (let i = 0; i < maxPolls; i++) {
+    const cur = ((await bubble.textContent()) ?? '').trim();
+    if (cur && cur === prev) return cur;
+    prev = cur;
+    await bubble.page().waitForTimeout(settleMs);
+  }
+  return prev;
+}
+
 async function authenticate(tab: Page): Promise<void> {
   const { accessToken, idToken } = readTokens();
   await tab.addInitScript(
@@ -60,6 +82,10 @@ test.describe('Scenario 13 — Multi-tab consistency', () => {
     const tabB = await context.newPage();
     await authenticate(tabA);
     await authenticate(tabB);
+    // Isolation: disable leftover flows so Tab A's plain prompt gets a direct
+    // reply, not a "Suggested flow: …" proposal (propose_flow keys on enabled
+    // flows — see helpers/db.ts disableAllFlows).
+    disableAllFlows();
     try {
       await tabA.goto('/chat', { waitUntil: 'networkidle' });
 
@@ -85,10 +111,15 @@ test.describe('Scenario 13 — Multi-tab consistency', () => {
         tabA.getByRole('button', { name: /stop generating/i }),
       ).toHaveCount(0, { timeout: 120_000 });
 
-      const replyA =
-        (await tabA.locator('[data-role="assistant"]').last().textContent()) ?? '';
+      // Read Tab A's reply once smooth-streaming has settled (see
+      // readStableReply). Model-agnostic: anchor on topic words any model would
+      // use, NOT an absolute length (verbosity is model-specific). Cross-tab
+      // equality (below) is this spec's real contract.
+      const assistantA = tabA.locator('[data-role="assistant"]').last();
+      await expect(assistantA).toBeVisible({ timeout: 30_000 });
+      const replyA = await readStableReply(assistantA);
+      expect(replyA.trim().length).toBeGreaterThan(0);
       expect(replyA).toMatch(/photoelectric|photon|Einstein/i);
-      expect(replyA.length).toBeGreaterThan(400);
 
       // Tab B manually refreshes to pick up the new messages.
       await tabB.reload({ waitUntil: 'domcontentloaded' });
@@ -101,16 +132,22 @@ test.describe('Scenario 13 — Multi-tab consistency', () => {
         { timeout: 10_000 },
       );
 
-      const replyB =
-        (await tabB.locator('[data-role="assistant"]').last().textContent()) ?? '';
-      expect(replyB.length).toBeGreaterThan(400);
+      // Tab B's reloaded transcript re-animates the persisted assistant reply,
+      // so wait for it to appear then read it once settled.
+      const assistantB = tabB.locator('[data-role="assistant"]').last();
+      await expect(assistantB).toBeVisible({ timeout: 20_000 });
+      const replyB = await readStableReply(assistantB);
+      expect(replyB.trim().length).toBeGreaterThan(0);
       expect(replyB).toMatch(/photoelectric|photon|Einstein/i);
 
-      // Both tabs persist the SAME reply body. The only tolerated difference is
-      // a trailing ModelBadge ("by <model>") that renders on a warm model cache
-      // but is omitted on a cache miss — always a strict suffix.
-      const a = replyA.trim();
-      const b = replyB.trim();
+      // Both tabs persist the SAME reply body. Whitespace is normalised because
+      // the streamed (Tab A) and reloaded (Tab B) markdown renders can differ in
+      // incidental spacing/line-breaks for identical source. The only tolerated
+      // content difference is a trailing ModelBadge ("by <model>") that renders
+      // on a warm model cache but is omitted on a miss — always a strict suffix.
+      const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
+      const a = norm(replyA);
+      const b = norm(replyB);
       const [shorter, longer] = a.length <= b.length ? [a, b] : [b, a];
       expect(longer.startsWith(shorter)).toBe(true);
       const remainder = longer.slice(shorter.length).trim();

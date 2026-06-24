@@ -17,6 +17,14 @@ function assistantMsg(id: string): ChatMessage {
 function persistedMsg(id: string) {
   return { id };
 }
+/** Persisted message carrying role + content (real /messages shape) — needed to
+ *  exercise the collapsed-tool-turn exception to the stale-snapshot guard. */
+function persistedFull(id: string, role: 'user' | 'assistant', content: string) {
+  return { id, role, content };
+}
+function assistantMsgWith(id: string, content: string): ChatMessage {
+  return { id, role: 'assistant', content };
+}
 function aguiMsg(id: string, role: 'user' | 'assistant' = 'user'): Message {
   return { id, role, content: 'x' } as unknown as Message;
 }
@@ -159,6 +167,75 @@ describe('useReconcileMessages', () => {
     );
 
     expect(replaceMessages).toHaveBeenCalledWith(initialMessages);
+  });
+
+  // ── Collapsed tool turn (create_pdf) — guard-3 exception ──────────────────
+
+  it('collapsed tool turn: REPLACES when in-memory > persisted but the tails are the same final assistant turn (BE merged the tool messages)', () => {
+    // create_pdf streams [user, tool-call, tool-result, assistant-text] but the BE
+    // persists [user, ONE assistant message + PDF attachment]. The count gap would
+    // normally trip guard 3; the matching assistant text marks it a collapsed turn,
+    // so reconciliation must fire to surface the persisted attachment.
+    const messages: ChatMessage[] = [
+      userMsg('u1'),
+      assistantMsg('tool-call-id'),
+      { id: 'tool-result-id', role: 'tool', content: 'pdf bytes' } as ChatMessage,
+      assistantMsgWith('stream-text-id', 'Your PDF "Quick Note" is ready.'),
+    ];
+    const persisted = [
+      persistedFull('u1', 'user', 'hello'),
+      persistedFull('be-uuid', 'assistant', 'Your PDF "Quick Note" is ready.'),
+    ];
+    const initialMessages = [aguiMsg('u1'), aguiMsg('be-uuid', 'assistant')];
+
+    renderHook(() =>
+      useReconcileMessages('idle', messages, persisted, initialMessages, replaceMessages),
+    );
+
+    expect(replaceMessages).toHaveBeenCalledWith(initialMessages);
+  });
+
+  it('collapsed tool turn: tolerates a trailing stream chunk (persisted text is a superset of the streamed tail)', () => {
+    const messages: ChatMessage[] = [
+      userMsg('u1'),
+      assistantMsg('tool-call-id'),
+      assistantMsgWith('stream-text-id', 'Your PDF is'),
+    ];
+    const persisted = [
+      persistedFull('u1', 'user', 'hello'),
+      persistedFull('be-uuid', 'assistant', 'Your PDF is ready to download.'),
+    ];
+    const initialMessages = [aguiMsg('u1'), aguiMsg('be-uuid', 'assistant')];
+
+    renderHook(() =>
+      useReconcileMessages('idle', messages, persisted, initialMessages, replaceMessages),
+    );
+
+    expect(replaceMessages).toHaveBeenCalledWith(initialMessages);
+  });
+
+  it('CF-013b (real shape): does NOT replace when in-memory > persisted and the persisted tail is an OLDER assistant turn with DIFFERENT content — even if it carried an attachment (back-to-back doc turns, refetch not landed)', () => {
+    // The stale-snapshot danger the content check must still guard: persisted is a
+    // prior turn (its own assistant reply, possibly with an attachment) and the
+    // /messages refetch for the NEW turn hasn't landed. Matching by content (NOT by
+    // "tail is assistant" / "tail has attachment") keeps this guarded.
+    const messages: ChatMessage[] = [
+      userMsg('u1'),
+      assistantMsgWith('a1', 'first reply'),
+      userMsg('u2'),
+      assistantMsgWith('a2-stream', 'second reply — totally different'),
+    ];
+    const persisted = [
+      persistedFull('u1', 'user', 'hello'),
+      persistedFull('be-a1', 'assistant', 'first reply'),
+    ];
+    const initialMessages = [aguiMsg('u1'), aguiMsg('be-a1', 'assistant')];
+
+    renderHook(() =>
+      useReconcileMessages('idle', messages, persisted, initialMessages, replaceMessages),
+    );
+
+    expect(replaceMessages).not.toHaveBeenCalled();
   });
 
   // ── Guards that must suppress replacement ─────────────────────────────────
