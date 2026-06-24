@@ -21,7 +21,7 @@
  * not a `navigation` landmark of links).
  */
 import { test, expect } from '../fixtures';
-import { unexposeSlashFlows } from '../helpers/db';
+import { disableAllFlows } from '../helpers/db';
 
 const HAS_REAL_KEY = Boolean(process.env.E2E_LLM_API_KEY ?? process.env.E2E_ANTHROPIC_API_KEY ?? process.env.E2E_OPENAI_API_KEY ?? process.env.E2E_GOOGLE_API_KEY);
 const LONG_PROMPT = `Write a 4-paragraph essay on the history of the printing press, covering its origins, Gutenberg's contribution, the social impact in Europe, and a comparison to digital publishing today.`;
@@ -36,8 +36,8 @@ test.describe('Scenario 11 — Navigate away mid-response', () => {
 
   test.beforeEach(() => {
     // Isolation: un-expose leftover slash flows so the agent answers the prompt
-    // directly instead of proposing a flow (see helpers/db.ts unexposeSlashFlows).
-    unexposeSlashFlows();
+    // directly instead of proposing a flow (see helpers/db.ts disableAllFlows).
+    disableAllFlows();
   });
 
   test('submit → navigate to new chat → come back → see persisted reply', async ({

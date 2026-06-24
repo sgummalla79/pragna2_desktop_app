@@ -27,7 +27,7 @@ import { type Page } from '@playwright/test';
 
 import { test, expect } from '../fixtures';
 import { type ApiMessage } from '../helpers/network';
-import { unexposeSlashFlows } from '../helpers/db';
+import { disableAllFlows } from '../helpers/db';
 
 const HAS_REAL_KEY = Boolean(process.env.E2E_LLM_API_KEY ?? process.env.E2E_ANTHROPIC_API_KEY ?? process.env.E2E_OPENAI_API_KEY ?? process.env.E2E_GOOGLE_API_KEY);
 
@@ -133,8 +133,8 @@ test.describe('Scenario 21 — create_pdf_long fan-out + leak guards', () => {
 
   test.beforeEach(async ({ page }) => {
     // Isolation: un-expose leftover slash flows so the agent calls create_pdf_long
-    // instead of proposing a flow (see helpers/db.ts unexposeSlashFlows).
-    unexposeSlashFlows();
+    // instead of proposing a flow (see helpers/db.ts disableAllFlows).
+    disableAllFlows();
     await page.goto('/chat', { waitUntil: 'networkidle' });
   });
 

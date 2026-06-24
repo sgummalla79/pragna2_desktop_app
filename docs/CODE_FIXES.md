@@ -11,6 +11,24 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-041 — Generated-document (create_pdf) attachment never surfaces a DocumentCard until manual reload
+
+- **Date:** 2026-06-23
+- **Area / file:** `src/presentation/views/chat/hooks/useReconcileMessages.ts` (+ `useReconcileMessages.test.ts`).
+- **Found by:** e2e Scenario 19 (`create_pdf` document tool, live LLM) run against the real BE — the run produced the PDF and the BE linked it to the assistant message, but no DocumentCard ever rendered (deterministic, 3/3).
+- **Bug + root cause:** A tool-using assistant turn that produces an attachment (e.g. `create_pdf_short`) **streams multiple in-memory messages** — user + tool-call + tool-result + assistant-text (observed: 4) — but the BE **persists them collapsed into ONE assistant message** carrying the attachment (observed: 2). Attachments live ONLY on the persisted message log (live AG-UI messages don't carry them; `useReconcileMessages` swaps in-memory → persisted to pick them up). But the hook's **guard 3** ("never replace when in-memory count exceeds persisted count" — a stale-snapshot protection added for CF-013 / CF-013b) saw `in-memory (4) > persisted (2)` and **permanently blocked the swap**. So the persisted-only attachment never reached `attachmentsByMessageId`, and the DocumentCard appeared only after a manual navigation/refresh (which loads `/messages` fresh — which is why the seeded, fresh-load Scenario 20 always passed while the live Scenario 19 never did).
+- **Fix:** Added a narrow, **content-matched exception** (`isCollapsedToolTurn`): when `in-memory > persisted` AND both tails are assistant messages whose whitespace-normalised text matches (equal, or one a prefix of the other), reconcile anyway — that signals the BE collapsed the SAME final turn, not a stale snapshot. A stale snapshot's tail is an OLDER, different-content turn, so CF-013b / #158 / the back-to-back-attachment-turn case stay guarded (a dedicated regression test asserts non-replacement there). Widened the hook's `persisted` param to carry `role` + `content`. 3 new unit tests (collapsed-turn replace, trailing-chunk tolerance, stale-different-content non-replace); 787 total pass. Also un-`fixme`'d Scenario 19 and refreshed its stale viewer assertions (PDFs render to a pdf.js `<canvas>`, not a blob `<iframe>` — see CF-036; Download is a button, not a link).
+- **Web-app applicability:** **CHECK — almost certainly present.** `pragna2_sgummalla_works` shares this exact reconciliation hook and the `create_pdf` flow. Any generated-document turn there will hit the same guard-3 block and hide the DocumentCard until reload. Apply the same content-matched exception to its `useReconcileMessages`.
+
+## CF-042 — All chat slash-commands silently broken against a non-`/pragna` backend (discovery endpoint hardcoded)
+
+- **Date:** 2026-06-23
+- **Area / file:** `src/constants/api.ts` (new `CHAT_API_PATH`), `src/infrastructure/repositories/PragnaFlowRepository.ts` (+ `PragnaFlowRepository.test.ts`).
+- **Found by:** e2e Scenario 03 (slash-exposed flow dispatch) run against the rebranded `nexus-kit` BE (chat route prefix `/api/nexus-kit` instead of `/api/pragna`).
+- **Bug + root cause:** `PragnaFlowRepository.listSlashFlows()` hardcoded the discovery path `'/pragna/flows'` (resolving to `/api/pragna/flows`). The chat route prefix is **brand-specific**; against a BE that serves a different prefix the GET **404s**, so the FE's `slashFlowNames` set is empty → **no `/command` is ever recognised** → every slash message falls through to plain chat, where the default agent *proposes* a flow instead of dispatching it. The streaming dispatch had already been made configurable (`VITE_CHAT_API_BASE_URL`), but this discovery read was missed, so it stayed pinned to `/pragna`.
+- **Fix:** Derive `CHAT_API_PATH` (the chat surface's path segment relative to the `/api` axios baseURL) from the same configurable `CHAT_API_BASE_URL`, and call `${CHAT_API_PATH}/flows` in the repository — so one env var drives BOTH the streaming dispatch and slash discovery. Unit test updated to assert against `CHAT_API_PATH` rather than a literal prefix.
+- **Web-app applicability:** **CHECK.** The web app likely fetches discovery via a relative `/api/pragna/flows` (it uses the Vite dev proxy), so it is less exposed today, but the same hardcoded brand prefix is present — point it at a rebranded BE and slash commands break identically. Externalise the prefix the same way if the web app must support non-`/pragna` deployments.
+
 ## CF-039 — Windows app icon appears square (no rounded corners) (pragna2-tracker #198)
 
 - **Date:** 2026-06-22

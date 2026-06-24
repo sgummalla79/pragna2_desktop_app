@@ -56,6 +56,16 @@ export const MODEL_PICKER_LABEL: RegExp | null = process.env.E2E_MODEL_LABEL
   ? new RegExp(process.env.E2E_MODEL_LABEL)
   : null;
 
+/** Visible label of the flow-editor model picker's leading "inherit" option
+ *  (`FLOW_AGENT_MODEL_INHERIT_LABEL` in `src/constants/flows.ts`). The per-node
+ *  chat model is optional (tracker #184/#185): the picker renders this option
+ *  FIRST, before the real seeded models, and selecting it leaves the node with
+ *  no model (`user_model_id` NULL). `selectModelOption` skips it so the
+ *  provider-agnostic "first option" pick lands on a real model. Overridable via
+ *  `E2E_MODEL_INHERIT_LABEL` if the FE copy changes. */
+export const MODEL_INHERIT_LABEL: string =
+  process.env.E2E_MODEL_INHERIT_LABEL ?? 'Use conversation model';
+
 /** sessionStorage keys the FE's `tokenStorage` reads (see
  *  `src/infrastructure/storage/tokenStorage.ts`). The seed fixture writes the
  *  minted tokens under exactly these keys so `AuthService.bootstrap()` restores

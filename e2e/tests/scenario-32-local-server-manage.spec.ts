@@ -31,8 +31,10 @@ test.describe('Scenario 32 — Local MCP servers settings (browser-mode UI)', ()
     await expect(page.getByRole('heading', { name: 'Developer' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Configured servers' })).toBeVisible();
 
-    // Open the editor panel (defaults to the JSON "Edit" tab).
-    await page.getByRole('button', { name: 'Edit Config' }).click();
+    // Open the editor panel (the "Config" button), which opens on the Tree tab,
+    // then switch to the JSON "Edit" tab to reveal the raw config textarea.
+    await page.getByRole('button', { name: 'Config', exact: true }).click();
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
     const editor = page.getByLabel('Local MCP servers config (JSON)');
     await expect(editor).toBeVisible();
     const save = page.getByRole('button', { name: 'Save' });

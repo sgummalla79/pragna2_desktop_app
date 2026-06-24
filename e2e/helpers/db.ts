@@ -46,11 +46,16 @@ export const db = {
     ),
 };
 
-/** Un-expose every slash flow so the default chat agent answers a plain prompt
- *  (or calls a tool) directly instead of PROPOSING a leftover flow ("Suggested
- *  flow: …"). The flow specs leave slash-exposed flows in the shared serial DB;
- *  plain-chat / document specs call this in `beforeEach` for isolation. Slash
- *  specs re-expose their own flow, so this is safe to run before them. */
-export function unexposeSlashFlows(): void {
-  psql('UPDATE flows SET exposed_as_slash = false WHERE exposed_as_slash = true;');
+/** Disable every flow so the default chat agent answers a plain prompt (or
+ *  calls a tool) directly instead of PROPOSING a leftover flow ("Suggested
+ *  flow: …"). The flow specs leave flows in the shared serial DB, and the BE
+ *  builds a `propose_flow` tool per ENABLED flow (regardless of slash exposure —
+ *  see default_agent_factory `list_by_user(enabled_only=True)`), so merely
+ *  un-exposing is NOT enough: an enabled-but-unexposed flow is still proposable.
+ *  Disabling (which also drops it from slash discovery) is the only reliable
+ *  isolation. Plain-chat / document specs call this in `beforeEach`. Slash specs
+ *  build + enable + expose their own flow afterwards, so this is safe before
+ *  them. */
+export function disableAllFlows(): void {
+  psql('UPDATE flows SET enabled = false, exposed_as_slash = false WHERE enabled OR exposed_as_slash;');
 }

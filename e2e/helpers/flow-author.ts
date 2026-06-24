@@ -26,7 +26,7 @@
 import { expect, type Page } from '@playwright/test';
 
 import { psql } from './db';
-import { MODEL_PICKER_LABEL, TEST_USER } from './env';
+import { MODEL_INHERIT_LABEL, MODEL_PICKER_LABEL, TEST_USER } from './env';
 
 /** Logical palette kind → the actual palette button label. The router tile
  *  reads "If / else" on the canvas but we keep the logical name `Decision` at
@@ -181,16 +181,19 @@ export async function setEmits(page: Page, emits: string[]): Promise<void> {
 /** Pick a model in an already-open model dropdown (`#np-agent-model` or the
  *  chat composer picker), provider-agnostically. With an explicit `label`
  *  (`E2E_MODEL_LABEL` / `opts.modelLabel`) match the option by name; otherwise
- *  select the FIRST available option — whatever model the run's provider seeded.
- *  The suite must never pin a specific model: a different provider can be seeded
- *  each run, so a hardcoded model name would spuriously fail this step. */
+ *  select the first REAL model option — whatever model the run's provider
+ *  seeded. The flow-editor picker renders a leading "inherit conversation
+ *  model" option (`MODEL_INHERIT_LABEL`) that carries NO model, so a bare
+ *  `.first()` would leave the node model-less (`user_model_id` NULL); we skip
+ *  it. The suite must never pin a specific model: a different provider can be
+ *  seeded each run, so a hardcoded model name would spuriously fail this step. */
 export async function selectModelOption(
   page: Page,
   label: RegExp | null,
 ): Promise<void> {
   const option = label
     ? page.getByRole('option', { name: label })
-    : page.getByRole('option').first();
+    : page.getByRole('option').filter({ hasNotText: MODEL_INHERIT_LABEL }).first();
   await option.click();
 }
 
