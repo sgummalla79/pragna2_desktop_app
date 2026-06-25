@@ -15,6 +15,7 @@ import { TauriMcpOAuthLoopbackFlow } from '@/infrastructure/mcp/tauriMcpOAuthLoo
 import { ToolRepository } from '@/infrastructure/repositories/ToolRepository';
 import { KnowledgeRepository } from '@/infrastructure/repositories/KnowledgeRepository';
 import { AgentRepository } from '@/infrastructure/repositories/AgentRepository';
+import { AgentTemplateRepository } from '@/infrastructure/repositories/AgentTemplateRepository';
 import { ConversationRepository } from '@/infrastructure/repositories/ConversationRepository';
 import { FlowRepository } from '@/infrastructure/repositories/FlowRepository';
 import { PragnaFlowRepository } from '@/infrastructure/repositories/PragnaFlowRepository';
@@ -30,6 +31,7 @@ import { McpConnectorService } from '@/application/services/McpConnectorService'
 import { ToolService } from '@/application/services/ToolService';
 import { KnowledgeService } from '@/application/services/KnowledgeService';
 import { AgentService } from '@/application/services/AgentService';
+import { AgentTemplateService } from '@/application/services/AgentTemplateService';
 import { ConversationService } from '@/application/services/ConversationService';
 import { FlowService } from '@/application/services/FlowService';
 import { PragnaFlowService } from '@/application/services/PragnaFlowService';
@@ -75,6 +77,9 @@ export function ServiceProvider({ children }: ServiceProviderProps) {
       toolService: new ToolService(new ToolRepository(axiosClient)),
       knowledgeService: new KnowledgeService(new KnowledgeRepository(axiosClient)),
       agentService: new AgentService(new AgentRepository(axiosClient)),
+      agentTemplateService: new AgentTemplateService(
+        new AgentTemplateRepository(axiosClient),
+      ),
       conversationService: new ConversationService(
         new ConversationRepository(axiosClient),
       ),

@@ -9,6 +9,7 @@ import type { McpConnectorService } from '@/application/services/McpConnectorSer
 import type { ToolService } from '@/application/services/ToolService';
 import type { KnowledgeService } from '@/application/services/KnowledgeService';
 import type { AgentService } from '@/application/services/AgentService';
+import type { AgentTemplateService } from '@/application/services/AgentTemplateService';
 import type { ConversationService } from '@/application/services/ConversationService';
 import type { FlowService } from '@/application/services/FlowService';
 import type { PragnaFlowService } from '@/application/services/PragnaFlowService';
@@ -41,6 +42,8 @@ export interface Services {
   knowledgeService: KnowledgeService;
   /** The user's standalone agents (/api/agents). */
   agentService: AgentService;
+  /** System agent templates — browse + activate (/api/agents/templates). */
+  agentTemplateService: AgentTemplateService;
   /** The user's chat conversations + messages (/api/conversations). */
   conversationService: ConversationService;
   /** The user's agent flows (/api/flows). */
