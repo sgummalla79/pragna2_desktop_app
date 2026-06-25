@@ -8,7 +8,8 @@
  */
 
 import { useState } from 'react';
-import { Library, Plus } from 'lucide-react';
+import { AlertTriangle, Library, Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 import { EntityIcon } from '@/presentation/components/icons/EntityIcon';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ERRORS } from '@/constants/errors';
+import { ROUTES } from '@/constants/routes';
+import { useEmbeddingKeyStatus } from '@/presentation/hooks/embeddings/useEmbeddingKey';
 import {
   useCreateLibrary,
   useKnowledgeLibraries,
@@ -25,6 +28,8 @@ import { KnowledgeLibraryCard } from './KnowledgeLibraryCard';
 /** Knowledge settings page — lists, creates, and manages knowledge libraries. */
 export default function KnowledgeView() {
   const { data: libraries = [], isLoading, isError } = useKnowledgeLibraries();
+  const { data: keyStatus } = useEmbeddingKeyStatus();
+  const hasVoyageKey = keyStatus?.hasVoyageKey ?? false;
   const [creating, setCreating] = useState(false);
 
   return (
@@ -44,13 +49,35 @@ export default function KnowledgeView() {
           onClick={() => setCreating((v) => !v)}
           size="sm"
           className="shrink-0"
+          disabled={!hasVoyageKey}
+          title={!hasVoyageKey ? 'A Voyage API key is required to create knowledge libraries.' : undefined}
         >
           <Plus size={16} aria-hidden="true" />
           New library
         </Button>
       </div>
 
-      {creating && <CreateLibraryForm onDone={() => setCreating(false)} />}
+      {!hasVoyageKey && (
+        <div
+          role="alert"
+          className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+        >
+          <AlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <p>
+            A Voyage API key is required to use Knowledge / RAG features. Configure
+            it in{' '}
+            <Link
+              to={ROUTES.SETTINGS_CONFIGURATION}
+              className="font-medium underline underline-offset-2 hover:no-underline"
+            >
+              Configuration → Embeddings
+            </Link>
+            , then return here to add libraries and documents.
+          </p>
+        </div>
+      )}
+
+      {creating && hasVoyageKey && <CreateLibraryForm onDone={() => setCreating(false)} />}
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground" aria-live="polite">
@@ -75,7 +102,7 @@ export default function KnowledgeView() {
       ) : (
         <div className="flex flex-col gap-3">
           {libraries.map((l) => (
-            <KnowledgeLibraryCard key={l.id} library={l} />
+            <KnowledgeLibraryCard key={l.id} library={l} hasVoyageKey={hasVoyageKey} />
           ))}
         </div>
       )}

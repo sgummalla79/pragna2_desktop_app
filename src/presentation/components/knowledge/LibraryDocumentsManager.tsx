@@ -7,7 +7,8 @@
  */
 
 import { useState } from 'react';
-import { FileText, Trash2, Upload } from 'lucide-react';
+import { AlertTriangle, FileText, Trash2, Upload } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import { ConfirmButton } from '@/components/ui/confirm-button';
@@ -15,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ERRORS } from '@/constants/errors';
+import { ROUTES } from '@/constants/routes';
 import { slugify } from '@/domain/utils/slugify';
 import {
   useDeleteSource,
@@ -59,7 +61,15 @@ function validateKnowledgeFile(file: File): string | null {
 }
 
 /** Lists and manages the documents inside a single knowledge library. */
-export function LibraryDocumentsManager({ libraryId }: { libraryId: string }) {
+export function LibraryDocumentsManager({
+  libraryId,
+  hasVoyageKey,
+}: {
+  libraryId: string;
+  /** When false, the add-document form is replaced by a prompt to configure the
+   *  Voyage key. Existing documents are still listed and deletable. */
+  hasVoyageKey: boolean;
+}) {
   const { data: sources = [], isLoading, isError } =
     useLibrarySources(libraryId);
   const del = useDeleteSource(libraryId);
@@ -140,7 +150,25 @@ export function LibraryDocumentsManager({ libraryId }: { libraryId: string }) {
         )}
       </div>
 
-      <AddDocumentForm libraryId={libraryId} />
+      {hasVoyageKey ? (
+        <AddDocumentForm libraryId={libraryId} />
+      ) : (
+        <div
+          className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+          data-testid="knowledge-voyage-required"
+        >
+          <AlertTriangle size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <p>
+            A Voyage API key is required to add documents.{' '}
+            <Link
+              to={ROUTES.SETTINGS_CONFIGURATION}
+              className="font-medium underline underline-offset-2 hover:no-underline"
+            >
+              Configure it in Settings → Configuration.
+            </Link>
+          </p>
+        </div>
+      )}
     </div>
   );
 }

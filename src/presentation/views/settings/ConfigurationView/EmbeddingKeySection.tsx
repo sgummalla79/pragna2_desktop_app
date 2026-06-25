@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronRight } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import {
   useSetEmbeddingKey,
 } from '@/presentation/hooks/embeddings/useEmbeddingKey';
 import { KnowledgeSettingsFields } from './KnowledgeSettingsSection';
+import { VoyageInstructionsSheet } from './VoyageInstructionsSheet';
 
 /** Card for the per-user embedding key plus the knowledge / retrieval tuning. */
 export function EmbeddingKeySection() {
@@ -31,6 +32,7 @@ export function EmbeddingKeySection() {
   const [apiKey, setApiKey] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [instructionsOpen, setInstructionsOpen] = useState(false);
 
   const hasKey = status?.hasVoyageKey ?? false;
 
@@ -69,28 +71,42 @@ export function EmbeddingKeySection() {
   );
 
   return (
+    <>
     <section
       className="rounded-lg border border-border"
       data-testid="embedding-key-card"
     >
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left md:px-6"
-        aria-expanded={expanded}
-        aria-controls="embedding-key-body"
-        data-testid="embedding-key-toggle"
-      >
-        {expanded ? (
-          <ChevronDown size={16} aria-hidden="true" className="shrink-0" />
-        ) : (
-          <ChevronRight size={16} aria-hidden="true" className="shrink-0" />
-        )}
-        <span className="min-w-0 flex-1 text-sm font-semibold">
-          Embeddings — Voyage
-        </span>
-        {statusIndicator}
-      </button>
+      <div className="flex items-center gap-2 px-4 py-3 md:px-6">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+          aria-expanded={expanded}
+          aria-controls="embedding-key-body"
+          data-testid="embedding-key-toggle"
+        >
+          {expanded ? (
+            <ChevronDown size={16} aria-hidden="true" className="shrink-0" />
+          ) : (
+            <ChevronRight size={16} aria-hidden="true" className="shrink-0" />
+          )}
+          <span className="text-sm font-semibold">Embeddings — Voyage</span>
+          {statusIndicator}
+          <span className="flex-1" />
+        </button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0 gap-1.5 text-xs"
+          onClick={() => setInstructionsOpen(true)}
+          aria-label="How to get a Voyage API key"
+          data-testid="voyage-instructions-btn"
+        >
+          <BookOpen size={14} aria-hidden="true" />
+          Instructions
+        </Button>
+      </div>
 
       {expanded && (
         <div
@@ -163,6 +179,12 @@ export function EmbeddingKeySection() {
         </div>
       )}
     </section>
+
+    <VoyageInstructionsSheet
+      open={instructionsOpen}
+      onOpenChange={setInstructionsOpen}
+    />
+    </>
   );
 }
 

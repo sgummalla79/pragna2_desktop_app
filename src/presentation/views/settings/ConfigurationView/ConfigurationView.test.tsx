@@ -65,6 +65,8 @@ describe('ConfigurationView', () => {
     expect(screen.getByText('Chat actions')).toBeInTheDocument();
     // Status resolves to "Not configured" for an absent key.
     expect(await screen.findByText('Not configured')).toBeInTheDocument();
+    // Instructions button is visible without expanding.
+    expect(screen.getByTestId('voyage-instructions-btn')).toBeInTheDocument();
   });
 
   it('reveals the Knowledge & retrieval sub-form inside the Embeddings card', async () => {
@@ -105,8 +107,11 @@ describe('ConfigurationView', () => {
     expect(screen.getByRole('button', { name: 'Save key' })).toBeDisabled();
   });
 
-  it('renders both chat-action toggles checked by default', () => {
+  it('renders both chat-action toggles checked by default after expanding', async () => {
     renderWithProviders(<ConfigurationView />, { services: services() });
+
+    // Chat actions section is collapsed by default — expand it first.
+    await userEvent.click(screen.getByTestId('chat-actions-toggle'));
 
     const regen = screen.getByRole('checkbox', {
       name: /Regenerate with a different model/,
@@ -119,11 +124,22 @@ describe('ConfigurationView', () => {
   it('persists a chat-action toggle to localStorage when unchecked', async () => {
     renderWithProviders(<ConfigurationView />, { services: services() });
 
+    // Expand the chat actions accordion first.
+    await userEvent.click(screen.getByTestId('chat-actions-toggle'));
+
     const branch = screen.getByRole('checkbox', { name: /Branch from a user message/ });
     await userEvent.click(branch);
 
     expect(branch).not.toBeChecked();
     const stored = JSON.parse(localStorage.getItem('pragna:chat-prefs') ?? '{}');
     expect(stored.branchEnabled).toBe(false);
+  });
+
+  it('opens the voyage instructions sheet on Instructions click', async () => {
+    renderWithProviders(<ConfigurationView />, { services: services() });
+    await screen.findByText('Not configured');
+
+    await userEvent.click(screen.getByTestId('voyage-instructions-btn'));
+    expect(await screen.findByText('Get a free Voyage API key')).toBeInTheDocument();
   });
 });
