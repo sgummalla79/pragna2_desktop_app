@@ -13,8 +13,7 @@
  * automatically (Open/Closed).
  */
 
-import { AlertTriangle, Sparkles } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -25,27 +24,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { ERRORS } from '@/constants/errors';
-import { ROUTES } from '@/constants/routes';
-import { useEmbeddingKeyStatus } from '@/presentation/hooks/embeddings/useEmbeddingKey';
 import { detailOr } from '@/lib/httpError';
 import type { ActivatedAgentTemplate } from '@/domain/types/agentTemplate.types';
 
-/**
- * Surfaces activation feedback.
- *
- * Full success (`knowledgeSeeded: true`): show a success toast — agent is ready.
- * Partial failure (`knowledgeSeeded: false`): show a warning toast telling the
- * user to retry. The agent is NOT added to their list yet (the mutation skips
- * cache invalidation in this case), so there is nothing to call "activated".
- */
+/** Surfaces activation feedback as a success toast. */
 function announceActivation(result: ActivatedAgentTemplate): void {
-  if (!result.knowledgeSeeded) {
-    toast.warning(
-      result.knowledgeNote ??
-        'Knowledge base setup failed. Please try activating again in a moment.',
-    );
-    return;
-  }
   const name = result.agent.displayName;
   toast.success(
     result.created ? `${name} activated.` : `${name} is already activated.`,
@@ -56,8 +39,6 @@ function announceActivation(result: ActivatedAgentTemplate): void {
 export function AgentTemplatesSection() {
   const { data: templates = [], isLoading, isError } = useAgentTemplates();
   const activate = useActivateAgentTemplate();
-  const { data: keyStatus } = useEmbeddingKeyStatus();
-  const hasVoyageKey = keyStatus?.hasVoyageKey ?? false;
 
   async function onActivate(key: string) {
     try {
@@ -105,66 +86,44 @@ export function AgentTemplatesSection() {
       <ul className="list-none space-y-3" role="list">
         {templates.map((t) => {
           const isActivating = activate.isPending && activate.variables === t.key;
-          const needsVoyageKey = t.activatable && !hasVoyageKey;
           return (
             <li key={t.key}>
               <Card>
-                <CardContent className="flex flex-col gap-3 py-4">
-                  <div className="flex items-center">
-                    <Sparkles
-                      size={18}
-                      className="mr-3 shrink-0 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-1 flex items-center gap-2">
-                        <p className="truncate font-medium">{t.displayName}</p>
-                        {!t.activatable && (
-                          <Badge variant="secondary">Activated</Badge>
-                        )}
-                      </div>
-                      <p className="font-mono text-xs text-muted-foreground">
-                        {t.apiName}
-                      </p>
-                      {t.description && (
-                        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                          {t.description}
-                        </p>
+                <CardContent className="flex items-center py-4">
+                  <Sparkles
+                    size={18}
+                    className="mr-3 shrink-0 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex items-center gap-2">
+                      <p className="truncate font-medium">{t.displayName}</p>
+                      {!t.activatable && (
+                        <Badge variant="secondary">Activated</Badge>
                       )}
                     </div>
-
-                    <div className="ml-2 shrink-0">
-                      {t.activatable ? (
-                        <Button
-                          size="sm"
-                          onClick={() => onActivate(t.key)}
-                          disabled={isActivating || needsVoyageKey}
-                          aria-label={`Activate ${t.displayName}`}
-                        >
-                          {isActivating ? 'Activating…' : 'Activate'}
-                        </Button>
-                      ) : null}
-                    </div>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {t.apiName}
+                    </p>
+                    {t.description && (
+                      <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                        {t.description}
+                      </p>
+                    )}
                   </div>
 
-                  {needsVoyageKey && (
-                    <div
-                      role="alert"
-                      className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
-                    >
-                      <AlertTriangle size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
-                      <p>
-                        A Voyage API key is required to activate this agent. Configure it in{' '}
-                        <Link
-                          to={ROUTES.SETTINGS_CONFIGURATION}
-                          className="font-medium underline underline-offset-2 hover:no-underline"
-                        >
-                          Configuration → Embeddings
-                        </Link>
-                        {' '}first.
-                      </p>
-                    </div>
-                  )}
+                  <div className="ml-2 shrink-0">
+                    {t.activatable ? (
+                      <Button
+                        size="sm"
+                        onClick={() => onActivate(t.key)}
+                        disabled={isActivating}
+                        aria-label={`Activate ${t.displayName}`}
+                      >
+                        {isActivating ? 'Activating…' : 'Activate'}
+                      </Button>
+                    ) : null}
+                  </div>
                 </CardContent>
               </Card>
             </li>
