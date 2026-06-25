@@ -98,7 +98,7 @@ export function AgentTemplatesSection() {
                   <div className="min-w-0 flex-1">
                     <div className="mb-1 flex items-center gap-2">
                       <p className="truncate font-medium">{t.displayName}</p>
-                      {!t.activatable && (
+                      {t.activated && (
                         <Badge variant="secondary">Activated</Badge>
                       )}
                     </div>
@@ -113,7 +113,7 @@ export function AgentTemplatesSection() {
                   </div>
 
                   <div className="ml-2 shrink-0">
-                    {t.activatable ? (
+                    {!t.activated && t.activatable && (
                       <Button
                         size="sm"
                         onClick={() => onActivate(t.key)}
@@ -122,7 +122,7 @@ export function AgentTemplatesSection() {
                       >
                         {isActivating ? 'Activating…' : 'Activate'}
                       </Button>
-                    ) : null}
+                    )}
                   </div>
                 </CardContent>
               </Card>

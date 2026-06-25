@@ -31,9 +31,12 @@ export interface AgentTemplate {
   systemPrompt: string;
   /** Bound tool api_names the activated agent will carry. */
   tools: string[];
-  /** Whether the user can still activate this template. `false` once it has
-   *  already been activated for the user (the agent exists). */
+  /** Static capability: whether this template supports one-click activation at
+   *  all (e.g. `false` for the `default` prefill-only template). */
   activatable: boolean;
+  /** Per-user state: `true` when the user already has a non-archived agent for
+   *  this template. Drives the Activated badge and hides the Activate button. */
+  activated: boolean;
 }
 
 /**

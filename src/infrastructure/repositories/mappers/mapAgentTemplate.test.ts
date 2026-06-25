@@ -14,6 +14,7 @@ const RAW_TEMPLATE: ApiAgentTemplateResponse = {
   system_prompt: 'You help with setup.',
   tools: ['create_stdio_mcp_connector'],
   activatable: true,
+  activated: false,
 };
 
 const RAW_ACTIVATED: ApiActivateAgentTemplateResponse = {
@@ -43,6 +44,7 @@ describe('mapAgentTemplate', () => {
       systemPrompt: 'You help with setup.',
       tools: ['create_stdio_mcp_connector'],
       activatable: true,
+      activated: false,
     });
   });
 

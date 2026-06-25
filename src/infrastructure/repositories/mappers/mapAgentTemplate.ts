@@ -22,6 +22,7 @@ export interface ApiAgentTemplateResponse {
   system_prompt: string;
   tools: string[];
   activatable: boolean;
+  activated: boolean;
 }
 
 /**
@@ -44,6 +45,7 @@ export function mapAgentTemplate(raw: ApiAgentTemplateResponse): AgentTemplate {
     systemPrompt: raw.system_prompt,
     tools: raw.tools ?? [],
     activatable: raw.activatable,
+    activated: raw.activated,
   };
 }
 
