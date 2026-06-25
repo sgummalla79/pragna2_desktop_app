@@ -32,11 +32,12 @@ function library(overrides: Partial<KnowledgeLibrary> = {}): KnowledgeLibrary {
   };
 }
 
-/** KnowledgeView reads `knowledgeService.listLibraries` + `createLibrary`
- *  (and `archiveLibrary`, only when a card's delete is confirmed). */
+/** KnowledgeView reads `knowledgeService` + `embeddingKeyService` (for the
+ *  voyage-key gate). Pass `hasVoyageKey` to control gate state in tests. */
 function services(
   listLibraries: () => Promise<KnowledgeLibrary[]>,
   overrides: Record<string, unknown> = {},
+  hasVoyageKey = true,
 ): Partial<Services> {
   return {
     knowledgeService: {
@@ -44,6 +45,11 @@ function services(
       createLibrary: vi.fn().mockResolvedValue(library()),
       archiveLibrary: vi.fn().mockResolvedValue(undefined),
       ...overrides,
+    } as never,
+    embeddingKeyService: {
+      getStatus: vi.fn().mockResolvedValue({ hasVoyageKey }),
+      setKey: vi.fn(),
+      clearKey: vi.fn(),
     } as never,
   };
 }
@@ -60,7 +66,7 @@ describe('KnowledgeView', () => {
     renderWithProviders(<KnowledgeView />, {
       services: services(() => Promise.reject(new Error('boom'))),
     });
-    expect(await screen.findByRole('alert')).toHaveTextContent(ERRORS.KNW_001.message);
+    expect(await screen.findByText(ERRORS.KNW_001.message)).toBeInTheDocument();
   });
 
   it('renders the empty state when there are no libraries', async () => {
@@ -147,5 +153,22 @@ describe('KnowledgeView', () => {
 
     expect(await screen.findByText(ERRORS.KNW_002.message)).toBeInTheDocument();
     expect(screen.getByLabelText('Name')).toBeInTheDocument();
+  });
+
+  it('shows the voyage-key banner and disables New library when key is not configured', async () => {
+    renderWithProviders(<KnowledgeView />, {
+      services: services(() => Promise.resolve([]), {}, false),
+    });
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Voyage API key is required/);
+    expect(screen.getByRole('button', { name: /new library/i })).toBeDisabled();
+  });
+
+  it('does not show the voyage-key banner when key is configured', async () => {
+    renderWithProviders(<KnowledgeView />, {
+      services: services(() => Promise.resolve([]), {}, true),
+    });
+    await screen.findByText(/No knowledge libraries yet/);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /new library/i })).toBeEnabled();
   });
 });

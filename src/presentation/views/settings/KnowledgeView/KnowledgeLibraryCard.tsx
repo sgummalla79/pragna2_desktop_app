@@ -21,10 +21,13 @@ import type { KnowledgeLibrary } from '@/domain/types/knowledge.types';
 
 interface Props {
   library: KnowledgeLibrary;
+  /** Whether the user has a Voyage key configured. When false the add-document
+   *  form is hidden and a contextual note is shown instead. */
+  hasVoyageKey: boolean;
 }
 
 /** Renders a single knowledge library as an expandable card. */
-export function KnowledgeLibraryCard({ library }: Props) {
+export function KnowledgeLibraryCard({ library, hasVoyageKey }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const del = useArchiveLibrary();
@@ -99,7 +102,7 @@ export function KnowledgeLibraryCard({ library }: Props) {
           id={`knowledge-body-${library.id}`}
           className="border-t border-border px-4 py-3"
         >
-          <LibraryDocumentsManager libraryId={library.id} />
+          <LibraryDocumentsManager libraryId={library.id} hasVoyageKey={hasVoyageKey} />
         </div>
       )}
     </div>
