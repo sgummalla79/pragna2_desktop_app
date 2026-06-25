@@ -75,6 +75,8 @@ export const ERRORS = {
   AGT_005: { code: 'AGT_005', message: 'Failed to set the default agent.', severity: 'error' },
   AGT_006: { code: 'AGT_006', message: "The default agent can't be archived or deactivated. Set another agent as default first.", severity: 'warn' },
   AGT_007: { code: 'AGT_007', message: 'Agent name must be lowercase letters, digits, and hyphens (e.g. my-assistant).', severity: 'warn' },
+  AGT_008: { code: 'AGT_008', message: 'Failed to load agent templates.', severity: 'error' },
+  AGT_009: { code: 'AGT_009', message: 'Failed to activate the template. Please try again.', severity: 'error' },
 
   // ── Chat / Conversations ──────────────────────────────────────────────────
   CHT_001: { code: 'CHT_001', message: 'Failed to load conversations.', severity: 'error' },
