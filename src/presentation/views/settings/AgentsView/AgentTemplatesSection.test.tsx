@@ -64,14 +64,21 @@ function activated(
   };
 }
 
-/** Section reads only `agentTemplateService` (list, activate). */
+/** Section reads `agentTemplateService` (list, activate) + `embeddingKeyService`
+ *  (voyage-key gate). Pass `hasVoyageKey` to control gate state in tests. */
 function services(
   list: () => Promise<AgentTemplate[]>,
   activate: () => Promise<ActivatedAgentTemplate> = () =>
     Promise.resolve(activated()),
+  hasVoyageKey = true,
 ): Partial<Services> {
   return {
     agentTemplateService: { list, activate, get: vi.fn() } as never,
+    embeddingKeyService: {
+      getStatus: vi.fn().mockResolvedValue({ hasVoyageKey }),
+      setKey: vi.fn(),
+      clearKey: vi.fn(),
+    } as never,
   };
 }
 
@@ -167,5 +174,28 @@ describe('AgentTemplatesSection', () => {
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith(ERRORS.AGT_009.message),
     );
+  });
+
+  it('shows the voyage-key banner and disables Activate when key is not configured', async () => {
+    renderWithProviders(<AgentTemplatesSection />, {
+      services: services(() => Promise.resolve([template()]), undefined, false),
+    });
+    expect(
+      await screen.findByRole('alert'),
+    ).toHaveTextContent(/Voyage API key is required/);
+    expect(
+      screen.getByRole('button', { name: 'Activate Help & Setup Assistant' }),
+    ).toBeDisabled();
+  });
+
+  it('does not show the voyage-key banner when key is configured', async () => {
+    renderWithProviders(<AgentTemplatesSection />, {
+      services: services(() => Promise.resolve([template()]), undefined, true),
+    });
+    await screen.findByRole('button', { name: 'Activate Help & Setup Assistant' });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Activate Help & Setup Assistant' }),
+    ).toBeEnabled();
   });
 });
