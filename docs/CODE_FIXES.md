@@ -11,6 +11,15 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-043 — "Network Request Failed" in the desktop app against a backend on any non-8000/8001 port (Tauri HTTP allow-list hardcoded)
+
+- **Date:** 2026-06-25
+- **Area / file:** `src-tauri/capabilities/default.json` (the `http:default` permission `allow` list). Refs tracker #211.
+- **Found by:** Running the Tauri desktop app against the rebranded `nexus-kit-api` backend on **:8181** — every API call failed with "Network Request Failed". (Browser-fallback e2e/dev did NOT show it: only the native Tauri HTTP plugin enforces the capability allow-list; a plain browser bypasses it, so the gap is invisible outside a real desktop window.)
+- **Bug + root cause:** The Tauri HTTP capability allow-list **hardcoded the local backend ports** (`http://localhost:8000/*`, `http://127.0.0.1:8000/*`, `:8001`). The native HTTP plugin blocks any request whose URL is not in this list, so once the local backend moved to a different port (here :8181, the all-in-one/external-DB `nexus-kit` container) the desktop app could no longer reach it — surfacing as a generic "Network Request Failed" with no further detail. A No-Hardcoding violation: the reachable port set could change without a redeploy and was pinned in config.
+- **Fix:** Replace the four pinned-port entries with **wildcard-port** entries — `http://localhost:*/*` and `http://127.0.0.1:*/*` — so the desktop app can reach a locally-run backend on **any** port (dev / e2e / all-in-one Docker), independent of which port the BE binds. Scoped to loopback hosts only (no broadening of remote-host access; the Auth0 + `*.sgummallaworks.com` entries are unchanged). Same class of rebrand-driven breakage as CF-042 (hardcoded `/pragna` discovery path).
+- **Web-app applicability:** **N/A — desktop-only.** The web app makes ordinary browser `fetch` calls (no Tauri capability allow-list), so it has no equivalent port gate. No web-app change needed.
+
 ## CF-041 — Generated-document (create_pdf) attachment never surfaces a DocumentCard until manual reload
 
 - **Date:** 2026-06-23
