@@ -26,25 +26,18 @@ export function useAgentTemplates(enabled = true) {
 }
 
 /**
- * Activate a system template by key (idempotent on the server).
- *
- * Cache invalidation is conditional on seeding outcome:
- * - `knowledgeSeeded: true` — full success: refresh agents list (agent appears
- *   above) and templates list (activatable flips false, Activate button hides).
- * - `knowledgeSeeded: false` — partial failure: seeding failed so the agent
- *   should NOT yet appear in the user's agents list. Neither list is
- *   invalidated; the Activate button stays so the user can retry.
+ * Activate a system template by key (idempotent on the server). On success,
+ * invalidates the agents list (the activated agent now appears there) and the
+ * templates list (its `activatable` flag flips to false).
  */
 export function useActivateAgentTemplate() {
   const { agentTemplateService } = useServices();
   const qc = useQueryClient();
   return useMutation<ActivatedAgentTemplate, Error, string>({
     mutationFn: (key) => agentTemplateService.activate(key),
-    onSuccess: (result) => {
-      if (result.knowledgeSeeded) {
-        qc.invalidateQueries({ queryKey: AGENTS_KEY });
-        qc.invalidateQueries({ queryKey: AGENT_TEMPLATES_KEY });
-      }
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: AGENTS_KEY });
+      qc.invalidateQueries({ queryKey: AGENT_TEMPLATES_KEY });
     },
   });
 }

@@ -15,7 +15,7 @@ import { AgentTemplatesSection } from './AgentTemplatesSection';
  *
  * Focus: the loading / error / empty / list branches, the activatable vs
  * already-activated rendering, and the activation flow's user feedback
- * (success toast + the knowledge note only when knowledge was not seeded).
+ * (success toast; no Voyage-key gate on this section).
  */
 
 const toast = vi.hoisted(() => ({
@@ -65,21 +65,14 @@ function activated(
   };
 }
 
-/** Section reads `agentTemplateService` (list, activate) + `embeddingKeyService`
- *  (voyage-key gate). Pass `hasVoyageKey` to control gate state in tests. */
+/** Section reads only `agentTemplateService` (list, activate). */
 function services(
   list: () => Promise<AgentTemplate[]>,
   activate: () => Promise<ActivatedAgentTemplate> = () =>
     Promise.resolve(activated()),
-  hasVoyageKey = true,
 ): Partial<Services> {
   return {
     agentTemplateService: { list, activate, get: vi.fn() } as never,
-    embeddingKeyService: {
-      getStatus: vi.fn().mockResolvedValue({ hasVoyageKey }),
-      setKey: vi.fn(),
-      clearKey: vi.fn(),
-    } as never,
   };
 }
 
@@ -136,8 +129,8 @@ describe('AgentTemplatesSection', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('activates on click and shows a success toast when seeding succeeds', async () => {
-    const activate = vi.fn().mockResolvedValue(activated({ created: true, knowledgeSeeded: true }));
+  it('activates on click and shows a success toast', async () => {
+    const activate = vi.fn().mockResolvedValue(activated({ created: true }));
     renderWithProviders(<AgentTemplatesSection />, {
       services: services(() => Promise.resolve([template()]), activate),
     });
@@ -152,25 +145,6 @@ describe('AgentTemplatesSection', () => {
     expect(toast.info).not.toHaveBeenCalled();
   });
 
-  it('shows a warning toast and keeps the Activate button when seeding fails', async () => {
-    const note = 'Knowledge base setup failed. Please try activating again in a moment.';
-    const activate = vi
-      .fn()
-      .mockResolvedValue(activated({ knowledgeSeeded: false, knowledgeNote: note }));
-    renderWithProviders(<AgentTemplatesSection />, {
-      services: services(() => Promise.resolve([template()]), activate),
-    });
-    await userEvent.click(
-      await screen.findByRole('button', { name: 'Activate Help & Setup Assistant' }),
-    );
-    await waitFor(() => expect(toast.warning).toHaveBeenCalledWith(note));
-    expect(toast.success).not.toHaveBeenCalled();
-    // Activate button must remain (no cache invalidation → template stays activatable)
-    expect(
-      screen.getByRole('button', { name: 'Activate Help & Setup Assistant' }),
-    ).toBeInTheDocument();
-  });
-
   it('shows an error toast when activation fails', async () => {
     const activate = vi.fn().mockRejectedValue(new Error('nope'));
     renderWithProviders(<AgentTemplatesSection />, {
@@ -182,28 +156,5 @@ describe('AgentTemplatesSection', () => {
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith(ERRORS.AGT_009.message),
     );
-  });
-
-  it('shows the voyage-key banner and disables Activate when key is not configured', async () => {
-    renderWithProviders(<AgentTemplatesSection />, {
-      services: services(() => Promise.resolve([template()]), undefined, false),
-    });
-    expect(
-      await screen.findByRole('alert'),
-    ).toHaveTextContent(/Voyage API key is required/);
-    expect(
-      screen.getByRole('button', { name: 'Activate Help & Setup Assistant' }),
-    ).toBeDisabled();
-  });
-
-  it('does not show the voyage-key banner when key is configured', async () => {
-    renderWithProviders(<AgentTemplatesSection />, {
-      services: services(() => Promise.resolve([template()]), undefined, true),
-    });
-    await screen.findByRole('button', { name: 'Activate Help & Setup Assistant' });
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Activate Help & Setup Assistant' }),
-    ).toBeEnabled();
   });
 });
