@@ -34,7 +34,11 @@ function agent(overrides: Partial<Agent> = {}): Agent {
   };
 }
 
-/** AgentsView reads only `agentService` (list, getDefaultTemplate, setDefault, archive). */
+/**
+ * AgentsView reads `agentService` (list, getDefaultTemplate, setDefault,
+ * archive) plus `agentTemplateService` for the embedded system-templates
+ * section (stubbed empty here so it renders nothing — it has its own spec).
+ */
 function services(
   list: () => Promise<Agent[]>,
   overrides: Record<string, unknown> = {},
@@ -52,6 +56,11 @@ function services(
       setDefault: vi.fn().mockResolvedValue(agent({ isDefault: true })),
       archive: vi.fn().mockResolvedValue(undefined),
       ...overrides,
+    } as never,
+    agentTemplateService: {
+      list: vi.fn().mockResolvedValue([]),
+      get: vi.fn(),
+      activate: vi.fn(),
     } as never,
   };
 }

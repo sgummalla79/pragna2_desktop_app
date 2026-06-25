@@ -25,6 +25,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ConfirmButton } from '@/components/ui/confirm-button';
 import { ERRORS } from '@/constants/errors';
 import { AgentFormModal } from './AgentFormModal';
+import { AgentTemplatesSection } from './AgentTemplatesSection';
 import type { Agent } from '@/domain/types/agent.types';
 
 /** Agents settings page — list, onboarding, and create/edit entry points. */
@@ -166,6 +167,9 @@ export default function AgentsView() {
           ))}
         </ul>
       )}
+
+      {/* BE-owned system templates the user can activate into their agents. */}
+      <AgentTemplatesSection />
 
       {createOpen && (
         <AgentFormModal
