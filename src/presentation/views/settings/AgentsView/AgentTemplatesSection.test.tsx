@@ -22,6 +22,7 @@ const toast = vi.hoisted(() => ({
   success: vi.fn(),
   error: vi.fn(),
   info: vi.fn(),
+  warning: vi.fn(),
 }));
 vi.mock('sonner', () => ({ toast }));
 
@@ -86,6 +87,7 @@ beforeEach(() => {
   toast.success.mockReset();
   toast.error.mockReset();
   toast.info.mockReset();
+  toast.warning.mockReset();
 });
 
 describe('AgentTemplatesSection', () => {
@@ -134,8 +136,8 @@ describe('AgentTemplatesSection', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('activates on click and shows a success toast', async () => {
-    const activate = vi.fn().mockResolvedValue(activated({ created: true }));
+  it('activates on click and shows a success toast when seeding succeeds', async () => {
+    const activate = vi.fn().mockResolvedValue(activated({ created: true, knowledgeSeeded: true }));
     renderWithProviders(<AgentTemplatesSection />, {
       services: services(() => Promise.resolve([template()]), activate),
     });
@@ -146,11 +148,12 @@ describe('AgentTemplatesSection', () => {
     await waitFor(() =>
       expect(toast.success).toHaveBeenCalledWith('Help & Setup Assistant activated.'),
     );
+    expect(toast.warning).not.toHaveBeenCalled();
     expect(toast.info).not.toHaveBeenCalled();
   });
 
-  it('surfaces the knowledge note when knowledge was not seeded', async () => {
-    const note = 'No embedding key; running from built-in overview.';
+  it('shows a warning toast and keeps the Activate button when seeding fails', async () => {
+    const note = 'Knowledge base setup failed. Please try activating again in a moment.';
     const activate = vi
       .fn()
       .mockResolvedValue(activated({ knowledgeSeeded: false, knowledgeNote: note }));
@@ -160,7 +163,12 @@ describe('AgentTemplatesSection', () => {
     await userEvent.click(
       await screen.findByRole('button', { name: 'Activate Help & Setup Assistant' }),
     );
-    await waitFor(() => expect(toast.info).toHaveBeenCalledWith(note));
+    await waitFor(() => expect(toast.warning).toHaveBeenCalledWith(note));
+    expect(toast.success).not.toHaveBeenCalled();
+    // Activate button must remain (no cache invalidation → template stays activatable)
+    expect(
+      screen.getByRole('button', { name: 'Activate Help & Setup Assistant' }),
+    ).toBeInTheDocument();
   });
 
   it('shows an error toast when activation fails', async () => {
