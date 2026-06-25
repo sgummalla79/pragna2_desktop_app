@@ -30,20 +30,26 @@ import { useEmbeddingKeyStatus } from '@/presentation/hooks/embeddings/useEmbedd
 import { detailOr } from '@/lib/httpError';
 import type { ActivatedAgentTemplate } from '@/domain/types/agentTemplate.types';
 
-/** Surfaces activation feedback: a success toast plus the knowledge note when
- *  the template's knowledge base was not seeded (agent still runs without it). */
+/**
+ * Surfaces activation feedback.
+ *
+ * Full success (`knowledgeSeeded: true`): show a success toast — agent is ready.
+ * Partial failure (`knowledgeSeeded: false`): show a warning toast telling the
+ * user to retry. The agent is NOT added to their list yet (the mutation skips
+ * cache invalidation in this case), so there is nothing to call "activated".
+ */
 function announceActivation(result: ActivatedAgentTemplate): void {
+  if (!result.knowledgeSeeded) {
+    toast.warning(
+      result.knowledgeNote ??
+        'Knowledge base setup failed. Please try activating again in a moment.',
+    );
+    return;
+  }
   const name = result.agent.displayName;
   toast.success(
-    result.created
-      ? `${name} activated.`
-      : `${name} is already activated.`,
+    result.created ? `${name} activated.` : `${name} is already activated.`,
   );
-  // Knowledge note only matters when seeding did not happen — surface why so
-  // the user understands the agent runs from its built-in overview.
-  if (!result.knowledgeSeeded && result.knowledgeNote) {
-    toast.info(result.knowledgeNote);
-  }
 }
 
 /** Read-only catalog of system agent templates with a one-click Activate. */
