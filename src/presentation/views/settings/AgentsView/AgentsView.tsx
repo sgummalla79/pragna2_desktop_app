@@ -97,7 +97,9 @@ export default function AgentsView() {
         </div>
       ) : (
         <ul className="list-none space-y-3" role="list">
-          {agents.map((a) => (
+          {agents.map((a) => {
+            const isSystemAgent = a.metadata?.nexus_kit_role === 'help_setup_assistant';
+            return (
             <li key={a.id}>
               <Card>
                 <CardContent className="flex items-center py-4">
@@ -110,6 +112,9 @@ export default function AgentsView() {
                           <Star size={11} aria-hidden="true" />
                           Default
                         </Badge>
+                      )}
+                      {isSystemAgent && (
+                        <Badge variant="outline">System</Badge>
                       )}
                       {a.status !== 'active' && (
                         <Badge variant="secondary">{a.status}</Badge>
@@ -125,46 +130,51 @@ export default function AgentsView() {
                     )}
                   </div>
 
-                  <div className="ml-2 flex items-center gap-1">
-                    {!a.isDefault && a.status === 'active' && (
+                  {/* System agents (e.g. Help & Setup Assistant) are read-only
+                      — no edit or archive affordances. */}
+                  {!isSystemAgent && (
+                    <div className="ml-2 flex items-center gap-1">
+                      {!a.isDefault && a.status === 'active' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDefault.mutate(a.id)}
+                          disabled={setDefault.isPending}
+                          aria-label={`Set ${a.displayName} as default`}
+                        >
+                          <Star size={15} aria-hidden="true" />
+                          Set default
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
-                        size="sm"
-                        onClick={() => setDefault.mutate(a.id)}
-                        disabled={setDefault.isPending}
-                        aria-label={`Set ${a.displayName} as default`}
-                      >
-                        <Star size={15} aria-hidden="true" />
-                        Set default
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setEditing(a)}
-                      aria-label={`Edit ${a.displayName}`}
-                    >
-                      <Pencil size={16} aria-hidden="true" />
-                    </Button>
-                    {/* The default agent can't be archived (BE returns 400). */}
-                    {!a.isDefault && (
-                      <ConfirmButton
                         size="icon"
-                        variant="ghost"
-                        confirmTitle="Archive this agent?"
-                        confirmDescription="It will be hidden and its name freed for reuse. This can't be undone from here."
-                        confirmLabel="Archive"
-                        onConfirm={() => archiveAgent.mutateAsync(a.id)}
-                        aria-label={`Archive ${a.displayName}`}
+                        onClick={() => setEditing(a)}
+                        aria-label={`Edit ${a.displayName}`}
                       >
-                        <Trash2 size={16} aria-hidden="true" />
-                      </ConfirmButton>
-                    )}
-                  </div>
+                        <Pencil size={16} aria-hidden="true" />
+                      </Button>
+                      {/* The default agent can't be archived (BE returns 400). */}
+                      {!a.isDefault && (
+                        <ConfirmButton
+                          size="icon"
+                          variant="ghost"
+                          confirmTitle="Archive this agent?"
+                          confirmDescription="It will be hidden and its name freed for reuse. This can't be undone from here."
+                          confirmLabel="Archive"
+                          onConfirm={() => archiveAgent.mutateAsync(a.id)}
+                          aria-label={`Archive ${a.displayName}`}
+                        >
+                          <Trash2 size={16} aria-hidden="true" />
+                        </ConfirmButton>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
 

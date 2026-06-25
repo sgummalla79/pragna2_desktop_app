@@ -36,6 +36,7 @@ function template(overrides: Partial<AgentTemplate> = {}): AgentTemplate {
     systemPrompt: 'You help.',
     tools: [],
     activatable: true,
+    activated: false,
     ...overrides,
   };
 }
@@ -119,9 +120,9 @@ describe('AgentTemplatesSection', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows an Activated badge and no Activate button when not activatable', async () => {
+  it('shows an Activated badge and no Activate button when already activated', async () => {
     renderWithProviders(<AgentTemplatesSection />, {
-      services: services(() => Promise.resolve([template({ activatable: false })])),
+      services: services(() => Promise.resolve([template({ activated: true })])),
     });
     expect(await screen.findByText('Activated')).toBeInTheDocument();
     expect(
