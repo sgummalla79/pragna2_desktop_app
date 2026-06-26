@@ -26,6 +26,7 @@ import {
   readReauthEnvelope,
 } from '@/domain/types/mcpDelegation.types';
 import { pruneOrphanedOptimisticMessage } from '../utils/messageDedup';
+import { truncateMessagesFrom } from '../utils/messageTruncation';
 import { classifyRunErrorEvent } from '../utils/runError';
 
 /** A tool call rendered inline under an assistant turn. */
@@ -150,6 +151,15 @@ export interface ChatSessionApi {
    * a run settles, so attachment / model-attribution lookups resolve). Idempotent.
    */
   replaceMessages: (replacement: Message[]) => void;
+  /**
+   * Truncate the in-memory message list at `messageId` (drop it + every later
+   * message), mirroring the backend `messages/truncate-from` deletion. Edit and
+   * regenerate call this after the server truncate succeeds and before re-sending,
+   * so the deleted turn — including any orphaned assistant `tool_calls` whose tool
+   * result was never seeded — is not re-streamed to the backend (which would 400
+   * on an unanswered `tool_call_id`). No-op when `messageId` is not present.
+   */
+  truncateLocalFrom: (messageId: string) => void;
   /**
    * True while a raw episode/delegation resume is settling (from its start until
    * its `/messages` refetch resolves). Consumers gate reconciliation on this so
@@ -943,6 +953,18 @@ export function useChatSession(
     [agent, syncMessages],
   );
 
+  // Mirror the backend `truncate-from` in the agent's in-memory list so the
+  // deleted turn (and any orphaned assistant tool-call it carried) is not
+  // re-streamed on the following edit/regenerate re-send. See messageTruncation.
+  const truncateLocalFrom = useCallback(
+    (messageId: string) => {
+      if (!agent) return;
+      agent.setMessages(truncateMessagesFrom(agent.messages, messageId));
+      syncMessages();
+    },
+    [agent, syncMessages],
+  );
+
   const stop = useCallback(() => {
     // A raw episode run (start/resume) bypasses ag-ui's abortRun — cancel its
     // own controller first.
@@ -978,6 +1000,7 @@ export function useChatSession(
     startEpisode,
     attach,
     replaceMessages,
+    truncateLocalFrom,
     reconcileBlocked,
   };
 }

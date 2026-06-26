@@ -1,5 +1,6 @@
 import {
   HttpAgent,
+  type Message,
   transformChunks,
   transformHttpEventStream,
   verifyEvents,
@@ -8,6 +9,7 @@ import type { BaseEvent, RunAgentInput } from '@ag-ui/core';
 import { lastValueFrom, type Observable } from 'rxjs';
 
 import { runHttpRequestViaTauri } from './tauriHttpRequest';
+import { sanitizeToolCallPairs } from './sanitizeToolCalls';
 
 /**
  * An `HttpAgent` that streams over Tauri's native HTTP transport.
@@ -33,7 +35,16 @@ export class TauriHttpAgent extends HttpAgent {
    * @returns An observable of typed AG-UI events for the subscriber chain.
    */
   run(input: RunAgentInput): Observable<BaseEvent> {
-    const httpEvents = runHttpRequestViaTauri(this.url, this.requestInit(input));
+    // Sanitize the OUTGOING history so no assistant `tool_calls` is sent without
+    // its answering tool message (provider 400 otherwise). The seed re-attaches
+    // historical tool calls for badge rendering, but their results are folded
+    // inline by the backend (no `role:'tool'` row), so a truncated thread leaves
+    // them orphaned — see sanitizeToolCalls. `input.messages` is a clone of the
+    // agent's in-memory list (prepareRunAgentInput), so this never affects the
+    // rendered transcript.
+    const messages = sanitizeToolCallPairs(input.messages as Message[]);
+    const sanitized = messages === input.messages ? input : { ...input, messages };
+    const httpEvents = runHttpRequestViaTauri(this.url, this.requestInit(sanitized));
     // `transformHttpEventStream` is typed against the library's own (unexported)
     // `HttpEvent`; our locally-declared union is byte-compatible, so we hand it
     // through the operator's parameter type.
