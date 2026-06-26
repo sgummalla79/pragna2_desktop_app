@@ -176,6 +176,7 @@ function ChatConversation({
     startEpisode,
     attach,
     replaceMessages,
+    truncateLocalFrom,
     reconcileBlocked,
   } = useChatSession({ threadId: conversationId, initialMessages, slashFlowNames });
 
@@ -326,9 +327,20 @@ function ChatConversation({
   // Message-action handlers (edit/branch on user; regenerate/continue on assistant).
   const messageActions = {
     onEdit: (messageId: string, newContent: string) => {
+      // CURRENT LIMITATION: edit is destructive — `truncate-from` deletes this
+      // message and every later turn (industry tools branch instead, preserving
+      // the original). Tracked for non-destructive edit-as-branch: nexus-kit-tracker #231.
       truncate.mutate(
         { conversationId, messageId },
-        { onSuccess: () => send(newContent), onError: (e) => logger.fromError('CHT_005:edit', e) },
+        {
+          // Mirror the server truncate in the in-memory list before re-sending so
+          // the edited turn (and any orphaned tool-call it carried) isn't re-streamed.
+          onSuccess: () => {
+            truncateLocalFrom(messageId);
+            send(newContent);
+          },
+          onError: (e) => logger.fromError('CHT_005:edit', e),
+        },
       );
     },
     onBranch: (messageId: string) => {
@@ -351,7 +363,13 @@ function ChatConversation({
       if (!content) return;
       truncate.mutate(
         { conversationId, messageId: assistantMessageId },
-        { onSuccess: () => send(content), onError: (e) => logger.fromError('CHT_004:regen', e) },
+        {
+          onSuccess: () => {
+            truncateLocalFrom(assistantMessageId);
+            send(content);
+          },
+          onError: (e) => logger.fromError('CHT_004:regen', e),
+        },
       );
     },
     onRegenerateWithModel: (assistantMessageId: string, modelId: string) => {
@@ -360,7 +378,10 @@ function ChatConversation({
       truncate.mutate(
         { conversationId, messageId: assistantMessageId },
         {
-          onSuccess: () => sendWithModel(content, modelId),
+          onSuccess: () => {
+            truncateLocalFrom(assistantMessageId);
+            sendWithModel(content, modelId);
+          },
           onError: (e) => logger.fromError('CHT_004:regen-model', e),
         },
       );
