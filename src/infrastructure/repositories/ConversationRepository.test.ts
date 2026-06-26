@@ -93,6 +93,51 @@ describe('ConversationRepository', () => {
     expect(await repo().getMessages('c1')).toEqual([]);
   });
 
+  it('getMessages orders rows by message_index (not response order), keeping the tool row intact', async () => {
+    // A real tool turn: the empty-content tool-call row (idx 1) and its
+    // narration row (idx 2) share an IDENTICAL created_at, so only message_index
+    // is a stable order. Serve them OUT of order (narration before the tool row,
+    // user last) to prove the repo re-sorts rather than trusting the array order.
+    const sharedTs = '2026-06-26T06:45:08.946474+00:00';
+    const apiMessage = (over: Record<string, unknown>) => ({
+      id: 'x',
+      role: 'assistant',
+      content: '',
+      tool_calls: null,
+      user_model_id: null,
+      agent_id: null,
+      message_index: 0,
+      created_at: sharedTs,
+      modified_at: sharedTs,
+      finish_reason: null,
+      reasoning_content: null,
+      attachments: [],
+      ...over,
+    });
+    server.use(
+      http.get(`${BASE}/conversations/c1/messages`, () =>
+        HttpResponse.json([
+          apiMessage({ id: 'narration', message_index: 2, content: 'The PDF has been created.', finish_reason: 'stop' }),
+          apiMessage({
+            id: 'toolrow',
+            message_index: 1,
+            content: '',
+            finish_reason: 'tool_calls',
+            tool_calls: [{ id: 'call_1', name: 'create_pdf_short', args: { title: 'Q3 Status' }, result: 'ok' }],
+          }),
+          apiMessage({ id: 'user', role: 'user', message_index: 0, content: 'make a pdf', created_at: '2026-06-26T06:45:07.0Z' }),
+        ]),
+      ),
+    );
+    const out = await repo().getMessages('c1');
+    expect(out.map((m) => m.id)).toEqual(['user', 'toolrow', 'narration']);
+    // The empty-content tool row keeps its tool_calls (the activity source).
+    expect(out[1]).toMatchObject({ content: '', finishReason: 'tool_calls' });
+    expect(out[1].toolCalls).toEqual([
+      { id: 'call_1', name: 'create_pdf_short', args: { title: 'Q3 Status' }, result: 'ok' },
+    ]);
+  });
+
   it('truncateFrom posts the message_id', async () => {
     let body: Record<string, unknown> | null = null;
     server.use(

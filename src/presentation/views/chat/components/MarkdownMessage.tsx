@@ -8,17 +8,38 @@ import { normalizeMathDelimiters } from '@/presentation/views/chat/utils/markdow
 import { rehypeSketchon } from '@/presentation/views/chat/utils/rehypeSketchon';
 import { SketchonDiagram } from '@/presentation/views/chat/components/SketchonDiagram';
 import { useSmoothStreamingText } from '@/presentation/views/chat/hooks/useSmoothStreamingText';
-import { SHIKI_THEMES, STREAMDOWN_CONTROLS, SKETCHON_ELEMENT_TAG } from '@/constants/markdown';
+import {
+  SHIKI_THEMES,
+  STREAMDOWN_CONTROLS,
+  SKETCHON_ELEMENT_TAG,
+  MARKDOWN_BLOCKED_LINK_POLICY,
+} from '@/constants/markdown';
 import { cn } from '@/lib/utils';
 
-// Append our ```sketchon plugin AFTER Streamdown's defaults so it runs past the
-// sanitizer (rehype-harden) — harden can't strip the <sketchon-diagram> element
-// we introduce. Streamdown destructures `rehypePlugins` with a default, so
-// passing this REPLACES the default chain; we rebuild it. `defaultRehypePlugins`
-// is an ordered Record keyed by name, so `Object.values` yields the default
-// plugins in their original order, with ours last.
+// Rebuild Streamdown's default rehype chain with two changes, then re-pass it:
+//   1. Append our ```sketchon plugin LAST so it runs past the sanitizer
+//      (rehype-harden) — harden can't strip the <sketchon-diagram> element we
+//      introduce.
+//   2. Soften harden's link-block policy to "text-only" so a blocked (non-http)
+//      link — e.g. a model's phantom `sandbox:/mnt/data/*.pdf` — degrades to
+//      clean text instead of the default `text [blocked]` marker. See
+//      MARKDOWN_BLOCKED_LINK_POLICY. http(s) links stay clickable.
+// `defaultRehypePlugins` is an ordered Record keyed by name (`Object.entries`
+// preserves that order); each value is either a bare plugin or a `[plugin,
+// options]` tuple. Streamdown destructures `rehypePlugins` with a default, so
+// passing this REPLACES the default chain — hence the faithful rebuild.
 const SKETCHON_REHYPE_PLUGINS = [
-  ...Object.values(defaultRehypePlugins),
+  ...Object.entries(defaultRehypePlugins).map(([name, plugin]) =>
+    name === 'harden' && Array.isArray(plugin)
+      ? [
+          plugin[0],
+          {
+            ...(plugin[1] as Record<string, unknown>),
+            linkBlockPolicy: MARKDOWN_BLOCKED_LINK_POLICY,
+          },
+        ]
+      : plugin,
+  ),
   rehypeSketchon,
 ] as ComponentProps<typeof Streamdown>['rehypePlugins'];
 

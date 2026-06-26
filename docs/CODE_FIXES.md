@@ -11,6 +11,42 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-048 — Blocked (non-http) markdown link renders a literal " [blocked]" marker (nexus-kit-tracker #227)
+
+- **Date:** 2026-06-26
+- **Area / file:** `src/presentation/views/chat/components/MarkdownMessage.tsx`, `src/constants/markdown.ts`. Refs tracker #227 (FE) + #228 (BE root cause).
+- **Found by:** A generated-PDF reply rendered "view and download it here **[blocked]**". Captured the real assistant content live (`nexus-kit-api`): the model emits a phantom link `[…](sandbox:/mnt/data/Q3_Status.pdf)` — an OpenAI-sandbox path that resolves to nothing here (the real file is the persisted attachment / DocumentCard).
+- **Bug + root cause:** The markdown sanitizer (Streamdown's bundled `rehype-harden`) allows only `http(s)` URLs under its `["*"]` wildcard, so it **blocks** the `sandbox:` scheme. Its default `linkBlockPolicy: "indicator"` keeps the dead link and appends a literal `" [blocked]"` to the link text — the marker the user saw. `MarkdownMessage` rebuilds Streamdown's default rehype chain (to append the `sketchon` plugin), so it owns the harden options.
+- **Fix:** Override harden's `linkBlockPolicy` to `"text-only"` (externalised as `MARKDOWN_BLOCKED_LINK_POLICY`, no-hardcoding) when rebuilding the rehype chain, so a blocked link degrades to its **plain child text** — no dead anchor, no `[blocked]` marker. Legitimate `http(s)` links are untouched (still clickable). Regression test: `sandbox:` link → clean text, no `[blocked]`, no anchor; `https` link → still a working anchor (red without the override, green with it). NOTE: the phantom-link **root cause is backend** — the model shouldn't emit a `sandbox:` link; filed as #228 (`target:backend`), not fixed here per the no-cross-repo rule.
+- **Web-app applicability:** **CHECK — likely present.** `pragna2_sgummalla_works` shares the markdown renderer + Streamdown config; apply the same `linkBlockPolicy` override (track under `target:web-fe`).
+
+## CF-047 — Regenerate offered on a tool-call row triggers a mid-turn re-run failure (nexus-kit-tracker #226)
+
+- **Date:** 2026-06-26
+- **Area / file:** `src/presentation/views/chat/components/ChatMessage.tsx`. Refs tracker #226.
+- **Found by:** Clicking **Regenerate** on a generated-PDF (tool/activity) row surfaced "The response could not be completed due to an unexpected error. Please try again." — a **backend run-failure message** surfaced verbatim by the FE (`classifyRunErrorEvent`); the string is not in the FE.
+- **Bug + root cause:** The Regenerate affordance rendered on **every** non-streaming assistant message (no answer-vs-intermediate gate). A tool turn spans **multiple** assistant rows (the empty-content `tool_calls` row + the final answer); `onRegenerate` truncates from the *clicked* message, so regenerating a non-answer row re-runs the conversation from a **mid-turn boundary**. Regenerate is only meaningful on the turn's final text reply. (The exact BE failure was **not reproducible in isolation** — the BE tolerated both an orphaned tool row and a dangling `tool_calls` in direct live tests — so the precise trigger is BE-side/state-dependent; regardless, regenerating a tool-call row is never a valid action.)
+- **Fix:** Suppress the Regenerate action on any assistant message that carries `tool_calls` (`isToolCallRow`); it renders only on the final answer (no tool calls). The DocumentCard / agent + model badges still render. Tests: tool-call row → no Regenerate (card still renders); final text answer → Regenerate present.
+- **Web-app applicability:** **CHECK — likely present.** `pragna2_sgummalla_works` shares `ChatMessage` / `MessageActions`; apply the same gate (track under `target:web-fe`).
+
+## CF-046 — Activity umbrella omitted output-tool calls (document / propose-flow), so a create_pdf turn showed no activity (nexus-kit-tracker #225)
+
+- **Date:** 2026-06-26
+- **Area / file:** `src/presentation/views/chat/components/AssistantTurn.tsx`, `src/presentation/views/chat/utils/assistantTurns.ts`. Refs tracker #225.
+- **Found by:** A `create_pdf_short` turn rendered the answer + DocumentCard but **no Activity umbrella** — the user could not see in the activity log that a tool was called. Confirmed live that the BE **persists** the tool call (`tool_calls` on the assistant row), so the omission was purely presentational.
+- **Bug + root cause:** `AssistantTurn` folded only **plain** tool calls into the umbrella (`isPlainToolCall`), deliberately excluding **output/interactive** tools — document tools (`create_pdf_*`) and propose-flow — which rendered only their card (FEAT-002 design intent: "the card is the deliverable, don't duplicate it"). For a document-only turn that left the umbrella empty, hiding the fact that a tool ran.
+- **Fix:** Fold **every** tool call into the umbrella as an activity step regardless of tool type; output/interactive messages still render their card **outside** (the document / flow-proposal card is the deliverable, the umbrella row is the audit log). Intentionally revises the FEAT-002 behavior. Tests: document-tool call shows in the umbrella AND its card renders outside (no false "no reply" notice); propose-flow shows in the umbrella AND its card.
+- **Web-app applicability:** **CHECK — likely present.** `pragna2_sgummalla_works` shares `AssistantTurn`; apply the same (track under `target:web-fe`).
+
+## CF-045 — Persisted message log not ordered by `messageIndex`; a tool turn's activity umbrella can mis-group (nexus-kit-tracker #224)
+
+- **Date:** 2026-06-25
+- **Area / file:** `src/infrastructure/repositories/ConversationRepository.ts` (`getMessages`). Refs tracker #224.
+- **Found by:** Investigating a report that a tool turn's "Activity" umbrella disappears after settle/reload. The report's stated FE root cause (the FE discards empty-content assistant messages) was **disproved** — verified by reproduction tests through the real FE rebuild (`useChatSession` → `groupChatMessages` → `AssistantTurn`) and by a **live capture against the real backend** (`nexus-kit-api`, `GET /conversations/{id}/messages` for a real `create_pdf_short` turn). The empty-content tool row is preserved end-to-end and rendered (TD-018 rehydration + `AssistantTurn` pushing a tool step regardless of empty content). The live capture surfaced the actual latent gap below.
+- **Bug + root cause:** `IConversationRepository.getMessages` is **documented** ("ordered by `messageIndex`") but the impl returned `data.map(mapMessage)` — trusting the backend response **array order** rather than enforcing the contract; `messageIndex` was mapped but never used to sort. A tool turn persists as **two assistant rows** — the empty-content `tool_calls` row then the narration row — that carry an **identical `created_at`** (confirmed live: both rows shared `…08.946474+00:00`). Since the timestamp is not a stable tiebreaker, a timestamp-ordered transport could surface the sibling rows out of order; out of order, `groupChatMessages` splits the tool row from its answer and the activity umbrella is mis-grouped (answer alone, plus a separate empty tool-only "no reply" turn). Latent today — the backend currently returns `message_index` order — but a real contract violation.
+- **Fix:** Sort the mapped messages by ascending `messageIndex` in `getMessages` via a pure, non-mutating helper `sortByMessageIndex`. Honors the documented port contract and removes the same-timestamp ordering hazard. Regression test added: the messages endpoint serves the rows **out of order** (narration before the tool row, sibling rows sharing `created_at`) and the repo re-sorts to `messageIndex` order with the empty-content tool row's `tool_calls` intact.
+- **Web-app applicability:** **CHECK — likely present.** `pragna2_sgummalla_works` shares the repository/mapper architecture; its `getMessages` equivalent should apply the same `messageIndex` sort. Track + apply under `target:web-fe` (its own session, per the no-cross-repo rule).
+
 ## CF-043 — "Network Request Failed" in the desktop app against a backend on any non-8000/8001 port (Tauri HTTP allow-list hardcoded)
 
 - **Date:** 2026-06-25
@@ -215,8 +251,8 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 - **Found by:** Console log during live GUS MCP tool call: `[mcp_stdio_call] isError result (auth_signal=false): [{"type":"text","text":"failed to get MCP client: ... token refresh failed with status 400: {\"error\":\"invalid_grant\"..."}]`. The Re-authenticate card never appeared; the LLM narrated the error in prose.
 - **Bug:** When a GUS session token expires, the `mcp-adaptor` attempts a silent token refresh. If the refresh token is also expired/revoked, the adaptor returns an `isError=true` MCP result whose text contains `"invalid_grant"` (OAuth RFC 6749 §5.2 error code), `"token refresh failed"`, and `"failed to fetch required token"`. `is_auth_error_signal()` in `mcp.rs` returned `false` for all of these because none appeared in `AUTH_ERROR_RESULT_SIGNALS`. As a result, `mcp_registry::call` returned `DelegatedCallOutcome::Success` (not `AuthRequired`), the desktop sent a plain `tool_result` to `/resume-tool` instead of the structured `{"auth_required": ...}` signal, the BE's text-signal fallback also missed (same gap — tracked as pragna2-tracker #127 for the API team), and no `connector_reauth` interrupt was raised. The #122/#124 re-auth pause flow was fully bypassed.
 - **Root cause:** The signal list was authored to cover OIDC/session patterns but missed the OAuth token-refresh failure code `invalid_grant` and the mcp-adaptor-specific wrapper messages. The failure arrives as a **400** on the refresh endpoint (not a 401 on the API call), so the existing `"401"` signal never matched.
-- **Fix:** Added `"invalid_grant"` to `AUTH_ERROR_RESULT_SIGNALS` in `src-tauri/src/domain/mcp.rs`. Keyed on the standard OAuth RFC 6749 §5.2 error code embedded in the mcp-adaptor error JSON body — NOT on vendor-specific prose (`"token refresh failed"`, `"failed to fetch required token"`), which the API team deliberately excluded (pragna2-api #127 adds only `"invalid_grant"` for the same reason: too broad). The full mcp-adaptor error string matches via the embedded `"invalid_grant"` code. Test updated to assert the full error matches AND that bare vendor prose without the standard code does NOT match. 16/16 Rust tests pass.
-- **Web-app applicability:** **N/A** — `AUTH_ERROR_RESULT_SIGNALS` and the stdio delegation path are desktop-only (Rust / Tauri). BE companion fix: pragna2-api #127 (merged, v1.0.13).
+- **Fix:** Added `"invalid_grant"` to `AUTH_ERROR_RESULT_SIGNALS` in `src-tauri/src/domain/mcp.rs`. Keyed on the standard OAuth RFC 6749 §5.2 error code embedded in the mcp-adaptor error JSON body — NOT on vendor-specific prose (`"token refresh failed"`, `"failed to fetch required token"`), which the API team deliberately excluded (nexus-kit-api #127 adds only `"invalid_grant"` for the same reason: too broad). The full mcp-adaptor error string matches via the embedded `"invalid_grant"` code. Test updated to assert the full error matches AND that bare vendor prose without the standard code does NOT match. 16/16 Rust tests pass.
+- **Web-app applicability:** **N/A** — `AUTH_ERROR_RESULT_SIGNALS` and the stdio delegation path are desktop-only (Rust / Tauri). BE companion fix: nexus-kit-api #127 (merged, v1.0.13).
 
 ---
 
@@ -238,7 +274,7 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
   `tool_result`; the agent then **narrated the auth error in prose** instead of the run
   pausing for re-authentication — the exact #122 symptom, on the desktop side of the
   delegated path. (This mirrors the backend's `_flatten_result_content` discarding `isError`,
-  the #122 root cause fixed in pragna2-api #123.)
+  the #122 root cause fixed in nexus-kit-api #123.)
 - **The fix:** `call` now **classifies** the outcome — an `isError` body (or a raised call
   error) whose text matches the conservative `AUTH_ERROR_RESULT_SIGNALS` list (mirrored from
   the BE) yields `DelegatedCallOutcome::AuthRequired { service, reason }`, with `service`
@@ -251,7 +287,7 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 - **Web-app applicability:** **N/A for `pragna2_sgummalla_works`** — the client-delegated
   stdio host is a **desktop-only** capability (`mcpStdio` throws `NotInTauriError` in a
   browser; the web FE never runs a local MCP server), so this exact Rust path does not exist
-  there. The analogous *backend* defect was already fixed in pragna2-api #123. No web-FE
+  there. The analogous *backend* defect was already fixed in nexus-kit-api #123. No web-FE
   action required.
 
 ---
@@ -349,7 +385,7 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 ## CF-003 — create_pdf_long crashes on large tables (BACKEND PDF renderer LayoutError) [FIXED — backend hotfix]
 
 - **Date:** 2026-06-10 (found) · 2026-06-11 (fixed)
-- **Area / file:** **`pragna2-api`** (backend) — `src/infrastructure/pdf/renderer.py`
+- **Area / file:** **`nexus-kit-api`** (backend) — `src/infrastructure/pdf/renderer.py`
   (`_code_panel` / `_callout` / `_quote`). NOT a desktop-app file.
 - **Found by:** Tier-2 live-LLM e2e specs `scenario-21-create-pdf-long` (both the
   `architecture_guidance` and `technical_requirements` cases). The doc card never appears.
@@ -360,7 +396,7 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 - **Root cause (backend):** `_code_panel`, `_callout`, and `_quote` each wrapped their content in a
   **single-row, single-cell `Table`** purely for the background/border styling. reportlab can only
   split a table **between rows**, so a single row taller than the page can't break and throws.
-- **Fix:** **DONE in `pragna2-api`** — branch `hotfix/pdf-large-table-layout`, commit `e7c6f3b`. Made
+- **Fix:** **DONE in `nexus-kit-api`** — branch `hotfix/pdf-large-table-layout`, commit `e7c6f3b`. Made
   the three panels **multi-row** so they split across pages: `_code_panel` lays out one line per row
   (panel inset only on the first/last rows so lines stay continuous); `_callout`/`_quote` put one
   flowable/paragraph per row (left bar + tint span all rows, inset on first/last only). Regression
@@ -371,9 +407,9 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
   newly-found FE bug (CF-005), not this renderer crash — they remain `test.fixme` referencing CF-005.
   *Residual (documented): a single markdown paragraph taller than one page (no blank-line breaks)
   still can't split a row — pathological for LLM output; future fix is a custom splittable Flowable.*
-  **The `pragna2-api` hotfix branch is pushed but NOT merged to `Releases/V1` — that's a PR/review step.**
+  **The `nexus-kit-api` hotfix branch is pushed but NOT merged to `Releases/V1` — that's a PR/review step.**
 - **Web-app applicability:** **AFFECTS BOTH APPS (shared backend) — now fixed for both** once the
-  `pragna2-api` hotfix merges. The web app uses the same renderer, so this resolves its
+  `nexus-kit-api` hotfix merges. The web app uses the same renderer, so this resolves its
   `create_pdf_long` too.
 
 ---
@@ -827,7 +863,7 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 - **Date:** 2026-06-16
 - **Area / file:** `src/presentation/views/chat/hooks/useChatSession.ts` (run subscriber); new pure helper `src/presentation/views/chat/utils/runError.ts`.
-- **Found by:** User report — "when an agent has MCP connectors configured, the agent is not responding." Backend (`pragna2-api`) Docker logs showed the run dying with an Anthropic `400` (`tools.2.custom.name` — MCP tool names contain dots; tracked as pragna2-tracker **#114**, a BE bug), and the BE **does** publish a terminal `RUN_ERROR` event on failure (its own comment: "so the FE's `onRunFailed` fires"). Yet the FE showed nothing.
+- **Found by:** User report — "when an agent has MCP connectors configured, the agent is not responding." Backend (`nexus-kit-api`) Docker logs showed the run dying with an Anthropic `400` (`tools.2.custom.name` — MCP tool names contain dots; tracked as pragna2-tracker **#114**, a BE bug), and the BE **does** publish a terminal `RUN_ERROR` event on failure (its own comment: "so the FE's `onRunFailed` fires"). Yet the FE showed nothing.
 - **Bug:** In `@ag-ui/client` 0.0.43, a terminal **`RUN_ERROR` *event*** is delivered to the `onRunErrorEvent` subscriber hook and **does not throw** — so it never reaches the `catchError → onError → onRunFailed` path. `onRunFailed` only fires on a *thrown* error (connection drop / abort rejection). The FE subscriber implemented `onRunFailed` but **not** `onRunErrorEvent`, so a backend-emitted `RUN_ERROR` was a no-op: `onRunFinalized` then flipped `status` to `idle`, leaving the turn with **no assistant reply and no error banner** — the silent "not responding" symptom. The BE's RUN_ERROR fix (added to stop a server-side silent hang) assumed an FE handler that didn't exist.
 - **Root cause:** Missing `onRunErrorEvent` handler — the FE conflated "run failed" with "run *threw*". ag-ui surfaces background/in-band failures as a non-throwing event, which the FE dropped.
 - **Fix:** Added an `onRunErrorEvent` handler that mirrors `onRunFailed`: stop the spinner, set `status='error'`, show the backend's (already sanitized) message — falling back to `ERRORS.CHT_004` when empty — and flag `lastRunFailedRef` so the optimistic user message is pruned on the next send (CF-015 / #111). A client-side abort arrives as `RUN_ERROR` `code:'abort'`; that path unwinds silently (no banner), same as `onRunFailed`'s `AbortError` branch (CF-006). The abort-vs-error decision is extracted to the pure `classifyRunErrorEvent` helper with 6 unit tests. All 133 chat-area tests pass.
@@ -845,7 +881,7 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 - **Root cause:** Optimistic-append with no rollback on failure. The only pruning path (reconciliation against the persisted snapshot) is intentionally inert exactly when a run failed and left an un-persisted orphan, so failed-turn user messages accumulate across retries.
 - **Fix:** Track the last optimistic user-message id (`pendingUserIdRef`) and whether its run failed (`lastRunFailedRef`, set in `onRunFailed`, cleared on a successful `onRunFinalized`). At the **start of the next `send`**, if the prior run failed, drop the orphan via the pure `pruneOrphanedOptimisticMessage(messages, orphanId)` helper before pushing the new optimistic message — guaranteeing exactly one copy per turn. Id-based (never content-based), so a legitimately repeated message is preserved; a succeeded message is never pruned (its id is cleared on finalize); harmless no-op in the sub-case where the BE *did* persist the user turn and reconciliation already removed the orphan. The failed message stays visible until the next send (no premature content loss), then is replaced. 6 unit tests in `messageDedup.test.ts`; all 127 chat-area tests pass.
 - **Web-app applicability:** **LIKELY AFFECTED — check.** `pragna2_sgummalla_works` shares the same `useChatSession` optimistic-push + reconcile architecture (it originated the `replaceMessages` resync). If it also carries the CF-013b "in-memory ahead → skip reconcile" guard, it has the identical failed-orphan accumulation. Apply the same `pendingUserIdRef`/`lastRunFailedRef` + `pruneOrphanedOptimisticMessage` rollback there. (Web app uses the browser transport, but the duplication is transport-independent — it's in the shared message-state lifecycle.)
-- **Possible BE-side residue (flag, do NOT fix here):** if the BE persists a user row on **each** failed/retried POST, the persisted `/messages` log itself may carry duplicate user rows independent of this FE fix. That is a `pragna2-api` concern — record it as a tracked item for the BE session rather than touching the BE from this repo.
+- **Possible BE-side residue (flag, do NOT fix here):** if the BE persists a user row on **each** failed/retried POST, the persisted `/messages` log itself may carry duplicate user rows independent of this FE fix. That is a `nexus-kit-api` concern — record it as a tracked item for the BE session rather than touching the BE from this repo.
 
 ---
 

@@ -6,7 +6,7 @@ import type {
 } from '@/presentation/views/chat/hooks/useChatSession';
 import { NO_REPLY_NOTICE } from '@/constants/chat';
 import { ActivityDisclosure } from './ActivityDisclosure';
-import { answerMessageId, isOutputToolName, isPlainToolCall } from '../utils/assistantTurns';
+import { answerMessageId, isOutputToolName } from '../utils/assistantTurns';
 import { toolArgSummary, toolDisplayLabel } from '../utils/toolDisplay';
 
 interface AssistantTurnProps {
@@ -72,15 +72,24 @@ export function AssistantTurn({
     // Reasoning always folds into the umbrella, even for an output message.
     if (m.reasoning) steps.push({ kind: 'reasoning', content: m.reasoning });
 
-    if (isOutput(m)) {
-      outside.push(m);
-      continue;
+    const out = isOutput(m);
+    // An output message's text is its own answer/caption (rendered outside);
+    // only an intermediate message's narration folds into the umbrella.
+    if (!out && m.content && m.content.trim()) {
+      steps.push({ kind: 'text', content: m.content });
     }
-    // Intermediate "activity" message: its narration + plain tool calls.
-    if (m.content && m.content.trim()) steps.push({ kind: 'text', content: m.content });
+    // EVERY tool call folds into the umbrella as an activity step — plain tools,
+    // document tools (e.g. create_pdf), AND propose-flow. The umbrella is the
+    // complete record of the work the agent did, so no tool is hidden from it.
+    // Output/interactive tools ALSO keep their own card outside (the document /
+    // flow-proposal card is the deliverable; the umbrella row is the audit log).
     for (const call of m.toolCalls ?? []) {
-      if (isPlainToolCall(call)) steps.push({ kind: 'tool', call });
+      steps.push({ kind: 'tool', call });
     }
+
+    // Output/interactive messages (the answer, a generated document, a flow
+    // proposal) keep their own card in the transcript.
+    if (out) outside.push(m);
   }
 
   const toolLabels = [
