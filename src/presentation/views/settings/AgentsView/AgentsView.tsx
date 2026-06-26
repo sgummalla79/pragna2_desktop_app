@@ -10,7 +10,7 @@
  */
 
 import { useState } from 'react';
-import { Bot, Plus, Pencil, Trash2, Star } from 'lucide-react';
+import { Bot, Eye, Plus, Pencil, Trash2, Star } from 'lucide-react';
 
 import {
   useAgents,
@@ -42,6 +42,7 @@ export default function AgentsView() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createAsDefault, setCreateAsDefault] = useState(false);
   const [editing, setEditing] = useState<Agent | null>(null);
+  const [viewing, setViewing] = useState<Agent | null>(null);
 
   function openCreate(asDefault: boolean) {
     setCreateAsDefault(asDefault);
@@ -130,46 +131,55 @@ export default function AgentsView() {
                     )}
                   </div>
 
-                  {/* System agents (e.g. Help & Setup Assistant) are read-only
-                      — no edit or archive affordances. */}
-                  {!isSystemAgent && (
-                    <div className="ml-2 flex items-center gap-1">
-                      {!a.isDefault && a.status === 'active' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDefault.mutate(a.id)}
-                          disabled={setDefault.isPending}
-                          aria-label={`Set ${a.displayName} as default`}
-                        >
-                          <Star size={15} aria-hidden="true" />
-                          Set default
-                        </Button>
-                      )}
+                  <div className="ml-2 flex items-center gap-1">
+                    {!a.isDefault && !isSystemAgent && a.status === 'active' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDefault.mutate(a.id)}
+                        disabled={setDefault.isPending}
+                        aria-label={`Set ${a.displayName} as default`}
+                      >
+                        <Star size={15} aria-hidden="true" />
+                        Set default
+                      </Button>
+                    )}
+                    {isSystemAgent ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setViewing(a)}
+                        aria-label={`View ${a.displayName}`}
+                        title="View agent"
+                      >
+                        <Eye size={16} aria-hidden="true" />
+                      </Button>
+                    ) : (
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => setEditing(a)}
                         aria-label={`Edit ${a.displayName}`}
+                        title="Edit agent"
                       >
                         <Pencil size={16} aria-hidden="true" />
                       </Button>
-                      {/* The default agent can't be archived (BE returns 400). */}
-                      {!a.isDefault && (
-                        <ConfirmButton
-                          size="icon"
-                          variant="ghost"
-                          confirmTitle="Archive this agent?"
-                          confirmDescription="It will be hidden and its name freed for reuse. This can't be undone from here."
-                          confirmLabel="Archive"
-                          onConfirm={() => archiveAgent.mutateAsync(a.id)}
-                          aria-label={`Archive ${a.displayName}`}
-                        >
-                          <Trash2 size={16} aria-hidden="true" />
-                        </ConfirmButton>
-                      )}
-                    </div>
-                  )}
+                    )}
+                    {/* The default agent and system agents can't be archived. */}
+                    {!a.isDefault && !isSystemAgent && (
+                      <ConfirmButton
+                        size="icon"
+                        variant="ghost"
+                        confirmTitle="Archive this agent?"
+                        confirmDescription="It will be hidden and its name freed for reuse. This can't be undone from here."
+                        confirmLabel="Archive"
+                        onConfirm={() => archiveAgent.mutateAsync(a.id)}
+                        aria-label={`Archive ${a.displayName}`}
+                      >
+                        <Trash2 size={16} aria-hidden="true" />
+                      </ConfirmButton>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </li>
@@ -194,6 +204,14 @@ export default function AgentsView() {
           open={Boolean(editing)}
           onClose={() => setEditing(null)}
           editing={editing}
+        />
+      )}
+      {viewing && (
+        <AgentFormModal
+          open={Boolean(viewing)}
+          onClose={() => setViewing(null)}
+          editing={viewing}
+          readOnly
         />
       )}
     </div>
