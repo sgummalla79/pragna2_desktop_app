@@ -6,7 +6,7 @@
 //   pnpm release
 //
 // (For a MINOR / compatibility bump — a DB or breaking change — edit the version
-// by hand instead; see pragna2-api/docs/architecture/version-compatibility.md.)
+// by hand instead; see nexus-kit-api/docs/architecture/version-compatibility.md.)
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';

@@ -14,7 +14,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 HERE="$PWD"
 
-BE_REPO="${E2E_BE_REPO:-/Users/sgummalla/Desktop/work/repos/pragna2-api}"
+BE_REPO="${E2E_BE_REPO:-/Users/sgummalla/Desktop/work/repos/nexus-kit-api}"
 FE_REPO="${E2E_FE_REPO:-/Users/sgummalla/Desktop/work/repos/pragna2_desktop_app}"
 PG_NAME="${E2E_PG_CONTAINER:-pragna-desktop-e2e}"
 DB_NAME="${E2E_PG_DB:-pragna_it}"

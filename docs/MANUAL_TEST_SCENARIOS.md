@@ -210,7 +210,7 @@ captures **which channel** an expired downstream token surfaces on.
   `~/.mcp-adaptor/bin/mcp-adaptor-go-v2.1.0-<os>-amd64`) and a GUS account.
 - This branch built and run via `pnpm tauri dev` (native shell — stdio delegation
   + keychain are desktop-only).
-- The Docker `pragna2-api` (`Releases/V1` ≥ v1.0.12) reachable; a model configured.
+- The Docker `nexus-kit-api` (`Releases/V1` ≥ v1.0.12) reachable; a model configured.
 - A client-delegated **stdio** connector registered pointing at the adaptor, with
   its launch args carrying `--server gus` (or `--provider gus`).
 
@@ -258,7 +258,7 @@ canned tool result, no live LLM tool flakiness on the tool side.
 **Prerequisites**
 - This branch built + run via `pnpm tauri dev` (native shell — stdio delegation
   + keychain are desktop-only).
-- The Docker `pragna2-api` reachable; a chat model configured (the turn still needs
+- The Docker `nexus-kit-api` reachable; a chat model configured (the turn still needs
   a live model to *decide* to call the tool).
 - The Node mock built: `cd test-fixtures/mock-mcp/node && npm install`. Its bin is a
   single executable (`bin/mock-mcp.mjs`, shebang + `chmod +x`).

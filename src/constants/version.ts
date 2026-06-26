@@ -2,7 +2,7 @@ import { APP_VERSION } from './api';
 
 // Client identity headers attached to every backend request so the API can run
 // the version-compatibility handshake. Names must match the API's constants
-// (pragna2-api/src/constants.py).
+// (nexus-kit-api/src/constants.py).
 export const CLIENT_VERSION_HEADER = 'X-Client-Version';
 export const CLIENT_APP_HEADER = 'X-Client-App';
 
@@ -18,7 +18,7 @@ export const CLIENT_VERSION = APP_VERSION;
 // The current name is DERIVED from this client's MAJOR version — never
 // hand-maintained; it changes only when a new major line forks. The A→Z gemstone
 // table is fixed reference data. See
-// pragna2-api/docs/architecture/version-compatibility.md §8.
+// nexus-kit-api/docs/architecture/version-compatibility.md §8.
 const RELEASE_CODENAMES = [
   'Amber', 'Beryl', 'Citrine', 'Diamond', 'Emerald', 'Fluorite', 'Garnet',
   'Hematite', 'Iolite', 'Jade', 'Kunzite', 'Lapis', 'Moonstone', 'Nephrite',

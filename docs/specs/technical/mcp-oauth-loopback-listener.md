@@ -6,7 +6,7 @@
 > **Last Updated**: 2026-06-17
 >
 > Tracker **#131** · BE counterpart **#130** (pre-registered OAuth client).
-> Contract source of truth: pragna2-api `docs/architecture/mcp-system.md`
+> Contract source of truth: nexus-kit-api `docs/architecture/mcp-system.md`
 > § "Pre-registered client config" + `oauth-completion` route/schema.
 
 ---
@@ -216,7 +216,7 @@ No server names, ports, or client ids are hardcoded — `callbackPort`/`clientId
 
 - `@fabianlars/tauri-plugin-oauth` (already a dependency; the Auth0 flow uses it)
   — `start`/`cancel`/`onUrl`/`onInvalidUrl`. No new crates / plugins / commands.
-- Docker `pragna2-api` (`Releases/V1`) with #130 — `oauth-authorization` building
+- Docker `nexus-kit-api` (`Releases/V1`) with #130 — `oauth-authorization` building
   the loopback `redirect_uri` and `oauth-completion` for the exchange.
 - `@tauri-apps/plugin-opener` `openUrl` (already used).
 

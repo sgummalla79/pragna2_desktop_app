@@ -68,7 +68,7 @@ user opts into that path by filling an optional **Models Endpoint** (and optiona
 
 ## 6. Out of Scope
 
-- Backend inference/discovery implementation details (owned by `pragna2-api`;
+- Backend inference/discovery implementation details (owned by `nexus-kit-api`;
   see its `llm-system.md` and tech-debt.md #57).
 - Streaming, and live verification against a real gateway.
 

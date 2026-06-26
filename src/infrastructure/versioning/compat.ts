@@ -1,7 +1,7 @@
 // Version-compatibility helpers (mirror of the API's src/application/versioning.py).
 // Compatibility is decided on the MAJOR.MINOR key — the PATCH/build digit is
 // ignored — and compared as a (major, minor) pair so 1.2 > 1.1 > 1.0.
-// See pragna2-api/docs/architecture/version-compatibility.md.
+// See nexus-kit-api/docs/architecture/version-compatibility.md.
 
 export type Compat = [major: number, minor: number];
 

@@ -25,13 +25,13 @@ export interface DelegationEnvelope {
   calls: DelegationCall[];
 }
 
-/** Wire key of the structured auth-required result variant (mirrors pragna2-api
+/** Wire key of the structured auth-required result variant (mirrors nexus-kit-api
  *  `MCP_DELEGATION_RESUME_AUTH_REQUIRED_KEY`). */
 export const MCP_DELEGATION_RESUME_AUTH_REQUIRED_KEY = 'auth_required';
 
 /** The structured auth-required signal a delegated result may carry instead of
  *  `tool_result`/`tool_error` (tracker #124). The backend turns this into a
- *  per-service `connector_reauth` pause. Keys mirror pragna2-api
+ *  per-service `connector_reauth` pause. Keys mirror nexus-kit-api
  *  `MCP_AUTH_REQUIRED_KEY_*`. */
 export interface AuthRequiredResult {
   /** The downstream provider (e.g. `gus`), or `null` when not derivable. */
@@ -111,7 +111,7 @@ export function readDelegationEnvelope(
  *  aggregator's downstream service (`boundary=downstream_service`). */
 export const MCP_REAUTH_INTERRUPT_KIND = 'connector_reauth';
 
-/** Which token boundary needs re-auth (mirrors pragna2-api
+/** Which token boundary needs re-auth (mirrors nexus-kit-api
  *  `MCP_REAUTH_BOUNDARY_*`). `connector` = a remote connector whose OAuth WE
  *  hold; `downstream_service` = an aggregator's per-provider token (e.g. GUS in
  *  an mcp-adaptor) the adaptor owns — re-auth runs the adaptor's own flow. */

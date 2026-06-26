@@ -84,14 +84,14 @@ src-tauri/
 
 This is the authoritative, machine-independent branching/release process. It is checked into the
 repo on purpose so it applies on **every** machine, not just the one where it was first set up. It
-governs **all three repos identically**: `pragna2-api` (backend), this Desktop FE
+governs **all three repos identically**: `nexus-kit-api` (backend), this Desktop FE
 (`pragna2_desktop_app`), and the web FE (`pragna2_sgummalla_works`).
 
 1. **Branch off `Releases/V1`.** For **any** fix or **any** feature, create a new branch **from
    `Releases/V1`** (not `main`) and do the work there. Never commit work directly onto `Releases/V1`
    or `main`.
-2. **Test against the Docker `pragna2-api`.** Before the work is considered done, verify it against
-   `pragna2-api` running from its Docker container. A change is not "done" until it has been
+2. **Test against the Docker `nexus-kit-api`.** Before the work is considered done, verify it against
+   `nexus-kit-api` running from its Docker container. A change is not "done" until it has been
    exercised against that real backend.
 3. **Do NOT commit + push + merge until the user explicitly says so.** Finishing and testing the
    work does **not** grant permission to commit. Wait for an explicit "commit" / "push" / "merge"
@@ -110,7 +110,7 @@ This standing rule stays in force until the user explicitly changes it.
 
 This is an authoritative, machine-independent rule, checked into the repo on purpose so it applies on
 **every** machine where these repos are cloned and worked. It governs **all three repos identically**:
-`pragna2-api` (backend), this Desktop FE (`pragna2_desktop_app`), and the web FE
+`nexus-kit-api` (backend), this Desktop FE (`pragna2_desktop_app`), and the web FE
 (`pragna2_sgummalla_works`).
 
 **Always fetch + sync the latest remote state BEFORE starting any code change.** These repos are worked
@@ -134,14 +134,14 @@ This standing rule stays in force until the user explicitly changes it.
 
 This is an authoritative, machine-independent rule, checked into the repo on purpose so it applies on
 **every** machine where these repos are cloned and worked, not just the one where it was first set up.
-It governs **all three repos identically**: `pragna2-api` (backend), this Desktop FE
+It governs **all three repos identically**: `nexus-kit-api` (backend), this Desktop FE
 (`pragna2_desktop_app`), and the web FE (`pragna2_sgummalla_works`).
 
 **A session stays in its repo lane. Never make changes outside the repo the session is about.**
 
 - **If the session is about this Desktop FE, only Desktop-FE changes may be made.** Do not edit the
   backend or the web FE — not their code, tests, docs, or config.
-- **If the session is about `pragna2-api`, only `pragna2-api` changes may be made.**
+- **If the session is about `nexus-kit-api`, only `nexus-kit-api` changes may be made.**
 - **If the session is about the web FE, only web-FE changes may be made.**
 
 When work in one repo *implies* a change in another (e.g. an FE session reveals the backend needs a
@@ -160,7 +160,7 @@ This standing rule stays in force until the user explicitly changes it.
 
 This is an authoritative, machine-independent rule, checked into the repo on purpose so it applies on
 **every** machine where these repos are cloned and worked, not just the one where it was first set up.
-It governs **all three repos identically**: `pragna2-api` (backend), this Desktop FE
+It governs **all three repos identically**: `nexus-kit-api` (backend), this Desktop FE
 (`pragna2_desktop_app`), and the web FE (`pragna2_sgummalla_works`).
 
 **Every code change must have a corresponding GitLab work item created BEFORE the code is committed.**
@@ -173,7 +173,7 @@ No commit may go in without a tracking issue that describes what the change is a
    `type:feature` for new behavior (`type:tech-debt` for refactors/cleanup), matching the work
    actually being done.
 3. **Record which repo is being changed.** Tag the target component explicitly so the issue says
-   whether the change is in the **backend** (`target:backend`, `pragna2-api`), the **Desktop FE**
+   whether the change is in the **backend** (`target:backend`, `nexus-kit-api`), the **Desktop FE**
    (`target:desktop-fe`, `pragna2_desktop_app`), or the **Web FE** (`target:web-fe`,
    `pragna2_sgummalla_works`). A single change that spans repos gets one issue per repo it touches
    (consistent with the No Cross-Repo Changes rule — each repo's own session does its own part).
