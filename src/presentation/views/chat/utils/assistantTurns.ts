@@ -107,7 +107,13 @@ export function isOutputToolName(name: string): boolean {
   return DOCUMENT_TOOL_NAMES.has(name) || name.startsWith(PROPOSE_FLOW_PREFIX);
 }
 
-/** A plain tool call (folded into the umbrella as a clean row). */
+/**
+ * A plain tool call — neither a document-generation nor a propose-flow tool.
+ *
+ * NOTE: the activity umbrella now folds in EVERY tool call (see
+ * {@link AssistantTurn}); this predicate is retained as a general classifier
+ * (output vs. plain) for callers that need to distinguish the two.
+ */
 export function isPlainToolCall(call: ChatToolCall): boolean {
   return !isOutputToolName(call.name);
 }

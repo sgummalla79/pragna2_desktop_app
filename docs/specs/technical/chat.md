@@ -120,12 +120,20 @@ change.
   shows raw tool output. `ChatSessionView` groups the flat message list with
   `utils/assistantTurns.groupChatMessages` into user/system messages + assistant
   **turns**. `AssistantTurn` folds each turn's reasoning + interim narration +
-  every plain tool call into **one** collapsible `ActivityDisclosure` (the shared
+  **every** tool call into **one** collapsible `ActivityDisclosure` (the shared
   summary → Clock → `Working…`/`Done` timeline; `ReasoningPanel` is a thin wrapper
-  over it). The **final answer** (last assistant text with no trailing tool call)
-  and **outputs/interactive cards** (generated-document PDFs, `FlowProposalCard`,
-  HITL forms) render **outside** the umbrella via `ChatMessage` (new
-  `hideReasoning` prop — reasoning lives in the umbrella). Tool names are
+  over it). The umbrella is the complete audit log of the turn's work, so it
+  surfaces every tool call — plain MCP tools **and** output/interactive tools
+  (document `create_pdf_*`, propose-flow) — not only plain ones (nexus-kit-tracker
+  #225 / CF-046). The **final answer** (last assistant text with no trailing tool
+  call) and **outputs/interactive cards** (generated-document PDFs,
+  `FlowProposalCard`, HITL forms) render **outside** the umbrella via `ChatMessage`
+  (new `hideReasoning` prop — reasoning lives in the umbrella) — so an output tool
+  appears BOTH as an umbrella activity row (the audit log) and as its card (the
+  deliverable). **Regenerate** is offered only on a turn's final text answer, never
+  on a tool-call row (an assistant message carrying `tool_calls`): regenerating a
+  mid-turn row re-runs from a mid-turn boundary and fails (nexus-kit-tracker #226 /
+  CF-047). Tool names are
   humanized by `utils/toolDisplay.toolDisplayLabel` (curated map in
   `constants/toolLabels` + generic humanizer); args show as readable key/value
   lines, never raw JSON; `tool`-role messages are suppressed (their content is the
@@ -205,7 +213,9 @@ pause/resume **and** flow proposals — the run streams natively via
 **not** use the web app's `replaceMessages` resync (see `hitl-episodes.md`); and
 pragna2-tracker TD-018 historical tool-call rehydration (`persistedToAGUIMessage` carries
 `tool_calls`; `toChatMessage` rebuilds badges from the seed — name + args; the
-persisted result string isn't on the AG-UI shape); and pragna2-tracker TD-012 **attachments +
+persisted result string isn't on the AG-UI shape — and `ConversationRepository.getMessages`
+sorts the log by `messageIndex` so a tool turn's two same-`created_at` assistant rows
+keep a stable order, nexus-kit-tracker #224 / CF-045); and pragna2-tracker TD-012 **attachments +
 viewer** (session view — upload + `forwardedProps.attachment_ids` + persisted-turn
 chips + an authed-blob image/PDF viewer; needed a `blob` `responseType` in the
 native adapter — see `attachments.md`; landing-composer uploads deferred).

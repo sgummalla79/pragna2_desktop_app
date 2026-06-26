@@ -162,6 +162,40 @@ describe('AssistantTurn', () => {
     expect(screen.getByTestId('msg-a1')).toBeInTheDocument();
   });
 
+  it('ALSO folds a document tool call into the umbrella (card stays outside) — every tool is shown', () => {
+    // A real create_pdf turn: the empty-content tool-call row + the narration
+    // answer. The document tool must appear in the activity umbrella AND its
+    // DocumentCard renders outside (via hasAttachment on the tool row).
+    const messages = [
+      msg({ id: 'a1', content: '', toolCalls: [tool('create_pdf_short', { title: 'Q3 Status' })] }),
+      msg({ id: 'a2', content: 'The PDF has been created.' }),
+    ];
+    render(
+      <AssistantTurn messages={messages} renderMessage={renderMessage} hasAttachment={(id) => id === 'a1'} streaming={false} />,
+    );
+    // Umbrella present: the document tool is now an activity step (collapsed
+    // summary shows its friendly label).
+    expect(screen.getByText('Create Pdf Short')).toBeInTheDocument();
+    // The answer and the document message both render outside the umbrella.
+    expect(screen.getByTestId('msg-a2')).toHaveTextContent('The PDF has been created.');
+    expect(screen.getByTestId('msg-a1')).toBeInTheDocument();
+    // No misleading "no reply" notice — there's an answer outside.
+    expect(screen.queryByText(NO_REPLY_NOTICE)).toBeNull();
+  });
+
+  it('folds a propose-flow tool call into the umbrella too (any tool call is shown)', () => {
+    const messages = [
+      msg({ id: 'a1', content: '', toolCalls: [tool('propose_flow_weekly_report')] }),
+    ];
+    render(
+      <AssistantTurn messages={messages} renderMessage={renderMessage} hasAttachment={(id) => id === 'a1'} streaming={false} />,
+    );
+    // The propose-flow call is an activity row (collapsed summary shows its label)…
+    expect(screen.getByText('Propose Flow Weekly Report')).toBeInTheDocument();
+    // …and its interactive card still renders outside.
+    expect(screen.getByTestId('msg-a1')).toBeInTheDocument();
+  });
+
   it('streams open with a live "Working…" footer', () => {
     render(
       <AssistantTurn
