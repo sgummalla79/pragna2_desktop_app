@@ -34,10 +34,12 @@ interface Props {
    * for plain free-form chip entry.
    */
   suggestions?: string[];
+  /** When true, hides the text input and remove buttons (view-only). */
+  disabled?: boolean;
 }
 
 /** A controlled chip/tag input with optional autocomplete. */
-export function ChipInput({ id, values, onChange, placeholder, label, suggestions }: Props) {
+export function ChipInput({ id, values, onChange, placeholder, label, suggestions, disabled = false }: Props) {
   const [draft, setDraft] = useState('');
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
@@ -105,42 +107,46 @@ export function ChipInput({ id, values, onChange, placeholder, label, suggestion
           <Badge
             key={v}
             variant="secondary"
-            className={cn('gap-1 pr-1', unknown && 'border border-amber-500/50')}
+            className={cn('gap-1', !disabled && 'pr-1', unknown && 'border border-amber-500/50')}
             title={unknown ? `${v} isn't in your tools inventory` : undefined}
           >
             <span className="font-mono">{v}</span>
-            <button
-              type="button"
-              onClick={() => onChange(values.filter((x) => x !== v))}
-              aria-label={`Remove ${label} ${v}`}
-              className="rounded p-0.5 hover:bg-muted"
-            >
-              <X size={10} aria-hidden="true" />
-            </button>
+            {!disabled && (
+              <button
+                type="button"
+                onClick={() => onChange(values.filter((x) => x !== v))}
+                aria-label={`Remove ${label} ${v}`}
+                className="rounded p-0.5 hover:bg-muted"
+              >
+                <X size={10} aria-hidden="true" />
+              </button>
+            )}
           </Badge>
         );
       })}
-      <Input
-        id={id}
-        value={draft}
-        onChange={(e) => {
-          setDraft(e.target.value);
-          setOpen(true);
-          setHighlight(0);
-        }}
-        onFocus={() => setOpen(true)}
-        onKeyDown={handleKeyDown}
-        onBlur={() => {
-          // Delay so a suggestion mousedown can land before blur closes it.
-          commit(draft);
-          setOpen(false);
-        }}
-        placeholder={values.length === 0 ? placeholder : undefined}
-        className="h-7 min-w-[120px] flex-1 border-0 bg-transparent px-1 py-0 shadow-none focus-visible:ring-0"
-        role={suggestions ? 'combobox' : undefined}
-        aria-expanded={suggestions ? dropdownOpen : undefined}
-        aria-autocomplete={suggestions ? 'list' : undefined}
-      />
+      {!disabled && (
+        <Input
+          id={id}
+          value={draft}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            setOpen(true);
+            setHighlight(0);
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={handleKeyDown}
+          onBlur={() => {
+            // Delay so a suggestion mousedown can land before blur closes it.
+            commit(draft);
+            setOpen(false);
+          }}
+          placeholder={values.length === 0 ? placeholder : undefined}
+          className="h-7 min-w-[120px] flex-1 border-0 bg-transparent px-1 py-0 shadow-none focus-visible:ring-0"
+          role={suggestions ? 'combobox' : undefined}
+          aria-expanded={suggestions ? dropdownOpen : undefined}
+          aria-autocomplete={suggestions ? 'list' : undefined}
+        />
+      )}
 
       {dropdownOpen && (
         <ul
