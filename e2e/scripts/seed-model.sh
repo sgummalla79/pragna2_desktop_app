@@ -41,7 +41,7 @@ MODEL_API_NAME="${E2E_MODEL:-$DEFAULT_MODEL}"
 # the seeded display_name ("<base> (test)") and the option the spec clicks stay
 # in lock-step across providers.
 MODEL_LABEL="${E2E_MODEL_LABEL:-$DEFAULT_LABEL} (test)"
-BE_REPO="${E2E_BE_REPO:-/Users/sgummalla/Desktop/work/repos/pragna2-api}"
+BE_REPO="${E2E_BE_REPO:-/Users/sgummalla/Desktop/work/repos/nexus-kit-api}"
 # When set, encrypt the real API key INSIDE this BE container with its own
 # AESCipher + its own ENCRYPTION_KEY (read from the container's persisted secrets
 # file) — so the key never leaves the container and the host needs no BE_REPO/uv

@@ -25,7 +25,7 @@ This project brings the desktop to that bar. The user chose: **complete Mac cove
 (Tiers 1 & 2 + manual doc), **seed-token auth**, **full web-app parity first** then push coverage,
 and a **desktop-owned manual-testing doc** mirroring the web app's. **Tier 3 (true Tauri window
 e2e) is explicitly deferred** to a clearly-documented TODO — built later for Windows. The local API
-(`pragna2-api`) runs locally for real-data testing.
+(`nexus-kit-api`) runs locally for real-data testing.
 
 Hard platform fact (verified): **official `tauri-driver` does not support macOS** (no WKWebView
 WebDriver) — Windows/Linux only; community/paid macOS drivers exist but are immature. Tiers 1 & 2
@@ -94,7 +94,7 @@ Mirror the web app's `e2e/` sub-workspace 1:1, adapted for the desktop's browser
   `workers:1`, `fullyParallel:false`, `baseURL` from env, trace/screenshot/video on failure,
   chromium project), `e2e/tsconfig.json`, `e2e/README.md`, `e2e/.gitignore`.
 - `e2e/scripts/setup-stack.sh` / `teardown-stack.sh`: bring up throwaway Postgres (isolated port)
-  → `alembic upgrade head` on `pragna2-api` → boot BE with `AUTH_STRATEGY=local` + seeded test user
+  → `alembic upgrade head` on `nexus-kit-api` → boot BE with `AUTH_STRATEGY=local` + seeded test user
   + seeded LLM provider/model → boot FE `pnpm dev` (browser mode → XHR fallback → local BE). Mirror
   the web app's `scripts/`. Logs to `/tmp`. Idempotent.
 - **Auth = seed-token (the chosen approach):** `e2e/global-setup.ts` logs in **once** via the BE
@@ -199,5 +199,5 @@ Mirror the web app's `e2e/` sub-workspace 1:1, adapted for the desktop's browser
   `scripts/setup-stack.sh` + `teardown-stack.sh`, `auth-strategy-switch.patch`).
 - Manual doc format: `pragna2_sgummalla_works/docs/MANUAL_TEST_SCENARIOS.md` (M1–M9).
 - Companion: `pragna2_sgummalla_works/docs/FRONTEND_TEST_SCENARIOS.md`.
-- Local backend stack: `pragna2-api` (`stack.sh`, `dev.sh`, `serve.sh`, `db.sh`; `AUTH_STRATEGY=local`
+- Local backend stack: `nexus-kit-api` (`stack.sh`, `dev.sh`, `serve.sh`, `db.sh`; `AUTH_STRATEGY=local`
   in `src/config.py` / `src/infrastructure/auth/factory.py`).

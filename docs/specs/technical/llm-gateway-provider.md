@@ -9,7 +9,7 @@
 
 ## 1. Overview
 
-Frontend-only change (the backend ships in pragna2-api). Adds a `gateway`
+Frontend-only change (the backend ships in nexus-kit-api). Adds a `gateway`
 credential kind and a multiple-instance modal. The credential form is already
 config-driven, so credential capture is additive; the multi-instance UI is a
 master-detail panel layered onto the existing single-instance modal. Multi-
@@ -138,7 +138,7 @@ src/
   Gateway URL + Auth Token.
 - Repository mapper tests cover the new fields via existing suites.
 
-## 9. Backend Contract (feature requirement for `pragna2-api`)
+## 9. Backend Contract (feature requirement for `nexus-kit-api`)
 
 The backend decrypts `user_providers.api_key` and JSON-parses it. For
 `credential_kind = 'gateway'`, two new optional keys may appear:

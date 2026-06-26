@@ -10,7 +10,7 @@
 ## 1. Overview
 
 The change is split across the frontend (this repo + the web app
-`pragna2_sgummalla_works`) and the backend (`pragna2-api`). The frontend adds two
+`pragna2_sgummalla_works`) and the backend (`nexus-kit-api`). The frontend adds two
 **optional** fields to the existing `gateway` credential form and serializes them
 into the credential blob only when filled. The backend dispatches on the blob:
 presence of `modelsUrl` selects an Anthropic/Bedrock client + the configured
@@ -55,7 +55,7 @@ pragna2_desktop_app/ (+ pragna2_sgummalla_works, identical)
   src/constants/providers.ts                         ← optional fields + serialize
   src/__tests__/serializeCredentials.test.ts         ← new FE test
 
-pragna2-api/
+nexus-kit-api/
   src/constants.py                                   ← GATEWAY_* keys + default region
   src/infrastructure/llm/_anthropic_bedrock_chat.py  ← new BaseChatModel
   src/infrastructure/llm/providers/gateway_provider.py ← dispatch + lenient parser
@@ -109,8 +109,8 @@ pragna2-api/
 
 | Constant | Source | Description |
 |----------|--------|-------------|
-| `GATEWAY_CREDENTIAL_KEY_*` | `pragna2-api/src/constants.py` | Credential-blob key names (`baseUrl`, `authToken`, `modelsUrl`, `awsRegion`) |
-| `GATEWAY_DEFAULT_AWS_REGION` | `pragna2-api/src/constants.py` | Library-required region fallback for `AnthropicBedrock` when blob omits `awsRegion` |
+| `GATEWAY_CREDENTIAL_KEY_*` | `nexus-kit-api/src/constants.py` | Credential-blob key names (`baseUrl`, `authToken`, `modelsUrl`, `awsRegion`) |
+| `GATEWAY_DEFAULT_AWS_REGION` | `nexus-kit-api/src/constants.py` | Library-required region fallback for `AnthropicBedrock` when blob omits `awsRegion` |
 | Gateway URL / token / models URL / region | User input (encrypted credential blob) | Never hardcoded; supplied per registration |
 
 ## 8. Testing Plan

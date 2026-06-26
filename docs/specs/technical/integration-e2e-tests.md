@@ -160,7 +160,7 @@ the BE's real create_pdf render path, no LLM). Minimal `data-testid`s added to f
 
 - `e2e/` dev-deps (isolated, npm): `@playwright/test`, `@types/node`,
   `typescript`. Chromium via `npx playwright install chromium`.
-- Local stack: Docker (pgvector Postgres), `uv` (BE), the `pragna2-api` repo,
+- Local stack: Docker (pgvector Postgres), `uv` (BE), the `nexus-kit-api` repo,
   the desktop FE dev server. No new root dependencies.
 
 ## 10. Open Questions / Risks

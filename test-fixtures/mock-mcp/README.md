@@ -104,5 +104,5 @@ cd node && node equivalence.mjs
   hermetic option.
 - **WI-4** — the #158 real-Tauri smoke uses `normal-result` as a deterministic
   client-delegated connector; the e2e discovery spec stubs the discovery bridge.
-- **WI-5** (cross-repo, `pragna2-api`) — `remote/` (a Node remote MCP server +
+- **WI-5** (cross-repo, `nexus-kit-api`) — `remote/` (a Node remote MCP server +
   mock OAuth authorization server) is built for the backend session to consume.

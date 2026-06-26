@@ -6,7 +6,7 @@ import { useVersionStore } from '@/presentation/store/versionStore';
  * Full-screen, non-dismissible "update required" block shown when the API has
  * rejected this client with 426 Upgrade Required (Phase 3 enforcement). Renders
  * nothing until that happens, so it is dormant while the API still serves this
- * client. See pragna2-api/docs/architecture/version-compatibility.md.
+ * client. See nexus-kit-api/docs/architecture/version-compatibility.md.
  */
 export function UpdateRequiredScreen() {
   const blocked = useVersionStore((s) => s.blocked);

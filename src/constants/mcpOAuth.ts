@@ -4,7 +4,7 @@
  * A connector whose authorization server uses a pre-registered OAuth app +
  * a fixed RFC 8252 loopback redirect carries a generic, product-agnostic
  * `config.oauth = { clientId, loginUrl, callbackPort }` block. These keys are
- * part of the backend contract (pragna2-api #130 — see
+ * part of the backend contract (nexus-kit-api #130 — see
  * `docs/architecture/mcp-system.md` § "Pre-registered client config"); they are
  * stored as opaque camelCase JSON on `connector.config` (no mapper translation).
  *

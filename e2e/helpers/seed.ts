@@ -35,7 +35,7 @@ const BE_CONTAINER = process.env.E2E_BE_CONTAINER;
 
 /** Backend repo root for the host path (where `uv run` + the BE code live). */
 const BE_REPO =
-  process.env.E2E_BE_REPO ?? '/Users/sgummalla/Desktop/work/repos/pragna2-api';
+  process.env.E2E_BE_REPO ?? '/Users/sgummalla/Desktop/work/repos/nexus-kit-api';
 
 // Host-connection parts — only used when E2E_BE_CONTAINER is unset. Defaults
 // keep the legacy local stack working; no credential is baked into the URL.

@@ -33,7 +33,7 @@ gateways at once, each with a distinct label.
 - Per-registration enable/disable from the tile (handled per-registration in
   the modal; the tile pill is single-instance only).
 - Gateways that speak a non-OpenAI wire protocol (Anthropic/Bedrock-shaped) —
-  backend deferred (pragna2-api tech-debt #57).
+  backend deferred (nexus-kit-api tech-debt #57).
 - Storing the CA certificate as a file path (path is inaccessible inside the
   Docker container; the PEM content itself is stored instead).
 - Drag-and-drop upload for the CA certificate. Tauri's default
@@ -101,7 +101,7 @@ gateways at once, each with a distinct label.
 ## 6. Out of Scope
 
 - The backend gateway provider, multi-registration schema, and pricing (shipped
-  separately in pragna2-api).
+  separately in nexus-kit-api).
 - Per-registration enable/disable on the tile.
 
 ## 7. Open Questions

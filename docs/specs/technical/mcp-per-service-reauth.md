@@ -5,8 +5,8 @@
 > **Created**: 2026-06-17
 > **Last Updated**: 2026-06-17
 >
-> Tracker **#124** · BE counterpart **#123** (merged, pragna2-api `Releases/V1` @ 3f80c45).
-> Contract source of truth: pragna2-api `src/constants.py` @ `Releases/V1` (mirrored here).
+> Tracker **#124** · BE counterpart **#123** (merged, nexus-kit-api `Releases/V1` @ 3f80c45).
+> Contract source of truth: nexus-kit-api `src/constants.py` @ `Releases/V1` (mirrored here).
 
 ---
 
@@ -163,7 +163,7 @@ src/
 
 | Constant | Source | Description |
 |---|---|---|
-| `AUTH_ERROR_RESULT_SIGNALS` (Rust) / mirror | mirrors pragna2-api `MCP_AUTH_ERROR_RESULT_SIGNALS` | Conservative case-insensitive auth-failure substrings (`invalid_session_id`, `401`, `403`, `unauthorized`, `forbidden`, `token expired`, `token has expired`, `expired token`, `invalid_token`, `invalid token`, `stale session`, `session expired`, `authentication failed`, `not authenticated`, `re-authenticate`, `reauthenticate`, `www-authenticate`) |
+| `AUTH_ERROR_RESULT_SIGNALS` (Rust) / mirror | mirrors nexus-kit-api `MCP_AUTH_ERROR_RESULT_SIGNALS` | Conservative case-insensitive auth-failure substrings (`invalid_session_id`, `401`, `403`, `unauthorized`, `forbidden`, `token expired`, `token has expired`, `expired token`, `invalid_token`, `invalid token`, `stale session`, `session expired`, `authentication failed`, `not authenticated`, `re-authenticate`, `reauthenticate`, `www-authenticate`) |
 | `MCP_DELEGATION_RESUME_AUTH_REQUIRED_KEY = "auth_required"` | BE `constants.py` | Top-level key of the structured result |
 | `MCP_AUTH_REQUIRED_KEY_{SERVICE,REASON,AUTHORIZATION_URL}` | BE `constants.py` | Inner keys (`service`/`reason`/`authorization_url`) |
 | `MCP_REAUTH_KEY_{BOUNDARY,TRANSPORT,SERVICE,AUTHORIZATION_URL,RESUME_ACTIONS}` | BE `constants.py` | Additive envelope keys |
@@ -196,7 +196,7 @@ Coverage assessment surfaced before declaring done (unit/integration/UI/E2E spli
 - mcp-adaptor binary supporting `auth --provider <service>` (e.g.
   `mcp-adaptor-go-v2.1.0`). **Not present on the current dev Mac** — re-auth + the expired-
   token verification need a machine with the adaptor + a GUS account.
-- Docker `pragna2-api` (`Releases/V1`, ≥ v1.0.12) for the boundary-aware pause.
+- Docker `nexus-kit-api` (`Releases/V1`, ≥ v1.0.12) for the boundary-aware pause.
 - No new crates expected (`tokio::process` already used by the existing `auth`).
 
 ## 10. Open Questions / Risks

@@ -7,7 +7,7 @@
 >
 > Tracker **#131** (`target:desktop-fe`, `type:feature`) · consumes BE **#130**
 > (pre-registered OAuth client: `clientId` / `loginUrl` / `callbackPort`,
-> merged on `pragna2-api`). Contract source: pragna2-api
+> merged on `nexus-kit-api`). Contract source: nexus-kit-api
 > `docs/architecture/mcp-system.md` § "Pre-registered client config".
 
 ---
