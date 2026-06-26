@@ -18,13 +18,13 @@ export const API_BASE_URL: string =
 // Unlike the web app — which uses a RELATIVE `/api/pragna` so the Vite dev proxy
 // avoids CORS — the desktop webview has no proxy and a non-HTTP origin, so this
 // MUST be an ABSOLUTE URL. The chat route prefix is brand-specific (e.g. the
-// `pragna2-api` BE serves `/api/pragna`, the `nexus-kit` BE serves
+// `nexus-kit-api` BE serves `/api/pragna`, the `nexus-kit` BE serves
 // `/api/nexus-kit`), so the WHOLE base is configurable rather than baked.
 //
 // Precedence (first non-blank wins):
 //   1. `VITE_CHAT_API_BASE_URL` — brand-neutral override (preferred).
 //   2. `VITE_PRAGNA_BASE_URL`   — legacy alias, kept for back-compat.
-//   3. `${API_BASE_URL}/pragna` — committed default for the pragna2-api BE.
+//   3. `${API_BASE_URL}/pragna` — committed default for the nexus-kit-api BE.
 export const CHAT_API_BASE_URL: string = envOr(
   import.meta.env.VITE_CHAT_API_BASE_URL as string | undefined,
   envOr(

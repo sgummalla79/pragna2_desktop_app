@@ -67,7 +67,7 @@ E2E_AUTH0_DOMAIN / E2E_AUTH0_CLIENT_ID / E2E_AUTH0_AUDIENCE   # tenant + SPA cli
 E2E_AUTH0_USERNAME / E2E_AUTH0_PASSWORD                       # the test user
 E2E_TEST_EMAIL / E2E_TEST_NAME      # so the DB seeders resolve the Auth0 user's row
 E2E_BE_URL=http://localhost:8001
-E2E_PG_CONTAINER=pragna2-api  E2E_PG_DB=pragna2   # redirect the psql helper at the
+E2E_PG_CONTAINER=nexus-kit-api  E2E_PG_DB=pragna2   # redirect the psql helper at the
                                                   # all-in-one container's in-process DB
 ```
 
@@ -80,18 +80,18 @@ model dropdown → authoring specs time out selecting a model; disabled chat inp
 chat specs fail), which looks like a code regression but is a **setup gap**. In
 order:
 
-1. **Container up:** `pragna2-api` healthy on `:8001`
-   (`docker ps | grep pragna2-api`).
+1. **Container up:** `nexus-kit-api` healthy on `:8001`
+   (`docker ps | grep nexus-kit-api`).
 2. **Seed a model + default agent for the Auth0 test user** — the missing step.
    Get the user id, then run `seed-model.sh` against the in-container DB:
    ```bash
-   UID=$(docker exec -i pragna2-api psql -U postgres -d pragna2 -tA \
+   UID=$(docker exec -i nexus-kit-api psql -U postgres -d pragna2 -tA \
      -c "SELECT id FROM users WHERE email='test_user@example.com'")
    # dummy key — authoring specs only (live LLM calls 401):
-   E2E_PG_CONTAINER=pragna2-api E2E_PG_DB=pragna2 E2E_PROVIDER=google \
+   E2E_PG_CONTAINER=nexus-kit-api E2E_PG_DB=pragna2 E2E_PROVIDER=google \
      bash scripts/seed-model.sh "$UID"
    # real key — also enables live chat specs (needs the BE's ENCRYPTION_KEY):
-   # ENCRYPTION_KEY=<be-key> E2E_PG_CONTAINER=pragna2-api E2E_PG_DB=pragna2 \
+   # ENCRYPTION_KEY=<be-key> E2E_PG_CONTAINER=nexus-kit-api E2E_PG_DB=pragna2 \
    #   E2E_PROVIDER=google bash scripts/seed-model.sh "$UID" "$GOOGLE_API_KEY"
    ```
    `E2E_PROVIDER` is free to vary (`anthropic` / `google` / `openai` / …) — the
@@ -136,7 +136,7 @@ e2e/
 ## Prerequisites
 
 - Docker running.
-- BE repo at `/Users/sgummalla/Desktop/work/repos/pragna2-api` (override with
+- BE repo at `/Users/sgummalla/Desktop/work/repos/nexus-kit-api` (override with
   `E2E_BE_REPO`), migrations current.
 - Python + `uv` installed (BE runs via `uv run uvicorn`).
 - Node + pnpm.

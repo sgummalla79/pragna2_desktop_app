@@ -6,7 +6,7 @@
 > **Last Updated**: 2026-06-17
 >
 > Tracker: **#124** (`fp:mcp-per-service-reauth-desktop-phase1`, `target:desktop-fe`).
-> Desktop Phase 1 of #122. BE counterpart **#123** (merged, pragna2-api `Releases/V1` @ 3f80c45, v1.0.12).
+> Desktop Phase 1 of #122. BE counterpart **#123** (merged, nexus-kit-api `Releases/V1` @ 3f80c45, v1.0.12).
 > Design: `~/.claude/plans/mcp-per-service-reauth.md`.
 
 ---

@@ -26,7 +26,7 @@ const DEFAULT_UPGRADE_MESSAGE =
  *   blocked state so a non-dismissible "update required" screen takes over
  *   (Phase 3 enforcement). Dormant until the API enforces.
  *
- * See pragna2-api/docs/architecture/version-compatibility.md.
+ * See nexus-kit-api/docs/architecture/version-compatibility.md.
  */
 export function applyVersionInterceptor(client: AxiosInstance): void {
   client.interceptors.request.use((config) => {

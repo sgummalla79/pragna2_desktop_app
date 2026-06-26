@@ -8,7 +8,7 @@
 //
 // Runs as the first step of `pnpm build`, which is also Tauri's
 // `beforeBuildCommand`, so the Rust files are synced before cargo compiles.
-// See pragna2-api/docs/architecture/version-compatibility.md.
+// See nexus-kit-api/docs/architecture/version-compatibility.md.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

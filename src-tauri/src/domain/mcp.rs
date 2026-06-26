@@ -55,7 +55,7 @@ pub enum DelegatedCallOutcome {
 
 /// Conservative, case-insensitive substrings that mark a tool result (or a raised
 /// call error) as an AUTHENTICATION failure rather than a normal outcome
-/// (tracker #122/#124/#128). MIRRORS pragna2-api `MCP_AUTH_ERROR_RESULT_SIGNALS` so the
+/// (tracker #122/#124/#128). MIRRORS nexus-kit-api `MCP_AUTH_ERROR_RESULT_SIGNALS` so the
 /// desktop classifies exactly as the backend's text-signal fallback would — a
 /// drift here would re-introduce the #122 silent-explain or a spurious pause.
 /// Deliberately specific: a false positive only costs a pause the user can
@@ -83,7 +83,7 @@ pub const AUTH_ERROR_RESULT_SIGNALS: &[&str] = &[
     // {"error":"invalid_grant"} as an isError body rather than a 401 on the API
     // call itself. Keyed on the STANDARD OAuth error code, not any one vendor's
     // prose — provider-agnostic and never present in normal tool output (#128).
-    // MIRRORS pragna2-api MCP_AUTH_ERROR_RESULT_SIGNALS (tracker #127/#128).
+    // MIRRORS nexus-kit-api MCP_AUTH_ERROR_RESULT_SIGNALS (tracker #127/#128).
     "invalid_grant",
 ];
 
@@ -94,7 +94,7 @@ pub const AUTH_ERROR_RESULT_SIGNALS: &[&str] = &[
 pub const PROVIDER_ARG_FLAGS: &[&str] = &["--server", "--provider"];
 
 /// Default re-auth reason when an auth-looking failure carries no definitive
-/// revocation signal (the common aggregator case). MIRRORS pragna2-api
+/// revocation signal (the common aggregator case). MIRRORS nexus-kit-api
 /// `MCP_REAUTH_REASON_TOKEN_EXPIRED`.
 pub const REAUTH_REASON_TOKEN_EXPIRED: &str = "token_expired";
 
@@ -261,7 +261,7 @@ mod tests {
         // is revoked (tracker #128). The classifier matches on "invalid_grant"
         // (the standard OAuth RFC 6749 §5.2 code embedded in the JSON body),
         // NOT on the vendor-specific prose around it. MIRRORS the API team's
-        // deliberate decision in pragna2-api tracker #127.
+        // deliberate decision in nexus-kit-api tracker #127.
         let adaptor_error = "failed to get MCP client: could not create \
             SERVER_TYPE_HTTP_MCP MCP client for GUS: failed to generate MCP \
             client headers: failed to fetch required token for provider 'gus': \

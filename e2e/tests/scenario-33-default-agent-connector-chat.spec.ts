@@ -2,7 +2,7 @@
  * Scenario 33 — Default chat agent responds with an MCP connector attached.
  *
  * End-to-end regression cover for #115 (BE root cause #114, fixed in
- * pragna2-api @ 1.0.11). #114 was a regression class that ONLY surfaces with a
+ * nexus-kit-api @ 1.0.11). #114 was a regression class that ONLY surfaces with a
  * real provider AND a real connector bound: attaching an MCP connector to the
  * chat agent put the connector's tool *schema* into the provider request, and a
  * tool name the provider rejected (e.g. dotted MCP names on Anthropic) made the

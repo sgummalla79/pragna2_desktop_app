@@ -31,7 +31,7 @@ byte-for-byte stock Pragna.
 
 **Non-Goals**
 - Runtime, per-user or per-org branding (no in-app settings UI). Build-time only.
-- Any backend (`pragna2-api`) change.
+- Any backend (`nexus-kit-api`) change.
 - A PNG in-app logo/agent icon (must be SVG — see Edge Cases).
 
 ## 3. User Stories

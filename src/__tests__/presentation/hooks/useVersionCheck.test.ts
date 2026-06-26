@@ -13,7 +13,7 @@ const mockFetch = vi.mocked(fetchVersionCard);
 
 function card(over: Partial<VersionCard> = {}): VersionCard {
   return {
-    service: 'pragna2-api',
+    service: 'nexus-kit-api',
     version: '1.0.0',
     compat: '1.0',
     min_client_compat: '1.0',
