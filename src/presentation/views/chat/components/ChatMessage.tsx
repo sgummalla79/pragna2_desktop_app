@@ -203,6 +203,13 @@ export function ChatMessage({
     finishReason === 'length' &&
     Boolean(actions?.onContinue);
 
+  // A tool-call row (the empty-content `tool_calls` row, the document/flow-
+  // proposal card row) is intermediate turn machinery, not a regeneratable
+  // answer — its "regenerate" would re-run from a mid-turn boundary (a dangling
+  // tool call), so suppress the action row there. Regenerate belongs only on the
+  // turn's final text reply (an assistant message with no tool calls).
+  const isToolCallRow = (message.toolCalls?.length ?? 0) > 0;
+
   return (
     <div data-role="assistant" className="group flex flex-col gap-1.5">
       {message.reasoning && !hideReasoning && (
@@ -245,7 +252,7 @@ export function ChatMessage({
         <div className={cn('flex items-center gap-2', !message.content && 'mt-0', message.content && 'mt-0.5')}>
           <AgentBadge agentId={userAgentId} />
           <ModelBadge userModelId={userModelId} />
-          {actions?.onRegenerate && (
+          {actions?.onRegenerate && !isToolCallRow && (
             <MessageActions
               role="assistant"
               content={message.content}

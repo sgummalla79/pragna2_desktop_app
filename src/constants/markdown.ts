@@ -76,3 +76,23 @@ export const STREAMDOWN_CONTROLS: ControlsConfig = {
  */
 export const STREAM_REVEAL_BASE_CPS = 25;
 export const STREAM_REVEAL_MAX_LAG_SECONDS = 3.5;
+
+/**
+ * How the markdown sanitizer (Streamdown's bundled ``rehype-harden``) renders a
+ * link it blocks — i.e. one whose href is not an ``http(s)`` URL.
+ *
+ * The default policy is ``"indicator"``, which keeps the (dead) link and
+ * appends a literal `` [blocked]`` marker to its text. That marker is what
+ * surfaced on a generated-PDF reply: models routinely emit a phantom
+ * ``sandbox:/mnt/data/<file>.pdf`` link (an OpenAI-sandbox path that resolves to
+ * nothing here — the real file is the attachment/DocumentCard), so the reader
+ * saw e.g. ``view and download it here [blocked]``.
+ *
+ * ``"text-only"`` instead degrades a blocked link to its plain child text (no
+ * dead href, no marker), so the sentence reads cleanly and the DocumentCard
+ * remains the real download affordance. Legitimate ``http(s)`` links are
+ * untouched — they still render as clickable anchors. This is the string value
+ * of ``rehype-harden``'s ``BlockPolicy.textOnly``; kept as a literal here (not
+ * imported) to avoid coupling to that transitive dependency's module shape.
+ */
+export const MARKDOWN_BLOCKED_LINK_POLICY = 'text-only' as const;

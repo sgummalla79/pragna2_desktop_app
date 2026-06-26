@@ -46,6 +46,15 @@ bundle (~398 kB) is unaffected. Accepted as the cost of parity.
   `<sketchon-diagram spec="…">` element. Appended **after** `defaultRehypePlugins`
   so it runs **past** rehype-harden (harden can't strip the custom element);
   recovers the spec by concatenating descendant text (robust to Shiki spans).
+- **Blocked-link rendering.** When `MarkdownMessage` rebuilds Streamdown's default
+  rehype chain (to append `rehypeSketchon`), it also overrides rehype-harden's
+  `linkBlockPolicy` to `"text-only"` (`MARKDOWN_BLOCKED_LINK_POLICY` in
+  `constants/markdown`). harden allows only `http(s)` links under its wildcard, so a
+  non-http link — e.g. a model's phantom `sandbox:/mnt/data/*.pdf` (the real file is
+  the attachment/DocumentCard) — is blocked; the default `"indicator"` policy would
+  append a literal `" [blocked]"`. `"text-only"` instead degrades it to its plain
+  child text (no dead anchor, no marker); legitimate `http(s)` links stay clickable
+  (nexus-kit-tracker #227 / CF-048; the phantom-link root cause is backend #228).
 - **`components/SketchonDiagram.tsx`** — renders the custom element. Parses the spec
   (lenient: tolerates a trailing comma), `validateSpec`, `renderDiagram` →
   **DOMPurify-sanitized** SVG (SVG profile) injected via `dangerouslySetInnerHTML`.

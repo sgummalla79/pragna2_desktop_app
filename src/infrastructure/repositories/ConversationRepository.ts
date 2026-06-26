@@ -21,6 +21,22 @@ import {
 } from './mappers/mapConversation';
 
 /**
+ * Order a persisted message log by the backend-stamped `messageIndex` (ascending).
+ *
+ * The two assistant rows of one tool turn (the empty-content `tool_calls` row
+ * and its narration row) share an identical `created_at`, so `messageIndex` —
+ * not the timestamp or the raw response order — is the only stable turn order.
+ * A non-mutating copy keeps the helper pure; the sort is total (no equal keys,
+ * since `messageIndex` is unique per conversation), so stability is moot.
+ *
+ * @param messages - The mapped persisted messages, in the response's order.
+ * @returns A new array ordered by ascending `messageIndex`.
+ */
+function sortByMessageIndex(messages: PersistedMessage[]): PersistedMessage[] {
+  return [...messages].sort((a, b) => a.messageIndex - b.messageIndex);
+}
+
+/**
  * Axios-backed conversation repository (`/api/conversations/*`).
  *
  * Call sites are resource-relative; the shared client supplies the `/api`
@@ -84,7 +100,15 @@ export class ConversationRepository implements IConversationRepository {
       const { data } = await this.http.get<ApiMessageResponse[]>(
         `/conversations/${conversationId}/messages`,
       );
-      return data.map(mapMessage);
+      // Enforce the port's documented ordering ("ordered by messageIndex")
+      // ourselves rather than trusting the response array order. A tool turn is
+      // persisted as TWO assistant rows — the tool-call row (empty content,
+      // `tool_calls`) then the narration row — that share an identical
+      // `created_at`, so any timestamp-ordered transport could surface them in
+      // an unstable order. Out of order, the empty-content tool row is split
+      // from its answer and the activity umbrella is misgrouped, so we sort by
+      // the stable `messageIndex` the backend stamps per turn.
+      return sortByMessageIndex(data.map(mapMessage));
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
         return [];

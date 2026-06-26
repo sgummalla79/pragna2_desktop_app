@@ -66,6 +66,28 @@ describe('ChatMessage — generated documents', () => {
     expect(screen.queryByText('web_search')).not.toBeInTheDocument();
   });
 
+  it('does NOT offer Regenerate on a tool-call row (regenerating mid-turn re-runs from a dangling tool call)', () => {
+    const msg = assistant({
+      content: '',
+      toolCalls: [{ id: 't1', name: 'create_pdf_short', argsBuffer: '{}', args: {} }],
+    });
+    render(
+      <ChatMessage message={msg} attachments={[PDF]} onOpenAttachment={vi.fn()} actions={{ onRegenerate: vi.fn() }} />,
+      { wrapper: wrap() },
+    );
+    expect(screen.queryByRole('button', { name: /Regenerate/i })).toBeNull();
+    // The DocumentCard still renders — only the regenerate affordance is gone.
+    expect(screen.getByTestId('document-card')).toBeInTheDocument();
+  });
+
+  it('DOES offer Regenerate on the final text answer (no tool calls)', () => {
+    render(
+      <ChatMessage message={assistant({ content: 'The final answer.' })} actions={{ onRegenerate: vi.fn() }} />,
+      { wrapper: wrap() },
+    );
+    expect(screen.getByRole('button', { name: /Regenerate/i })).toBeInTheDocument();
+  });
+
   it('suppresses a tool-role message — never dumps its raw result payload', () => {
     const rawResult =
       '{"query":"AI trends","results":[{"url":"https://example.com","score":0.9}],"request_id":"abc"}';
