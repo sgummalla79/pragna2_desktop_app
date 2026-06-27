@@ -10,7 +10,8 @@
  */
 
 import { useState } from 'react';
-import { Bot, Eye, Plus, Pencil, Trash2, Star } from 'lucide-react';
+import { Bot, Eye, Plus, Pencil, RotateCw, Trash2, Star } from 'lucide-react';
+import { toast } from 'sonner';
 
 import {
   useAgents,
@@ -18,14 +19,22 @@ import {
   useDefaultAgentTemplate,
   useSetDefaultAgent,
 } from '@/presentation/hooks/agents/useAgents';
+import { useAgentTemplates } from '@/presentation/hooks/agents/useAgentTemplates';
+import { useSyncSystemAgent } from '@/presentation/hooks/agents/useSyncSystemAgent';
 import { EntityIcon } from '@/presentation/components/icons/EntityIcon';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { ConfirmButton } from '@/components/ui/confirm-button';
 import { ERRORS } from '@/constants/errors';
+import { detailOr } from '@/lib/httpError';
 import { AgentFormModal } from './AgentFormModal';
 import { AgentTemplatesSection } from './AgentTemplatesSection';
+import {
+  findTemplateForAgent,
+  isSystemAgent,
+  systemAgentNeedsUpdate,
+} from './syncSystemAgent';
 import type { Agent } from '@/domain/types/agent.types';
 
 /** Agents settings page — list, onboarding, and create/edit entry points. */
@@ -33,6 +42,10 @@ export default function AgentsView() {
   const { data: agents = [], isLoading, isError } = useAgents();
   const setDefault = useSetDefaultAgent();
   const archiveAgent = useArchiveAgent();
+  const syncSystemAgent = useSyncSystemAgent();
+  // System-agent instances are frozen at activation; the templates list carries
+  // the current values used to detect staleness and drive "Update to latest".
+  const { data: templates = [] } = useAgentTemplates();
 
   const hasDefault = agents.some((a) => a.isDefault);
   // Prefill the create-default form from the BE starter template. Only
@@ -47,6 +60,16 @@ export default function AgentsView() {
   function openCreate(asDefault: boolean) {
     setCreateAsDefault(asDefault);
     setCreateOpen(true);
+  }
+
+  /** Re-syncs a system agent to the latest version of its source template. */
+  async function onUpdateToLatest(agentId: string, templateKey: string) {
+    try {
+      const updated = await syncSystemAgent.mutateAsync({ agentId, templateKey });
+      toast.success(`${updated.displayName} updated to the latest version.`);
+    } catch (err) {
+      toast.error(detailOr(err, ERRORS.AGT_010.message));
+    }
   }
 
   return (
@@ -99,7 +122,18 @@ export default function AgentsView() {
       ) : (
         <ul className="list-none space-y-3" role="list">
           {agents.map((a) => {
-            const isSystemAgent = a.metadata?.nexus_kit_role === 'help_setup_assistant';
+            const systemAgent = isSystemAgent(a);
+            // For a system agent, find its source template and whether the
+            // frozen instance is stale relative to it (drives "Update to latest").
+            const sourceTemplate = systemAgent
+              ? findTemplateForAgent(a, templates)
+              : undefined;
+            const canUpdate =
+              sourceTemplate !== undefined &&
+              systemAgentNeedsUpdate(a, sourceTemplate);
+            const isUpdating =
+              syncSystemAgent.isPending &&
+              syncSystemAgent.variables?.agentId === a.id;
             return (
             <li key={a.id}>
               <Card>
@@ -114,7 +148,7 @@ export default function AgentsView() {
                           Default
                         </Badge>
                       )}
-                      {isSystemAgent && (
+                      {systemAgent && (
                         <Badge variant="outline">System</Badge>
                       )}
                       {a.status !== 'active' && (
@@ -132,7 +166,7 @@ export default function AgentsView() {
                   </div>
 
                   <div className="ml-2 flex items-center gap-1">
-                    {!a.isDefault && !isSystemAgent && a.status === 'active' && (
+                    {!a.isDefault && !systemAgent && a.status === 'active' && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -144,7 +178,24 @@ export default function AgentsView() {
                         Set default
                       </Button>
                     )}
-                    {isSystemAgent ? (
+                    {/* System agents are frozen at activation; offer a re-sync
+                        to the latest template only when it has actually moved on. */}
+                    {canUpdate && sourceTemplate && (
+                      <ConfirmButton
+                        size="sm"
+                        variant="ghost"
+                        disabled={isUpdating}
+                        confirmTitle="Update to the latest version?"
+                        confirmDescription="This replaces the agent's name, description, instructions, and tools with the latest published version. Any local differences will be overwritten."
+                        confirmLabel="Update"
+                        onConfirm={() => onUpdateToLatest(a.id, sourceTemplate.key)}
+                        aria-label={`Update ${a.displayName} to the latest version`}
+                      >
+                        <RotateCw size={15} aria-hidden="true" />
+                        {isUpdating ? 'Updating…' : 'Update to latest'}
+                      </ConfirmButton>
+                    )}
+                    {systemAgent ? (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -166,7 +217,7 @@ export default function AgentsView() {
                       </Button>
                     )}
                     {/* The default agent and system agents can't be archived. */}
-                    {!a.isDefault && !isSystemAgent && (
+                    {!a.isDefault && !systemAgent && (
                       <ConfirmButton
                         size="icon"
                         variant="ghost"

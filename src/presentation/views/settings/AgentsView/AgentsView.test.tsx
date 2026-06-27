@@ -42,6 +42,7 @@ function agent(overrides: Partial<Agent> = {}): Agent {
 function services(
   list: () => Promise<Agent[]>,
   overrides: Record<string, unknown> = {},
+  templateOverrides: Record<string, unknown> = {},
 ): Partial<Services> {
   return {
     agentService: {
@@ -55,13 +56,33 @@ function services(
       }),
       setDefault: vi.fn().mockResolvedValue(agent({ isDefault: true })),
       archive: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(agent()),
       ...overrides,
     } as never,
     agentTemplateService: {
       list: vi.fn().mockResolvedValue([]),
       get: vi.fn(),
       activate: vi.fn(),
+      ...templateOverrides,
     } as never,
+  };
+}
+
+/** Metadata sentinel marking a BE-owned system agent (mirrors constants.ts). */
+const SYSTEM_META = { nexus_kit_role: 'help_setup_assistant' } as const;
+
+/** A system-agent template row as returned by `agentTemplateService.list()`. */
+function systemTemplate(overrides: Record<string, unknown> = {}) {
+  return {
+    key: 'nexus-kit-help',
+    apiName: 'nexus-kit-help',
+    displayName: 'Nexus Help',
+    description: 'Help assistant.',
+    systemPrompt: 'You are help.',
+    tools: [],
+    activatable: true,
+    activated: true,
+    ...overrides,
   };
 }
 
@@ -184,5 +205,90 @@ describe('AgentsView', () => {
     expect(
       within(card).getByRole('button', { name: 'Edit Helper' }),
     ).toBeInTheDocument();
+  });
+
+  // ── System agent "Update to latest" ────────────────────────────────────────
+
+  it('shows View (not Edit) and no archive for a system agent', async () => {
+    renderWithProviders(<AgentsView />, {
+      services: services(() =>
+        Promise.resolve([
+          agent({ id: 's1', displayName: 'Nexus Help', apiName: 'nexus-kit-help', metadata: SYSTEM_META }),
+        ]),
+      ),
+    });
+    const card = (await screen.findByText('Nexus Help')).closest('li')!;
+    expect(within(card).getByRole('button', { name: 'View Nexus Help' })).toBeInTheDocument();
+    expect(within(card).queryByRole('button', { name: 'Edit Nexus Help' })).not.toBeInTheDocument();
+    expect(within(card).queryByRole('button', { name: 'Archive Nexus Help' })).not.toBeInTheDocument();
+    expect(within(card).getByText('System')).toBeInTheDocument();
+  });
+
+  it('hides "Update to latest" when the system agent already matches its template', async () => {
+    renderWithProviders(<AgentsView />, {
+      services: services(
+        () =>
+          Promise.resolve([
+            agent({
+              id: 's1',
+              displayName: 'Nexus Help',
+              apiName: 'nexus-kit-help',
+              description: 'Help assistant.',
+              systemPrompt: 'You are help.',
+              tools: [],
+              metadata: SYSTEM_META,
+            }),
+          ]),
+        {},
+        { list: vi.fn().mockResolvedValue([systemTemplate()]) },
+      ),
+    });
+    // Scope to the agent row (the template section also renders "Nexus Help").
+    await screen.findByRole('button', { name: 'View Nexus Help' });
+    expect(
+      screen.queryByRole('button', { name: 'Update Nexus Help to the latest version' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers "Update to latest" and patches the agent when the template has moved on', async () => {
+    const update = vi.fn().mockResolvedValue(
+      agent({ id: 's1', displayName: 'Nexus Help', apiName: 'nexus-kit-help' }),
+    );
+    const latest = systemTemplate({ systemPrompt: 'You are the NEW help.', tools: ['search'] });
+    const getTemplate = vi.fn().mockResolvedValue(latest);
+
+    renderWithProviders(<AgentsView />, {
+      services: services(
+        () =>
+          Promise.resolve([
+            agent({
+              id: 's1',
+              displayName: 'Nexus Help',
+              apiName: 'nexus-kit-help',
+              description: 'Help assistant.',
+              systemPrompt: 'You are help.',
+              tools: [],
+              metadata: SYSTEM_META,
+            }),
+          ]),
+        { update },
+        { list: vi.fn().mockResolvedValue([latest]), get: getTemplate },
+      ),
+    });
+
+    const trigger = await screen.findByRole('button', {
+      name: 'Update Nexus Help to the latest version',
+    });
+    await userEvent.click(trigger);
+    // Confirm in the dialog.
+    await userEvent.click(screen.getByRole('button', { name: 'Update' }));
+
+    expect(getTemplate).toHaveBeenCalledWith('nexus-kit-help');
+    expect(update).toHaveBeenCalledWith('s1', {
+      displayName: latest.displayName,
+      description: latest.description,
+      systemPrompt: latest.systemPrompt,
+      tools: latest.tools,
+    });
   });
 });
