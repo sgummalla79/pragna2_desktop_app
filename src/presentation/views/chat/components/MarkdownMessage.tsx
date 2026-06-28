@@ -1,4 +1,11 @@
-import { memo, useEffect, useMemo, useRef, type ComponentProps } from 'react';
+import {
+  memo,
+  useEffect,
+  useMemo,
+  useRef,
+  type ComponentProps,
+  type MouseEvent,
+} from 'react';
 import { Streamdown, defaultRehypePlugins } from 'streamdown';
 // KaTeX layout styles for Streamdown's rehype-katex math pass. Streamdown
 // bundles `katex`, so we import its stylesheet directly (the package exposes
@@ -14,6 +21,8 @@ import {
   SKETCHON_ELEMENT_TAG,
   MARKDOWN_BLOCKED_LINK_POLICY,
 } from '@/constants/markdown';
+import { openExternal, isExternallyOpenableUrl } from '@/infrastructure/platform';
+import { logger } from '@/infrastructure/logging/logger';
 import { cn } from '@/lib/utils';
 
 // Rebuild Streamdown's default rehype chain with two changes, then re-pass it:
@@ -43,11 +52,38 @@ const SKETCHON_REHYPE_PLUGINS = [
   rehypeSketchon,
 ] as ComponentProps<typeof Streamdown>['rehypePlugins'];
 
+/**
+ * Anchor renderer that routes a left/modifier-click on an http(s) link to the
+ * system browser instead of letting the Tauri webview navigate itself (which
+ * would replace the running app with the remote page). For non-web hrefs it does
+ * nothing special — but those never reach here as working anchors anyway, since
+ * rehype-harden degrades them to plain text (see MARKDOWN_BLOCKED_LINK_POLICY).
+ * The `href` is kept on the element for hover/preview and accessibility; the
+ * actual navigation is taken over in `onClick`. See pragna2_desktop_app#99
+ * (moved from nexus-kit-tracker #238).
+ */
+function ExternalMarkdownLink({ href, children, ...rest }: ComponentProps<'a'>) {
+  const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!href || !isExternallyOpenableUrl(href)) return; // leave default behaviour
+    event.preventDefault();
+    void openExternal(href).catch((err) => {
+      logger.fromError('Failed to open external link from assistant message', err, { href });
+    });
+  };
+  return (
+    <a {...rest} href={href} onClick={handleClick} target="_blank" rel="noopener noreferrer">
+      {children}
+    </a>
+  );
+}
+
 // Streamdown merges its internal components first, then spreads user components,
-// so this ADDS the <sketchon-diagram> renderer without clobbering its code /
-// mermaid / Shiki handling.
-const SKETCHON_COMPONENTS = {
+// so this ADDS the <sketchon-diagram> renderer and OVERRIDES the default anchor
+// with our external-open one, without clobbering its code / mermaid / Shiki
+// handling.
+const MARKDOWN_COMPONENTS = {
   [SKETCHON_ELEMENT_TAG]: SketchonDiagram,
+  a: ExternalMarkdownLink,
 } as ComponentProps<typeof Streamdown>['components'];
 
 // Only every Nth wheel tick over a Mermaid diagram reaches Streamdown's
@@ -134,7 +170,7 @@ function MarkdownMessageImpl({ content, isStreaming = false, className }: Markdo
         shikiTheme={SHIKI_THEMES}
         controls={STREAMDOWN_CONTROLS}
         rehypePlugins={SKETCHON_REHYPE_PLUGINS}
-        components={SKETCHON_COMPONENTS}
+        components={MARKDOWN_COMPONENTS}
         className="break-words"
       >
         {revealed}

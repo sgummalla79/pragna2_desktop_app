@@ -11,6 +11,16 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-051 — Assistant markdown links navigate the app webview instead of opening the system browser (pragna2_desktop_app#99)
+
+- **Date:** 2026-06-27
+- **Tracker:** pragna2_desktop_app#99 (Tier 1; moved from nexus-kit-tracker #238). Cross-repo follow-up to BE #233 (citation/source-aggregation node).
+- **Area / file:** `src/infrastructure/platform/opener.ts` (new), `src/infrastructure/platform/index.ts` (re-export), `src/presentation/views/chat/components/MarkdownMessage.tsx` (`ExternalMarkdownLink` + `a` override). Sibling to **CF-048** (same renderer, blocked-link policy).
+- **Found by:** Scoping the BE `citations` node, whose output is a `## References` section full of `[title](url)` links. In the Tauri webview those anchors had no external-open handling.
+- **Bug + root cause:** Assistant markdown is rendered by Streamdown with no anchor override, so a `[title](url)` rendered a bare `<a href>`. In a Tauri webview a left-click on such an anchor navigates the **app's own** webview to the remote page — replacing the running React app (broken app, no real back button) — rather than opening the OS default browser. The opener plugin (`@tauri-apps/plugin-opener`) was already used for auth/connector flows but was never wired into markdown, and there was no platform-layer abstraction for it.
+- **Fix:** New platform-layer `openExternal(url)` + `isExternallyOpenableUrl(url)` (`src/infrastructure/platform/opener.ts`, the only place importing the opener plugin per the platform-abstraction rule). It allows only `http:`/`https:` (named `EXTERNAL_LINK_ALLOWED_SCHEMES`, no-hardcoding), routes through `plugin-opener.openUrl` in the Tauri runtime and `window.open(_, '_blank', 'noopener,noreferrer')` in the plain-browser fallback (gated on `isTauriRuntime()`, not OS — CF-011). `MarkdownMessage` overrides Streamdown's `a` with `ExternalMarkdownLink`, whose `onClick` intercepts web links (`preventDefault` → `openExternal`), logs failures via `logger.fromError` (no silent swallow), and leaves non-web hrefs to the existing text-only harden policy. Also verified inline `[1]` markers render as literal text (not anchors). Tests: `opener.test.ts` (14, scheme table + Tauri/browser transports + RangeError) + `MarkdownMessage.test.tsx` (click routes to `openExternal` & suppresses navigation; `[1]` stays literal).
+- **Web-app applicability:** **CHECK — milder variant likely present.** `pragna2_sgummalla_works` shares the Streamdown `MarkdownMessage`. In a real browser a bare reference link navigates the SPA **in the same tab** (less catastrophic than the desktop webview takeover, but still drops the user out of the app). The web fix is lighter — render assistant `http(s)` links with `target="_blank" rel="noopener noreferrer"` so sources open in a new tab; no opener plugin needed. Track under `target:web-fe` (this is the web sibling of #238).
+
 ## CF-050 — Regenerating a generated-PDF answer re-sends an orphaned tool_call → backend 400 ("response could not be completed")
 
 - **Date:** 2026-06-26
