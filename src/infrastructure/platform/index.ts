@@ -18,5 +18,6 @@ export {
 } from './runtime';
 export { setNativeWindowTitle } from './window';
 export { saveBytes, type SaveOutcome } from './saveFile';
+export { openExternal, isExternallyOpenableUrl } from './opener';
 export { secureStore } from './secureStore';
 export { mcpStdio, NotInTauriError } from './mcpStdio';
