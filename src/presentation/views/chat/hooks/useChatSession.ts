@@ -25,6 +25,7 @@ import {
   readDelegationEnvelope,
   readReauthEnvelope,
 } from '@/domain/types/mcpDelegation.types';
+import { carryReasoningAcrossReplace } from '../utils/carryReasoningAcrossReplace';
 import { pruneOrphanedOptimisticMessage } from '../utils/messageDedup';
 import { truncateMessagesFrom } from '../utils/messageTruncation';
 import { classifyRunErrorEvent } from '../utils/runError';
@@ -947,6 +948,14 @@ export function useChatSession(
   const replaceMessages = useCallback(
     (replacement: Message[]) => {
       if (!agent) return;
+      // Bridge the live thinking trace from the streamed (stream-id) message
+      // onto the persisted (BE-UUID) message before the swap, so the just-
+      // completed turn keeps its reasoning umbrella on settle (#221 / CF-044).
+      carryReasoningAcrossReplace(
+        agent.messages,
+        replacement,
+        reasoningByMessageIdRef.current,
+      );
       agent.setMessages(replacement);
       syncMessages();
     },
