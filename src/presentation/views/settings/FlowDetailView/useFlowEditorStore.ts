@@ -29,6 +29,7 @@ import { EDGE_CONDITIONS, type EdgeConditionValue } from '@/constants/edgeCondit
 import {
   type AgentNodeData,
   type BoundaryNodeData,
+  type CitationsNodeData,
   type ConditionEdgeData,
   type ConnectorNodeData,
   type DecisionNodeData,
@@ -42,6 +43,7 @@ import {
   NODE_START,
   NODE_TYPE_AGENT,
   NODE_TYPE_BOUNDARY,
+  NODE_TYPE_CITATIONS,
   NODE_TYPE_CONNECTOR,
   NODE_TYPE_DECISION,
   NODE_TYPE_KNOWLEDGE,
@@ -52,6 +54,7 @@ import {
 type EditorNode = Node<
   | AgentNodeData
   | BoundaryNodeData
+  | CitationsNodeData
   | ConnectorNodeData
   | DecisionNodeData
   | KnowledgeNodeData
@@ -129,6 +132,10 @@ interface FlowEditorState {
    *  node_id and selects it. Its libraries are configured in the KnowledgePanel
    *  and exposed (search/read) to every downstream agent node. */
   addKnowledgeNode: (position: { x: number; y: number }) => string;
+  /** Add a Citations node (deterministic, no agent) at a position; returns its
+   *  node_id and selects it. Its optional slot fields are configured in the
+   *  CitationsPanel; blank slots fall back to the BE defaults. */
+  addCitationsNode: (position: { x: number; y: number }) => string;
   /** Add another End sink at a position; returns its FE-only node id.
    *  All End instances serialize to `to: __end__` in YAML. */
   addEndNode: (position: { x: number; y: number }) => string;
@@ -146,6 +153,8 @@ interface FlowEditorState {
   updateConnectors: (nodeId: string, connectors: EditorConnector[]) => void;
   /** Replace the library list on a Knowledge node. */
   updateLibraries: (nodeId: string, libraries: EditorLibrary[]) => void;
+  /** Patch the optional slot fields on a Citations node. */
+  updateCitationsFields: (nodeId: string, patch: Partial<CitationsNodeData>) => void;
   /** Replace the condition list on a Decision (router) node. */
   updateConditions: (nodeId: string, conditions: string[]) => void;
   setEdgeCondition: (edgeId: string, condition: EdgeConditionValue) => void;
@@ -201,6 +210,15 @@ function nextKnowledgeNodeId(nodes: EditorNode[]): string {
   let i = nodes.filter((n) => n.type === NODE_TYPE_KNOWLEDGE).length + 1;
   while (used.has(`knowledge_${i}`)) i += 1;
   return `knowledge_${i}`;
+}
+
+/** Allocate a `citations_N` id not already used on the canvas — the
+ *  Citations node analogue of {@link nextNodeId}. */
+function nextCitationsNodeId(nodes: EditorNode[]): string {
+  const used = new Set(nodes.map((n) => n.id));
+  let i = nodes.filter((n) => n.type === NODE_TYPE_CITATIONS).length + 1;
+  while (used.has(`citations_${i}`)) i += 1;
+  return `citations_${i}`;
 }
 
 export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
@@ -359,6 +377,20 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     return nodeId;
   },
 
+  addCitationsNode: (position) => {
+    const nodeId = nextCitationsNodeId(get().nodes);
+    const node: Node<CitationsNodeData> = {
+      id: nodeId,
+      type: NODE_TYPE_CITATIONS,
+      position,
+      // Deterministic — no agent. Slot fields start unset so the BE applies
+      // its canonical defaults until the author overrides them in the panel.
+      data: { nodeId },
+    };
+    set((s) => ({ nodes: [...s.nodes, node], selectedNodeId: nodeId, dirty: true }));
+    return nodeId;
+  },
+
   addEndNode: (position) => {
     const existing = new Set(get().nodes.map((n) => n.id));
     const id = nextEndInstanceId(existing);
@@ -457,6 +489,16 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       nodes: s.nodes.map((n) =>
         n.id === nodeId && n.type === NODE_TYPE_DECISION
           ? { ...n, data: { ...(n.data as DecisionNodeData), conditions } }
+          : n,
+      ),
+      dirty: true,
+    })),
+
+  updateCitationsFields: (nodeId, patch) =>
+    set((s) => ({
+      nodes: s.nodes.map((n) =>
+        n.id === nodeId && n.type === NODE_TYPE_CITATIONS
+          ? { ...n, data: { ...(n.data as CitationsNodeData), ...patch } }
           : n,
       ),
       dirty: true,

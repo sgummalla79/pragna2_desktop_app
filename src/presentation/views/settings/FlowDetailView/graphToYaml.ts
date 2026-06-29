@@ -21,6 +21,7 @@ import { EDGE_CONDITIONS } from '@/constants/edgeConditions';
 import {
   type AgentNodeData,
   type BoundaryNodeData,
+  type CitationsNodeData,
   type ConditionEdgeData,
   type ConnectorNodeData,
   type DecisionNodeData,
@@ -28,10 +29,12 @@ import {
   type KnowledgeNodeData,
   DISPATCH_MODE_PER_ITEM,
   NODE_END,
+  NODE_KIND_CITATIONS,
   NODE_KIND_DECISION,
   NODE_KIND_KNOWLEDGE,
   NODE_KIND_MCP_CONNECTOR,
   NODE_TYPE_AGENT,
+  NODE_TYPE_CITATIONS,
   NODE_TYPE_CONNECTOR,
   NODE_TYPE_DECISION,
   NODE_TYPE_KNOWLEDGE,
@@ -43,6 +46,7 @@ import {
 type EditorNode = Node<
   | AgentNodeData
   | BoundaryNodeData
+  | CitationsNodeData
   | ConnectorNodeData
   | DecisionNodeData
   | KnowledgeNodeData
@@ -125,6 +129,21 @@ function knowledgeNodeEntry(data: KnowledgeNodeData): Record<string, unknown> {
   };
 }
 
+/** One serialised `flow.nodes:` entry for a Citations node. The three slot
+ *  names are OPTIONAL — each is omitted when blank so the BE applies its
+ *  canonical default (sources / draft / cited_report). The node carries nothing
+ *  else: it is deterministic (no model / tools / emits / conditions). */
+function citationsNodeEntry(data: CitationsNodeData): Record<string, unknown> {
+  const entry: Record<string, unknown> = {
+    api_name: data.nodeId,
+    node_kind: NODE_KIND_CITATIONS,
+  };
+  if (data.sourcesSlot?.trim()) entry.sources_slot = data.sourcesSlot.trim();
+  if (data.draftSlot?.trim()) entry.draft_slot = data.draftSlot.trim();
+  if (data.outputSlot?.trim()) entry.output_slot = data.outputSlot.trim();
+  return entry;
+}
+
 /** One serialised `flow.nodes:` entry for a Decision (router) node. Blank
  *  rows (mid-edit empties) are dropped so the persisted conditions are
  *  clean; the implicit `else` is never serialised here. */
@@ -159,6 +178,9 @@ export function graphToYaml(
   );
   const knowledgeNodes = nodes.filter(
     (n): n is Node<KnowledgeNodeData> => n.type === NODE_TYPE_KNOWLEDGE,
+  );
+  const citationsNodes = nodes.filter(
+    (n): n is Node<CitationsNodeData> => n.type === NODE_TYPE_CITATIONS,
   );
   const decisionNodes = nodes.filter(
     (n): n is Node<DecisionNodeData> => n.type === NODE_TYPE_DECISION,
@@ -229,6 +251,7 @@ export function graphToYaml(
       ...agentNodes.map((n) => nodeEntry(n.data)),
       ...connectorNodes.map((n) => connectorNodeEntry(n.data)),
       ...knowledgeNodes.map((n) => knowledgeNodeEntry(n.data)),
+      ...citationsNodes.map((n) => citationsNodeEntry(n.data)),
       ...decisionNodes.map((n) => decisionNodeEntry(n.data)),
     ],
     edges: edges.map((e) => {

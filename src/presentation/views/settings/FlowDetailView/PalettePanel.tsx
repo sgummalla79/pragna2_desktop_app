@@ -1,8 +1,8 @@
 /**
  * Left-sidebar palette inside the flow editor canvas area. Lists the
- * draggable node entries (Agent, If/Else, MCP, Knowledge, End) — Start is
- * auto-placed by `newFlowGraph()` and intentionally absent here (LangGraph
- * has exactly one entry).
+ * draggable node entries (Agent, If/Else, MCP, Knowledge, Citations, End) —
+ * Start is auto-placed by `newFlowGraph()` and intentionally absent here
+ * (LangGraph has exactly one entry).
  *
  * Entries are click-to-add at the visible viewport centre (nudged off any
  * node already there). The floating tray can be dragged out of the way by
@@ -11,13 +11,13 @@
  */
 
 import { useEffect, useRef, useState, type ComponentType } from 'react';
-import { Bot, Cable, CircleStop, GitBranch, GripVertical, Library } from 'lucide-react';
+import { Bot, Cable, CircleStop, GitBranch, GripVertical, Library, Quote } from 'lucide-react';
 import { useReactFlow } from 'reactflow';
 
 import { cn } from '@/lib/utils';
 import { useFlowEditorStore } from './useFlowEditorStore';
 
-type PaletteKey = 'agent' | 'decision' | 'mcp_connector' | 'knowledge_library' | 'end';
+type PaletteKey = 'agent' | 'decision' | 'mcp_connector' | 'knowledge_library' | 'citations' | 'end';
 
 interface PaletteEntry {
   key: PaletteKey;
@@ -60,6 +60,14 @@ const PALETTE: ReadonlyArray<PaletteEntry> = [
     icon: Library,
     description: 'Exposes its knowledge libraries (search/read) to every node downstream. No LLM call; passes through.',
     iconTileClass: 'bg-teal-500 text-white',
+  },
+  {
+    key: 'citations',
+    label: 'Citations',
+    icon: Quote,
+    description:
+      'Resolves inline [[marker]] citations from an upstream draft into numbered [n] references + a References list. Deterministic; one inbound, one outbound.',
+    iconTileClass: 'bg-cyan-500 text-white',
   },
   {
     key: 'end',
@@ -109,6 +117,7 @@ export function PalettePanel({ ariaLabel = 'Add node' }: Props) {
   const addDecision = useFlowEditorStore((s) => s.addDecisionNode);
   const addMcpConnector = useFlowEditorStore((s) => s.addMcpConnectorNode);
   const addKnowledge = useFlowEditorStore((s) => s.addKnowledgeNode);
+  const addCitations = useFlowEditorStore((s) => s.addCitationsNode);
   const addEnd = useFlowEditorStore((s) => s.addEndNode);
   const reactFlow = useReactFlow();
 
@@ -195,6 +204,7 @@ export function PalettePanel({ ariaLabel = 'Add node' }: Props) {
     else if (key === 'decision') addDecision(pos);
     else if (key === 'mcp_connector') addMcpConnector(pos);
     else if (key === 'knowledge_library') addKnowledge(pos);
+    else if (key === 'citations') addCitations(pos);
     else addEnd(pos);
   }
 

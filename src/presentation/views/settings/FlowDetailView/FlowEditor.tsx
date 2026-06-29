@@ -44,6 +44,7 @@ import {
 
 import { FLOW_NODE_TYPES } from './canvasNodes';
 import { FLOW_EDGE_TYPES } from './ConditionEdge';
+import { CitationsPanel } from './CitationsPanel';
 import { ConnectorPanel } from './ConnectorPanel';
 import { DecisionPanel } from './DecisionPanel';
 import { EdgePanel } from './EdgePanel';
@@ -57,6 +58,7 @@ import { graphToYaml } from './graphToYaml';
 import { FlowMetaBar } from './FlowMetaBar';
 import {
   NODE_TYPE_AGENT,
+  NODE_TYPE_CITATIONS,
   NODE_TYPE_CONNECTOR,
   NODE_TYPE_DECISION,
   NODE_TYPE_KNOWLEDGE,
@@ -100,9 +102,19 @@ function EditorInner({ flow }: Props) {
 
   // Validator reading FRESH store state each call (React Flow captures the
   // isValidConnection reference at drag start, before onReconnectStart fires).
+  // Citations nodes accept exactly one inbound edge — pass their ids so the
+  // rule can block a second in-edge at draw time.
   const isValidConnection = useCallback((conn: Connection) => {
     const state = useFlowEditorStore.getState();
-    return isValidFlowConnection(state.edges, conn, state.reconnectingEdgeId);
+    const singleInEdgeNodeIds = new Set(
+      state.nodes.filter((n) => n.type === NODE_TYPE_CITATIONS).map((n) => n.id),
+    );
+    return isValidFlowConnection(
+      state.edges,
+      conn,
+      state.reconnectingEdgeId,
+      singleInEdgeNodeIds,
+    );
   }, []);
 
   // Seed the store from the flow's stored YAML (or a fresh Start/End canvas)
@@ -134,7 +146,8 @@ function EditorInner({ flow }: Props) {
       node.type === NODE_TYPE_AGENT ||
       node.type === NODE_TYPE_CONNECTOR ||
       node.type === NODE_TYPE_DECISION ||
-      node.type === NODE_TYPE_KNOWLEDGE;
+      node.type === NODE_TYPE_KNOWLEDGE ||
+      node.type === NODE_TYPE_CITATIONS;
     selectNode(hasPanel ? node.id : null);
   };
 
@@ -248,6 +261,7 @@ function EditorInner({ flow }: Props) {
         {selectedNodeId && <ConnectorPanel />}
         {selectedNodeId && <DecisionPanel />}
         {selectedNodeId && <KnowledgePanel />}
+        {selectedNodeId && <CitationsPanel />}
         {selectedEdgeId && !selectedNodeId && <EdgePanel />}
       </div>
 
