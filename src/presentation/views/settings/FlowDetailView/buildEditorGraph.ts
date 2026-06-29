@@ -17,6 +17,7 @@ import { EDGE_CONDITIONS, type EdgeConditionValue } from '@/constants/edgeCondit
 import {
   type AgentNodeData,
   type BoundaryNodeData,
+  type CitationsNodeData,
   type ConditionEdgeData,
   type ConnectorNodeData,
   type DecisionNodeData,
@@ -28,12 +29,14 @@ import {
   DISPATCH_MODE_PER_ITEM,
   EDGE_TYPE_CONDITION,
   NODE_END,
+  NODE_KIND_CITATIONS,
   NODE_KIND_DECISION,
   NODE_KIND_KNOWLEDGE,
   NODE_KIND_MCP_CONNECTOR,
   NODE_START,
   NODE_TYPE_AGENT,
   NODE_TYPE_BOUNDARY,
+  NODE_TYPE_CITATIONS,
   NODE_TYPE_CONNECTOR,
   NODE_TYPE_DECISION,
   NODE_TYPE_KNOWLEDGE,
@@ -47,6 +50,7 @@ import { yamlToGraph } from './yamlToGraph';
 type EditorNode = Node<
   | AgentNodeData
   | BoundaryNodeData
+  | CitationsNodeData
   | ConnectorNodeData
   | DecisionNodeData
   | KnowledgeNodeData
@@ -82,6 +86,10 @@ interface RawNode {
   connectors?: RawConnector[];
   libraries?: RawLibrary[];
   conditions?: string[];
+  // Citations-node slot fields (all optional → BE defaults).
+  sources_slot?: string;
+  draft_slot?: string;
+  output_slot?: string;
   // #26 slot wiring.
   inputs?: string[];
   outputs?: string[];
@@ -225,6 +233,23 @@ export function buildEditorGraph(yamlText: string): EditorGraph {
         type: NODE_TYPE_KNOWLEDGE,
         position: positionById.get(n.api_name) ?? { x: 0, y: 0 },
         data: { nodeId: n.api_name, libraries },
+      });
+      continue;
+    }
+
+    // Citations node — deterministic, no agent. Resolves [[marker]] citations
+    // from an upstream draft. Carries optional slot names (omitted → BE
+    // defaults), no agent fields.
+    if (n.node_kind === NODE_KIND_CITATIONS) {
+      const data: CitationsNodeData = { nodeId: n.api_name };
+      if (n.sources_slot) data.sourcesSlot = n.sources_slot;
+      if (n.draft_slot) data.draftSlot = n.draft_slot;
+      if (n.output_slot) data.outputSlot = n.output_slot;
+      nodes.push({
+        id: n.api_name,
+        type: NODE_TYPE_CITATIONS,
+        position: positionById.get(n.api_name) ?? { x: 0, y: 0 },
+        data,
       });
       continue;
     }

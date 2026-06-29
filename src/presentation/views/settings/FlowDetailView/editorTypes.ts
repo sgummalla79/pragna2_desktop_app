@@ -62,6 +62,24 @@ export const NODE_KIND_DECISION = 'decision';
 export const NODE_TYPE_KNOWLEDGE = 'knowledge';
 /** The BE `node_kind` value a Knowledge node serialises to. */
 export const NODE_KIND_KNOWLEDGE = 'knowledge_library';
+/** The Citations node — a deterministic (non-LLM) node that resolves the inline
+ *  `[[marker]]` citations in an upstream synthesis draft into numbered `[n]`
+ *  references plus a `## References` section (BE #233 source-aggregation). It
+ *  reads two state slots and writes a third; carries no model/tools/emits/
+ *  connectors/libraries/conditions. Exactly one in-edge, one out-edge.
+ *  Serialises to a `node_kind: citations` YAML node. */
+export const NODE_TYPE_CITATIONS = 'citations';
+/** The BE `node_kind` value a Citations node serialises to. */
+export const NODE_KIND_CITATIONS = 'citations';
+
+/** Canonical BE defaults for the three citations slots (see nexus-kit-api
+ *  `docs/architecture/flow-system.md` §Citations node). The CitationsPanel shows
+ *  these as input placeholders; a blank field is OMITTED from the YAML so the BE
+ *  applies the default — the literals are referenced by name, never inlined into
+ *  serialisation logic. */
+export const CITATIONS_DEFAULT_SOURCES_SLOT = 'sources';
+export const CITATIONS_DEFAULT_DRAFT_SLOT = 'draft';
+export const CITATIONS_DEFAULT_OUTPUT_SLOT = 'cited_report';
 
 /** React Flow edge `type` for the connector (no inline picker post #33;
  *  edge condition derives from the source handle id for If/Else nodes). */
@@ -159,6 +177,22 @@ export interface KnowledgeNodeData {
   libraries: EditorLibrary[];
 }
 
+/** Data carried by a Citations node on the canvas. The three slot names are
+ *  OPTIONAL — when omitted the BE applies its canonical defaults
+ *  ({@link CITATIONS_DEFAULT_SOURCES_SLOT} / {@link CITATIONS_DEFAULT_DRAFT_SLOT}
+ *  / {@link CITATIONS_DEFAULT_OUTPUT_SLOT}). The node is deterministic: no agent,
+ *  no model, no conditions. */
+export interface CitationsNodeData {
+  /** Short label unique within the flow (the YAML `api_name`). */
+  nodeId: string;
+  /** State slot holding the accumulated source list (default `sources`). */
+  sourcesSlot?: string;
+  /** State slot holding the synthesis draft with `[[marker]]`s (default `draft`). */
+  draftSlot?: string;
+  /** State slot the resolved cited report is written to (default `cited_report`). */
+  outputSlot?: string;
+}
+
 /** Data carried by a Decision (router) node on the canvas. The condition
  *  labels are authored here (the `+`/`-` rows); each renders an output port
  *  (plus an always-on `else`) and is matched by equality against the single
@@ -243,7 +277,7 @@ export function blankAgent(apiName: string): EditorAgent {
  *  the slash-name input is visible immediately. */
 export function newFlowGraph(): {
   meta: FlowMeta;
-  nodes: import('reactflow').Node<AgentNodeData | BoundaryNodeData | ConnectorNodeData | DecisionNodeData | KnowledgeNodeData>[];
+  nodes: import('reactflow').Node<AgentNodeData | BoundaryNodeData | ConnectorNodeData | DecisionNodeData | KnowledgeNodeData | CitationsNodeData>[];
   edges: import('reactflow').Edge<ConditionEdgeData>[];
 } {
   return {

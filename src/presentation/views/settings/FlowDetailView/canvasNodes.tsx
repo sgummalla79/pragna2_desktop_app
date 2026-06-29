@@ -3,8 +3,8 @@
  *
  * Each node card shares the same neutral card body; its role is read off the
  * vivid colored icon-tile chip at the top-left (agent sky / decision amber /
- * connector violet / knowledge teal / start emerald / end rose). Selected nodes
- * get a solid foreground (white in dark) border highlight.
+ * connector violet / knowledge teal / citations cyan / start emerald / end
+ * rose). Selected nodes get a solid foreground (white in dark) border highlight.
  *
  * Node shapes:
  *   - **Agent** (`AgentNode`) — linear; 4 omni handles (back-edge routing).
@@ -12,6 +12,7 @@
  *     `port:<condition>` + `port:else`; card auto-grows with the port count.
  *   - **MCP Connector** (`ConnectorNode`) — pass-through: 1 in, 1 out.
  *   - **Knowledge** (`KnowledgeNode`) — pass-through: 1 in, 1 out.
+ *   - **Citations** (`CitationsNode`) — pass-through: 1 in, 1 out.
  *   - **Start** (singleton boundary) — single right-side `source` id 'out'.
  *   - **End** (multi-instance boundary) — single left-side `target` id 'in'.
  *
@@ -21,12 +22,13 @@
  */
 
 import type { ComponentType } from 'react';
-import { Bot, Cable, CircleStop, GitBranch, Library, Play } from 'lucide-react';
+import { Bot, Cable, CircleStop, GitBranch, Library, Play, Quote } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import {
   type AgentNodeData,
   type BoundaryNodeData,
+  type CitationsNodeData,
   type ConnectorNodeData,
   type DecisionNodeData,
   type KnowledgeNodeData,
@@ -65,6 +67,11 @@ const VISUAL_KNOWLEDGE: NodeVisual = {
   label: 'Knowledge',
   icon: Library,
   iconTileClass: 'bg-teal-500 text-white',
+};
+const VISUAL_CITATIONS: NodeVisual = {
+  label: 'Citations',
+  icon: Quote,
+  iconTileClass: 'bg-cyan-500 text-white',
 };
 const VISUAL_START: NodeVisual = { label: 'Start', icon: Play, iconTileClass: 'bg-emerald-500 text-white' };
 const VISUAL_END: NodeVisual = { label: 'End', icon: CircleStop, iconTileClass: 'bg-rose-500 text-white' };
@@ -252,6 +259,23 @@ export function KnowledgeNode({ selected }: NodeProps<KnowledgeNodeData>) {
   );
 }
 
+/** Citations node renderer — deterministic pass-through (1 in, 1 out). */
+export function CitationsNode({ selected }: NodeProps<CitationsNodeData>) {
+  return (
+    <div className="group">
+      <MinimalCard
+        title={VISUAL_CITATIONS.label}
+        Icon={VISUAL_CITATIONS.icon}
+        iconTileClass={VISUAL_CITATIONS.iconTileClass}
+        iconClass={VISUAL_CITATIONS.iconClass}
+        selected={!!selected}
+      />
+      <Handle id="in" type="target" position={Position.Left} className={HANDLE_CLASS} />
+      <Handle id="out" type="source" position={Position.Right} className={HANDLE_CLASS} />
+    </div>
+  );
+}
+
 /** Boundary node renderer — Start (singleton, right source) or End
  *  (multi-instance, left target). */
 export function BoundaryNode({ data, selected }: NodeProps<BoundaryNodeData>) {
@@ -282,4 +306,5 @@ export const FLOW_NODE_TYPES = {
   connector: ConnectorNode,
   decision: DecisionNode,
   knowledge: KnowledgeNode,
+  citations: CitationsNode,
 } as const;

@@ -32,13 +32,14 @@ import { MODEL_INHERIT_LABEL, MODEL_PICKER_LABEL, TEST_USER } from './env';
  *  reads "If / else" on the canvas but we keep the logical name `Decision` at
  *  call sites (it drops a deterministic Decision node). */
 const PALETTE_BUTTON: Record<
-  'Agent' | 'Decision' | 'MCP' | 'Knowledge' | 'End',
+  'Agent' | 'Decision' | 'MCP' | 'Knowledge' | 'Citations' | 'End',
   RegExp
 > = {
   Agent: /^Agent$/,
   Decision: /^If \/ else$/,
   MCP: /^MCP$/,
   Knowledge: /^Knowledge$/,
+  Citations: /^Citations$/,
   End: /^End$/,
 };
 
@@ -75,10 +76,10 @@ export async function openFlow(page: Page, flowId: string): Promise<void> {
   await page.waitForSelector('nav[aria-label="Add node"]');
 }
 
-/** Drop an Agent / Decision / MCP connector / Knowledge / End from the palette. */
+/** Drop an Agent / Decision / MCP / Knowledge / Citations / End from the palette. */
 export async function dropFromPalette(
   page: Page,
-  label: 'Agent' | 'Decision' | 'MCP' | 'Knowledge' | 'End',
+  label: 'Agent' | 'Decision' | 'MCP' | 'Knowledge' | 'Citations' | 'End',
 ): Promise<void> {
   const palette = page.getByRole('navigation', { name: /add node/i });
   await palette.getByRole('button', { name: PALETTE_BUTTON[label] }).click();

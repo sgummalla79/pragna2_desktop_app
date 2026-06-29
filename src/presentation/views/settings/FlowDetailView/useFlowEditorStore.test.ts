@@ -3,8 +3,10 @@ import type { Node, Edge } from 'reactflow';
 import { useFlowEditorStore } from './useFlowEditorStore';
 import {
   NODE_TYPE_AGENT,
+  NODE_TYPE_CITATIONS,
   EDGE_TYPE_CONDITION,
   type AgentNodeData,
+  type CitationsNodeData,
   type ConditionEdgeData,
   type FlowMeta,
 } from './editorTypes';
@@ -108,5 +110,36 @@ describe('useFlowEditorStore', () => {
     store().deleteNode('agent_1');
     expect(store().nodes.find((n) => n.id === 'agent_1')).toBeUndefined();
     expect(store().edges).toHaveLength(0);
+  });
+
+  describe('citations node', () => {
+    it('addCitationsNode adds a deterministic node (no slot overrides), selects it, marks dirty', () => {
+      const id = store().addCitationsNode({ x: 10, y: 20 });
+      expect(id).toBe('citations_1');
+      const node = store().nodes.find((n) => n.id === id)!;
+      expect(node.type).toBe(NODE_TYPE_CITATIONS);
+      expect(node.data as CitationsNodeData).toEqual({ nodeId: 'citations_1' });
+      expect(store().selectedNodeId).toBe(id);
+      expect(store().dirty).toBe(true);
+    });
+
+    it('allocates non-colliding ids across multiple citations nodes', () => {
+      const a = store().addCitationsNode({ x: 0, y: 0 });
+      const b = store().addCitationsNode({ x: 0, y: 0 });
+      expect(a).toBe('citations_1');
+      expect(b).toBe('citations_2');
+    });
+
+    it('updateCitationsFields patches slot fields (and can clear with undefined)', () => {
+      const id = store().addCitationsNode({ x: 0, y: 0 });
+      store().updateCitationsFields(id, { sourcesSlot: 'srcs', outputSlot: 'report' });
+      let data = store().nodes.find((n) => n.id === id)!.data as CitationsNodeData;
+      expect(data).toMatchObject({ sourcesSlot: 'srcs', outputSlot: 'report' });
+
+      store().updateCitationsFields(id, { sourcesSlot: undefined });
+      data = store().nodes.find((n) => n.id === id)!.data as CitationsNodeData;
+      expect(data.sourcesSlot).toBeUndefined();
+      expect(data.outputSlot).toBe('report');
+    });
   });
 });

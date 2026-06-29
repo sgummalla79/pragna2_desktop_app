@@ -47,4 +47,42 @@ describe('isValidFlowConnection', () => {
     const edges: Edge[] = [{ id: 'e1', source: 'a', target: 'b' }];
     expect(isValidFlowConnection(edges, conn({ source: 'a', target: 'b' }), 'e1')).toBe(true);
   });
+
+  describe('single-in-edge nodes (citations)', () => {
+    const cite = new Set(['cite']);
+
+    it('allows the first inbound edge into a single-in-edge node', () => {
+      expect(
+        isValidFlowConnection([], conn({ source: 'synth', target: 'cite' }), null, cite),
+      ).toBe(true);
+    });
+
+    it('blocks a SECOND inbound edge into a single-in-edge node (from a different source)', () => {
+      const edges: Edge[] = [{ id: 'e1', source: 'synth', target: 'cite' }];
+      expect(
+        isValidFlowConnection(edges, conn({ source: 'other', target: 'cite' }), null, cite),
+      ).toBe(false);
+    });
+
+    it('does not constrain in-degree for nodes NOT in the set', () => {
+      const edges: Edge[] = [{ id: 'e1', source: 'synth', target: 'agent_2' }];
+      expect(
+        isValidFlowConnection(edges, conn({ source: 'other', target: 'agent_2' }), null, cite),
+      ).toBe(true);
+    });
+
+    it('lets a reconnect move the existing in-edge of a single-in-edge node (excludeEdgeId)', () => {
+      const edges: Edge[] = [{ id: 'e1', source: 'synth', target: 'cite' }];
+      expect(
+        isValidFlowConnection(edges, conn({ source: 'synth2', target: 'cite' }), 'e1', cite),
+      ).toBe(true);
+    });
+
+    it('still permits the citations node to fan OUT (only IN is constrained)', () => {
+      const edges: Edge[] = [{ id: 'e1', source: 'synth', target: 'cite' }];
+      expect(
+        isValidFlowConnection(edges, conn({ source: 'cite', target: NODE_END }), null, cite),
+      ).toBe(true);
+    });
+  });
 });
