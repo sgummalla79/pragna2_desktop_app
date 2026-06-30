@@ -137,6 +137,29 @@ function parseSpecLenient(raw: string): DiagramSpec {
 }
 
 /**
+ * Fallback `spec.id` synthesized when the model omits the top-level id.
+ * sketchon's `validateSpec` marks `id` mandatory, yet the render engines route
+ * solely on `spec.kind` and never read `id` (it is referenced only inside the
+ * library's validator, not its renderers). A missing id therefore needlessly
+ * hard-blocks an otherwise-renderable diagram with a "spec.id is required"
+ * error. The value itself is irrelevant to the output — any non-empty string
+ * satisfies validation — so a single stable constant suffices.
+ */
+const SYNTHESIZED_SPEC_ID = 'sketchon-diagram';
+
+/**
+ * Return the spec with a synthesized `id` when the model left it out — the same
+ * spirit of leniency as `parseSpecLenient`'s trailing-comma tolerance: forgive a
+ * common, harmless model slip rather than surface it as a render failure. Only
+ * `id` is synthesized; `kind` is deliberately NOT defaulted because it selects
+ * the render engine, so an absent `kind` is a genuine error that must still be
+ * surfaced by `validateSpec`. Pure — returns a new object only when it changes.
+ */
+function withSynthesizedId(spec: DiagramSpec): DiagramSpec {
+  return spec.id?.trim() ? spec : { ...spec, id: SYNTHESIZED_SPEC_ID };
+}
+
+/**
  * Render an inline diagram from a coordinate-free sketchon spec — the rich-diagram
  * parallel to a Mermaid block. Parses the spec, validates it, renders to SVG in
  * the browser via `@sgummalla-works/sketchon`, sanitizes the SVG with DOMPurify,
@@ -210,7 +233,7 @@ function SketchonDiagramImpl({ spec: specText }: SketchonDiagramProps) {
 
     let parsed: DiagramSpec;
     try {
-      parsed = parseSpecLenient(raw);
+      parsed = withSynthesizedId(parseSpecLenient(raw));
     } catch {
       setError('Invalid diagram JSON.');
       return;
