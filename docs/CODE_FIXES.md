@@ -11,6 +11,16 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-052 — sketchon diagram fails to render when the model omits the top-level `spec.id` (nexus-kit-tracker #243)
+
+- **Date:** 2026-06-30
+- **Tracker:** nexus-kit-tracker #243 (`target:desktop-fe`). Upstream prompt gap filed as #244 (`target:backend`).
+- **Area / file:** `src/presentation/views/chat/components/SketchonDiagram.tsx` (`withSynthesizedId` + `SYNTHESIZED_SPEC_ID`), `src/presentation/views/chat/components/SketchonDiagram.test.tsx` (2 new tests). Sibling to the existing `parseSpecLenient` trailing-comma leniency in the same file.
+- **Found by:** A "JWT Auth Flow" sequence-diagram prompt rendered the card **"Couldn’t render diagram: spec.id is required"** instead of a diagram.
+- **Bug + root cause:** `@sgummalla-works/sketchon`'s `validateSpec` marks the top-level `spec.id` **mandatory** (`dist/domain/validate.js:10-11`), and `SketchonDiagram` blocks rendering on **any** validation issue (`SketchonDiagram.tsx:219-223`). But `spec.id` is referenced **only** inside the library's validator — the render engines route on `spec.kind` and never read `id`. So a required-but-**unused** field hard-blocks an otherwise fully renderable diagram whenever the (non-deterministic) model output leaves `id` out. **Not a regression:** the block-on-any-issue gate has existed since the feature first shipped (commit 88f9f87, TD-019); this is a latent design gap (validation stricter than rendering + no field synthesis) meeting variable model output. **Why regression didn't catch it:** the unit suite **mocks** `validateSpec` (`SketchonDiagram.test.tsx:5-8`) and the "invalid spec" test feeds a *fabricated* issue, so the real validator never ran in tests and no test fed a realistic id-less spec.
+- **Fix:** `withSynthesizedId(spec)` injects a stable fallback `id` (`SYNTHESIZED_SPEC_ID = 'sketchon-diagram'`, externalised per no-hardcoding) **after** parse and **before** `validateSpec`, in the same spirit as `parseSpecLenient`'s trailing-comma tolerance — forgive a harmless, common model slip rather than surface it as a render failure. `kind` is deliberately **NOT** defaulted (it selects the render engine, so a missing `kind` is a genuine error that must still be surfaced). Closed the test gap: a new test runs the **REAL** library validator (`vi.importActual`) against an id-less-but-valid spec and asserts it renders (no error card), plus an assertion that the synthesized `id` reaches `validateSpec`. Both new tests fail without the fix and pass with it.
+- **Web-app applicability:** **CHECK — likely present.** `pragna2_sgummalla_works` shares the `SketchonDiagram` renderer + the same `@sgummalla-works/sketchon` validation gate, so the same id-less spec will hard-block there too; port `withSynthesizedId` and apply it before `validateSpec` (track under `target:web-fe`). The upstream prompt fix (BE #244) is the durable source-side cure for all clients.
+
 ## CF-051 — Assistant markdown links navigate the app webview instead of opening the system browser (pragna2_desktop_app#99)
 
 - **Date:** 2026-06-27
