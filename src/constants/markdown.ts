@@ -96,3 +96,27 @@ export const STREAM_REVEAL_MAX_LAG_SECONDS = 3.5;
  * imported) to avoid coupling to that transitive dependency's module shape.
  */
 export const MARKDOWN_BLOCKED_LINK_POLICY = 'text-only' as const;
+
+/**
+ * Citation footnote backlinks (pragna2_desktop_app#99 Tier 3).
+ *
+ * The backend's `citations` node emits prose with literal `[n]` markers plus a
+ * `## References` list. `rehypeCitationBacklinks` turns each in-text `[n]` into
+ * an in-page anchor to the matching References item, which it tags
+ * `id="cite-ref-<n>"`. Clicking scrolls to and briefly flashes that item.
+ */
+
+/** Heading text (lower-cased, trimmed) that introduces the references list. */
+export const CITATION_REFERENCES_HEADING = 'references';
+/** Id prefix on each References `<li>`; the in-text anchor targets `#<prefix><n>`. */
+export const CITATION_BACKLINK_ID_PREFIX = 'cite-ref-';
+/** Class on the generated in-text backlink anchors (styling + test hook). */
+export const CITATION_BACKLINK_CLASS = 'citation-backlink';
+/** Class toggled on a References item to flash it after a backlink click. */
+export const CITATION_REF_FLASH_CLASS = 'citation-ref-flash';
+/**
+ * How long the flash highlight stays on (ms) before it is removed. MUST match
+ * the `citation-ref-flash` keyframe duration in `index.css` — kept here as the
+ * single source of truth the component reads (the CSS literal mirrors it).
+ */
+export const CITATION_REF_FLASH_MS = 1500;
