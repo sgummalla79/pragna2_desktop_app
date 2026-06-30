@@ -19,5 +19,6 @@ export {
 export { setNativeWindowTitle } from './window';
 export { saveBytes, type SaveOutcome } from './saveFile';
 export { openExternal, isExternallyOpenableUrl } from './opener';
+export { copyText, copyImagePng } from './clipboard';
 export { secureStore } from './secureStore';
 export { mcpStdio, NotInTauriError } from './mcpStdio';

@@ -11,6 +11,16 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-053 — sketchon "Copy as PNG" silently does nothing in the macOS Tauri webview (lost clipboard user-gesture)
+
+- **Date:** 2026-06-30
+- **Tracker:** nexus-kit-tracker #245 (`target:desktop-fe`, `type:bug`); shipped with feature #246 (the copy/download format menus). Web-app sibling tracked separately under `target:web-fe`.
+- **Area / file:** `src/presentation/views/chat/components/SketchonDiagram.tsx` (`copyPng`), new `src/infrastructure/platform/clipboard.ts` (`copyText`/`copyImagePng`), `src/infrastructure/platform/index.ts` (re-export), `src/presentation/views/chat/components/MessageActions.tsx` (routed through `copyText`, error now logged not swallowed). Sibling to the platform-layer pattern in **CF-051** (`opener.ts`) and **CF-011** (runtime gating).
+- **Found by:** User reported the diagram **Copy** button did nothing.
+- **Bug + root cause:** `copyPng` did `setCopyState('copying')` → `await renderTitledSvg()` → `await svgToPngBlob(...)` → **then** `await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])`. In **WKWebView** (the macOS Tauri webview) the Async Clipboard API's image write is permitted **only while the click's transient user-gesture activation is live**; the two preceding `await`s **consume** that activation, so `clipboard.write()` is rejected with `NotAllowedError`. The handler's empty `catch {}` then **swallowed** the rejection, so the failure was invisible (violating the "no swallowed errors" rule and making it undiagnosable). Contrast the message-text copy (`MessageActions`), which `await`s nothing before `writeText` and therefore worked — confirming the activation-timing root cause rather than a permissions/secure-context problem. The rendered sketchon SVG carries explicit `width`/`height`/`viewBox` (`@sgummalla-works/sketchon` `adapters/svg.js`), so canvas rasterisation was **not** the issue. No Tauri clipboard plugin is installed; the app relies entirely on the webview clipboard.
+- **Fix:** New platform-layer `clipboard.ts` is now the single home for `navigator.clipboard` access. `copyImagePng(blob | Promise<Blob>)` and `copyText(string | Promise<string>)` build the `ClipboardItem` and call `clipboard.write()` **synchronously** with a still-**pending** promise, so the production work (rasterise / re-render titled SVG) runs *after* the write is issued and the gesture window is never spent. `copyPng` (and the new `copySvg`) hand these a pending IIFE promise. Errors are now logged via `logger.fromError`, never swallowed. (Shipped alongside the copy/download format-menu feature — see `docs/specs/features/sketchon-export-formats.md`.)
+- **Web-app applicability:** **CHECK — likely present.** `pragna2_sgummalla_works` shares the `SketchonDiagram` renderer and the same browser Clipboard API. In a real desktop-class browser the activation rules are similar (Safari especially); port the platform `clipboard` helpers and the pending-promise pattern, and replace any silent `catch {}` with logging. Track under `target:web-fe`.
+
 ## CF-052 — sketchon diagram fails to render when the model omits the top-level `spec.id` (nexus-kit-tracker #243)
 
 - **Date:** 2026-06-30
