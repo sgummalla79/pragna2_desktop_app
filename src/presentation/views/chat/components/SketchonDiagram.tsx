@@ -1,34 +1,59 @@
-import { memo, useCallback, useEffect, useState } from 'react';
-import { Check, Copy, Download, Loader2 } from 'lucide-react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { Check, ChevronDown, Copy, Download, Loader2 } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import { renderDiagram, validateSpec, type DiagramSpec } from '@sgummalla-works/sketchon';
+import { copyImagePng, copyText } from '@/infrastructure/platform';
+import { logger } from '@/infrastructure/logging/logger';
 
-/** Rasterise an SVG string to a PNG Blob at 2× for crispness, on a solid
- *  backing so the (transparent) diagram is self-contained when pasted — white in
- *  light mode, dark slate in dark mode. */
-function svgToPngBlob(svg: string, mode: 'light' | 'dark'): Promise<Blob> {
+/** MIME type for an SVG payload (download blob + rasteriser source). Spec-defined
+ *  literal, kept named rather than inlined per the no-hardcoding rule. */
+const SVG_MIME = 'image/svg+xml;charset=utf-8';
+/** Raster MIME types `canvas.toBlob` can emit for diagram export. */
+const PNG_MIME = 'image/png';
+const JPEG_MIME = 'image/jpeg';
+/** JPEG is lossy and has no alpha channel; 0.92 is the de-facto "high quality"
+ *  encoder setting browsers use, balancing fidelity against file size. */
+const JPEG_QUALITY = 0.92;
+/** Canvas raster scale — render at 2× so PNG/JPEG exports stay crisp on
+ *  high-DPI displays. */
+const RASTER_SCALE = 2;
+/** Solid backings for the (transparent) diagram so a rasterised export is
+ *  self-contained — white in light mode, dark slate in dark mode. JPEG has no
+ *  transparency, so a backing is mandatory there, not merely cosmetic. */
+const RASTER_BG = { light: '#ffffff', dark: '#0f172a' } as const;
+/** How long the Copy button shows its "Copied!" confirmation before resetting. */
+const COPIED_FEEDBACK_MS = 1800;
+
+/** Rasterise an SVG string to a PNG/JPEG Blob at {@link RASTER_SCALE}× on a
+ *  solid theme-aware backing, so the exported image is crisp and self-contained.
+ *  `mime` selects the encoder; JPEG additionally uses {@link JPEG_QUALITY}. */
+function svgToRasterBlob(svg: string, mode: 'light' | 'dark', mime: string): Promise<Blob> {
   return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+    const url = URL.createObjectURL(new Blob([svg], { type: SVG_MIME }));
     const img = new Image();
     img.onload = () => {
-      const scale = 2;
       const w = img.naturalWidth || img.width;
       const h = img.naturalHeight || img.height;
       const canvas = document.createElement('canvas');
-      canvas.width = w * scale;
-      canvas.height = h * scale;
+      canvas.width = w * RASTER_SCALE;
+      canvas.height = h * RASTER_SCALE;
       const ctx = canvas.getContext('2d');
       if (!ctx) {
         URL.revokeObjectURL(url);
         reject(new Error('canvas 2d context unavailable'));
         return;
       }
-      ctx.fillStyle = mode === 'dark' ? '#0f172a' : '#ffffff';
+      ctx.fillStyle = RASTER_BG[mode];
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.scale(scale, scale);
+      ctx.scale(RASTER_SCALE, RASTER_SCALE);
       ctx.drawImage(img, 0, 0);
       URL.revokeObjectURL(url);
-      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('toBlob returned null'))), 'image/png');
+      const quality = mime === JPEG_MIME ? JPEG_QUALITY : undefined;
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error('toBlob returned null'))),
+        mime,
+        quality,
+      );
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
@@ -46,6 +71,35 @@ interface SketchonDiagramProps {
    */
   spec?: string;
 }
+
+/** A user-selectable download format. `mime === null` means the vector SVG is
+ *  saved as-is; any other value is rasterised by {@link svgToRasterBlob}. */
+interface DownloadFormat {
+  /** Menu label. */
+  label: string;
+  /** Filename extension (also the menu key). */
+  ext: string;
+  /** Raster encoder MIME, or `null` to save the SVG vector directly. */
+  mime: string | null;
+}
+
+/**
+ * Download menu, data-driven so adding a format is one list entry rather than a
+ * new code branch (open/closed). Unlike copy, JPEG *is* offerable here because a
+ * download is a plain file write — only the clipboard rejects `image/jpeg`.
+ */
+const DOWNLOAD_FORMATS: readonly DownloadFormat[] = [
+  { label: 'PNG image', ext: 'png', mime: PNG_MIME },
+  { label: 'SVG vector', ext: 'svg', mime: null },
+  { label: 'JPG image', ext: 'jpg', mime: JPEG_MIME },
+];
+
+/** Shared dropdown + item styling for the Copy/Download menus, mirroring the
+ *  message-action menu so the two read as one design. */
+const MENU_CLASS =
+  'absolute right-0 top-full z-30 mt-1 w-44 list-none overflow-hidden rounded-md border border-border bg-popover p-1 shadow-lg';
+const MENU_ITEM_CLASS =
+  'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-[13px] text-popover-foreground hover:bg-accent hover:text-accent-foreground';
 
 /**
  * DOMPurify config that keeps SVG (including emoji `<image>` data-URIs) while
@@ -175,7 +229,29 @@ function SketchonDiagramImpl({ spec: specText }: SketchonDiagramProps) {
   const [exportSpec, setExportSpec] = useState<DiagramSpec | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'copying' | 'copied'>('idle');
+  // Which header menu is open (only one at a time), or null. The Copy menu
+  // offers PNG (image) + SVG (markup); the Download menu offers PNG/SVG/JPG.
+  const [openMenu, setOpenMenu] = useState<'copy' | 'download' | null>(null);
+  const barRef = useRef<HTMLDivElement>(null);
   const mode = useThemeMode();
+
+  // Close the open menu on an outside click or Escape, so it behaves like a
+  // normal popover instead of trapping focus on the card.
+  useEffect(() => {
+    if (!openMenu) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (barRef.current && !barRef.current.contains(e.target as Node)) setOpenMenu(null);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpenMenu(null);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [openMenu]);
 
   /** Render the TITLED spec to a sanitized SVG for export, so the saved file
    *  keeps its heading even though the on-screen diagram shows it in the card
@@ -186,36 +262,76 @@ function SketchonDiagramImpl({ spec: specText }: SketchonDiagramProps) {
     return DOMPurify.sanitize(rendered, SVG_SANITIZE_CONFIG);
   }, [exportSpec]);
 
-  const downloadSvg = useCallback(async () => {
-    const out = await renderTitledSvg();
-    if (!out) return;
-    const url = URL.createObjectURL(new Blob([out], { type: 'image/svg+xml;charset=utf-8' }));
+  /** Save a blob to disk via a transient object-URL anchor. */
+  const triggerDownload = useCallback((blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${slugifyTitle(title)}.svg`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
-  }, [renderTitledSvg, title]);
+  }, []);
+
+  const download = useCallback(
+    async (fmt: DownloadFormat) => {
+      setOpenMenu(null);
+      try {
+        const out = await renderTitledSvg();
+        if (!out) return;
+        const blob = fmt.mime
+          ? await svgToRasterBlob(out, mode, fmt.mime)
+          : new Blob([out], { type: SVG_MIME });
+        triggerDownload(blob, `${slugifyTitle(title)}.${fmt.ext}`);
+      } catch (e) {
+        logger.fromError('Failed to download sketchon diagram', e, { ext: fmt.ext });
+      }
+    },
+    [renderTitledSvg, mode, title, triggerDownload],
+  );
 
   const copyPng = useCallback(async () => {
-    // Rasterising to PNG + the clipboard write are async, so show progress.
+    setOpenMenu(null);
     setCopyState('copying');
     try {
-      const titled = await renderTitledSvg();
-      if (!titled) {
-        setCopyState('idle');
-        return;
-      }
-      const blob = await svgToPngBlob(titled, mode);
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      // Hand copyImagePng a PENDING promise so clipboard.write() fires while the
+      // click's user-gesture activation is still live — rasterising first and
+      // awaiting here would spend the activation and WKWebView would reject the
+      // write (the CF-053 bug). See @/infrastructure/platform/clipboard.
+      await copyImagePng(
+        (async () => {
+          const titled = await renderTitledSvg();
+          if (!titled) throw new Error('Diagram not ready to copy.');
+          return svgToRasterBlob(titled, mode, PNG_MIME);
+        })(),
+      );
       setCopyState('copied');
-      window.setTimeout(() => setCopyState('idle'), 1800);
-    } catch {
-      // Clipboard may be unavailable (insecure context / denied permission) —
-      // reset quietly rather than crash the message.
+      window.setTimeout(() => setCopyState('idle'), COPIED_FEEDBACK_MS);
+    } catch (e) {
+      logger.fromError('Failed to copy sketchon diagram as PNG', e);
       setCopyState('idle');
     }
   }, [renderTitledSvg, mode]);
+
+  const copySvg = useCallback(async () => {
+    setOpenMenu(null);
+    setCopyState('copying');
+    try {
+      // Same gesture-safe pattern as copyPng: pass the pending SVG-markup promise
+      // so the text write is issued synchronously within the click.
+      await copyText(
+        (async () => {
+          const titled = await renderTitledSvg();
+          if (!titled) throw new Error('Diagram not ready to copy.');
+          return titled;
+        })(),
+      );
+      setCopyState('copied');
+      window.setTimeout(() => setCopyState('idle'), COPIED_FEEDBACK_MS);
+    } catch (e) {
+      logger.fromError('Failed to copy sketchon diagram SVG', e);
+      setCopyState('idle');
+    }
+  }, [renderTitledSvg]);
 
   useEffect(() => {
     let cancelled = false;
@@ -292,44 +408,80 @@ function SketchonDiagramImpl({ spec: specText }: SketchonDiagramProps) {
     <figure className="sketchon-card">
       <figcaption className="sketchon-card__header">
         <span className="sketchon-card__title">{title}</span>
-        <div className="sketchon-card__bar">
-          <button
-            type="button"
-            className="sketchon-card__btn"
-            onClick={copyPng}
-            disabled={copyState === 'copying'}
-            title={
-              copyState === 'copying'
-                ? 'Converting to PNG…'
-                : copyState === 'copied'
-                  ? 'Copied to clipboard'
-                  : 'Copy as PNG'
-            }
-            aria-label="Copy diagram as PNG"
-          >
-            {copyState === 'copying' ? (
-              <>
-                <Loader2 size={14} className="animate-spin" />
-                <span className="sketchon-card__btn-label">Copying…</span>
-              </>
-            ) : copyState === 'copied' ? (
-              <>
-                <Check size={14} />
-                <span className="sketchon-card__btn-label">Copied!</span>
-              </>
-            ) : (
-              <Copy size={14} />
+        <div className="sketchon-card__bar" ref={barRef}>
+          <div className="relative">
+            <button
+              type="button"
+              className="sketchon-card__btn"
+              onClick={() => setOpenMenu((m) => (m === 'copy' ? null : 'copy'))}
+              disabled={copyState === 'copying'}
+              aria-haspopup="menu"
+              aria-expanded={openMenu === 'copy'}
+              title="Copy diagram"
+              aria-label="Copy diagram"
+            >
+              {copyState === 'copying' ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span className="sketchon-card__btn-label">Copying…</span>
+                </>
+              ) : copyState === 'copied' ? (
+                <>
+                  <Check size={14} />
+                  <span className="sketchon-card__btn-label">Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy size={14} />
+                  <ChevronDown size={12} aria-hidden />
+                </>
+              )}
+            </button>
+            {openMenu === 'copy' && (
+              <ul role="menu" aria-label="Copy diagram as" className={MENU_CLASS}>
+                <li role="none">
+                  <button role="menuitem" type="button" className={MENU_ITEM_CLASS} onClick={copyPng}>
+                    Copy as PNG
+                  </button>
+                </li>
+                <li role="none">
+                  <button role="menuitem" type="button" className={MENU_ITEM_CLASS} onClick={copySvg}>
+                    Copy as SVG
+                  </button>
+                </li>
+              </ul>
             )}
-          </button>
-          <button
-            type="button"
-            className="sketchon-card__btn"
-            onClick={downloadSvg}
-            title="Download SVG"
-            aria-label="Download diagram as SVG"
-          >
-            <Download size={14} />
-          </button>
+          </div>
+          <div className="relative">
+            <button
+              type="button"
+              className="sketchon-card__btn"
+              onClick={() => setOpenMenu((m) => (m === 'download' ? null : 'download'))}
+              aria-haspopup="menu"
+              aria-expanded={openMenu === 'download'}
+              title="Download diagram"
+              aria-label="Download diagram"
+            >
+              <Download size={14} />
+              <ChevronDown size={12} aria-hidden />
+            </button>
+            {openMenu === 'download' && (
+              <ul role="menu" aria-label="Download diagram as" className={MENU_CLASS}>
+                {DOWNLOAD_FORMATS.map((fmt) => (
+                  <li role="none" key={fmt.ext}>
+                    <button
+                      role="menuitem"
+                      type="button"
+                      className={MENU_ITEM_CLASS}
+                      onClick={() => download(fmt)}
+                    >
+                      {fmt.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </figcaption>
       {/* SVG is sketchon-generated and DOMPurify-sanitized above; safe to inject. */}
