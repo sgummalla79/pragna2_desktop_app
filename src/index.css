@@ -229,6 +229,31 @@
 .chat-markdown :is(h5, h6) { font-size: 0.9em; }
 .chat-markdown :not(pre) > code { font-size: 0.85em; }
 
+/* ── Citation footnote backlinks (Tier 3, pragna2_desktop_app#99) ───────
+   `rehypeCitationBacklinks` turns each in-text `[n]` into an in-page anchor to
+   its References item; clicking (handled in MarkdownMessage) scrolls to that
+   item and toggles `.citation-ref-flash` on it for a brief highlight. The flash
+   duration MUST mirror CITATION_REF_FLASH_MS (1500ms) in constants/markdown.ts. */
+.chat-markdown .citation-backlink {
+  text-decoration: none;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.chat-markdown .citation-backlink:hover {
+  text-decoration: underline;
+}
+@keyframes citation-ref-flash {
+  from { background-color: rgba(250, 204, 21, 0.45); } /* amber — visible in light + dark */
+  to   { background-color: transparent; }
+}
+.chat-markdown .citation-ref-flash {
+  animation: citation-ref-flash 1500ms ease-out;
+  border-radius: 0.25rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-markdown .citation-ref-flash { animation: none; }
+}
+
 /* ── Streaming reveal: per-block fade-in ───────────────────────────────
    Industry-standard "smooth printing" finish (claude.ai / ChatGPT /
    Gemini): each newly-revealed markdown block fades up once as it lands,

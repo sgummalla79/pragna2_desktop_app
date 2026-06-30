@@ -13,6 +13,7 @@ import { Streamdown, defaultRehypePlugins } from 'streamdown';
 import 'katex/dist/katex.min.css';
 import { normalizeMathDelimiters } from '@/presentation/views/chat/utils/markdownStreaming';
 import { rehypeSketchon } from '@/presentation/views/chat/utils/rehypeSketchon';
+import { rehypeCitationBacklinks } from '@/presentation/views/chat/utils/rehypeCitationBacklinks';
 import { SketchonDiagram } from '@/presentation/views/chat/components/SketchonDiagram';
 import { useSmoothStreamingText } from '@/presentation/views/chat/hooks/useSmoothStreamingText';
 import {
@@ -20,15 +21,18 @@ import {
   STREAMDOWN_CONTROLS,
   SKETCHON_ELEMENT_TAG,
   MARKDOWN_BLOCKED_LINK_POLICY,
+  CITATION_BACKLINK_ID_PREFIX,
+  CITATION_REF_FLASH_CLASS,
+  CITATION_REF_FLASH_MS,
 } from '@/constants/markdown';
 import { openExternal, isExternallyOpenableUrl } from '@/infrastructure/platform';
 import { logger } from '@/infrastructure/logging/logger';
 import { cn } from '@/lib/utils';
 
 // Rebuild Streamdown's default rehype chain with two changes, then re-pass it:
-//   1. Append our ```sketchon plugin LAST so it runs past the sanitizer
-//      (rehype-harden) — harden can't strip the <sketchon-diagram> element we
-//      introduce.
+//   1. Append our ```sketchon plugin + the citation-backlinks plugin LAST so
+//      they run past the sanitizer (rehype-harden) — harden can't strip the
+//      <sketchon-diagram> element / `#cite-ref-*` anchors they introduce.
 //   2. Soften harden's link-block policy to "text-only" so a blocked (non-http)
 //      link — e.g. a model's phantom `sandbox:/mnt/data/*.pdf` — degrades to
 //      clean text instead of the default `text [blocked]` marker. See
@@ -37,7 +41,7 @@ import { cn } from '@/lib/utils';
 // preserves that order); each value is either a bare plugin or a `[plugin,
 // options]` tuple. Streamdown destructures `rehypePlugins` with a default, so
 // passing this REPLACES the default chain — hence the faithful rebuild.
-const SKETCHON_REHYPE_PLUGINS = [
+const MARKDOWN_REHYPE_PLUGINS = [
   ...Object.entries(defaultRehypePlugins).map(([name, plugin]) =>
     name === 'harden' && Array.isArray(plugin)
       ? [
@@ -50,27 +54,63 @@ const SKETCHON_REHYPE_PLUGINS = [
       : plugin,
   ),
   rehypeSketchon,
+  rehypeCitationBacklinks,
 ] as ComponentProps<typeof Streamdown>['rehypePlugins'];
 
 /**
- * Anchor renderer that routes a left/modifier-click on an http(s) link to the
- * system browser instead of letting the Tauri webview navigate itself (which
- * would replace the running app with the remote page). For non-web hrefs it does
- * nothing special — but those never reach here as working anchors anyway, since
- * rehype-harden degrades them to plain text (see MARKDOWN_BLOCKED_LINK_POLICY).
- * The `href` is kept on the element for hover/preview and accessibility; the
- * actual navigation is taken over in `onClick`. See pragna2_desktop_app#99
- * (moved from nexus-kit-tracker #238).
+ * Scroll to and briefly flash the References item a citation backlink targets.
+ * Scoped to the SAME message (the nearest `.chat-markdown` wrapper) so an `id`
+ * shared across messages resolves to this message's item, not the first in the
+ * document. No-op if the target isn't found.
  */
-function ExternalMarkdownLink({ href, children, ...rest }: ComponentProps<'a'>) {
+function scrollToCitation(anchorEl: HTMLAnchorElement, targetId: string): void {
+  const container = anchorEl.closest('.chat-markdown');
+  // `targetId` is `cite-ref-<n>` — safe as a bare id selector (no escaping).
+  const target = container?.querySelector<HTMLElement>(`#${targetId}`);
+  if (!target) return;
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  target.classList.add(CITATION_REF_FLASH_CLASS);
+  window.setTimeout(() => target.classList.remove(CITATION_REF_FLASH_CLASS), CITATION_REF_FLASH_MS);
+}
+
+/**
+ * Anchor renderer for assistant markdown. Two kinds of anchor reach here:
+ *
+ *   - **Citation backlink** (`href="#cite-ref-<n>"`, injected by
+ *     `rehypeCitationBacklinks`) — an in-page footnote link; clicking scrolls to
+ *     and flashes the matching References item (Tier 3), and it must NOT open a
+ *     new tab/window.
+ *   - **External link** (`http(s)`) — routed to the system browser via the
+ *     platform opener instead of letting the Tauri webview navigate itself
+ *     (which would replace the running app with the remote page). Non-web hrefs
+ *     never reach here as working anchors — rehype-harden degrades them to plain
+ *     text (see MARKDOWN_BLOCKED_LINK_POLICY).
+ *
+ * See pragna2_desktop_app#99 (moved from nexus-kit-tracker #238).
+ */
+function MarkdownAnchor({ href, children, ...rest }: ComponentProps<'a'>) {
+  const isBacklink =
+    typeof href === 'string' && href.startsWith(`#${CITATION_BACKLINK_ID_PREFIX}`);
+
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (isBacklink) {
+      event.preventDefault();
+      scrollToCitation(event.currentTarget, href.slice(1));
+      return;
+    }
     if (!href || !isExternallyOpenableUrl(href)) return; // leave default behaviour
     event.preventDefault();
     void openExternal(href).catch((err) => {
       logger.fromError('Failed to open external link from assistant message', err, { href });
     });
   };
-  return (
+
+  // Backlinks stay in-page (no `target=_blank`); external links open externally.
+  return isBacklink ? (
+    <a {...rest} href={href} onClick={handleClick}>
+      {children}
+    </a>
+  ) : (
     <a {...rest} href={href} onClick={handleClick} target="_blank" rel="noopener noreferrer">
       {children}
     </a>
@@ -79,11 +119,11 @@ function ExternalMarkdownLink({ href, children, ...rest }: ComponentProps<'a'>) 
 
 // Streamdown merges its internal components first, then spreads user components,
 // so this ADDS the <sketchon-diagram> renderer and OVERRIDES the default anchor
-// with our external-open one, without clobbering its code / mermaid / Shiki
-// handling.
+// with our backlink-aware / external-open one, without clobbering its code /
+// mermaid / Shiki handling.
 const MARKDOWN_COMPONENTS = {
   [SKETCHON_ELEMENT_TAG]: SketchonDiagram,
-  a: ExternalMarkdownLink,
+  a: MarkdownAnchor,
 } as ComponentProps<typeof Streamdown>['components'];
 
 // Only every Nth wheel tick over a Mermaid diagram reaches Streamdown's
@@ -169,7 +209,7 @@ function MarkdownMessageImpl({ content, isStreaming = false, className }: Markdo
         parseIncompleteMarkdown={isStreaming}
         shikiTheme={SHIKI_THEMES}
         controls={STREAMDOWN_CONTROLS}
-        rehypePlugins={SKETCHON_REHYPE_PLUGINS}
+        rehypePlugins={MARKDOWN_REHYPE_PLUGINS}
         components={MARKDOWN_COMPONENTS}
         className="break-words"
       >
