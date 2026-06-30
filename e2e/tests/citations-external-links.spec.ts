@@ -94,16 +94,28 @@ test.describe('Citations — external-open References links', () => {
     expect(page.url()).not.toContain('nasa.gov');
   });
 
-  test('inline [1] citation marker renders as literal text, not a link', async ({ page }) => {
+  test('inline [n] markers are in-page citation backlinks (Tier 3), not external links', async ({
+    page,
+  }) => {
     await page.goto(`/chat/${conversationId}`, { waitUntil: 'networkidle' });
 
-    // The prose marker is literal text in the message body...
-    await expect(page.getByText(/in July 1969 \[1\]/)).toBeVisible({ timeout: 15_000 });
+    // The inline marker is now an in-page backlink to its References item —
+    // rendered with its literal `[1]` text, targeting `#cite-ref-1`.
+    const back = page.locator('a[href="#cite-ref-1"]');
+    await expect(back).toBeVisible({ timeout: 15_000 });
+    await expect(back).toHaveText('[1]');
+    // The matching References item carries the anchor id, and its source is
+    // still an external link (Tier 1 behaviour preserved alongside the backlink).
+    await expect(page.locator('li#cite-ref-1')).toHaveCount(1);
+    await expect(page.locator(`li#cite-ref-2 a[href="${WIKI_URL}"]`)).toHaveCount(1);
 
-    // ...and there is no anchor whose visible text is just "1" (i.e. [1] was
-    // NOT turned into a footnote/reference link).
-    const refsLink = page.locator(`a[href="${WIKI_URL}"]`);
-    await expect(refsLink).toBeVisible();
-    await expect(page.locator('a', { hasText: /^\[?1\]?$/ })).toHaveCount(0);
+    // Clicking it scrolls in-page: it must NOT be handed to the system browser,
+    // and the app stays on the conversation route.
+    await back.click();
+    const opened = await page.evaluate(
+      () => (window as unknown as { __openedUrls: string[] }).__openedUrls,
+    );
+    expect(opened).not.toContain('#cite-ref-1');
+    await expect(page).toHaveURL(new RegExp(`/chat/${conversationId}`));
   });
 });

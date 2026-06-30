@@ -39,7 +39,8 @@ Cross-repo follow-up to BE #233.
 - Tier 2 — a visual FlowBuilder "Citations" node (tracked separately on its own
   branch under pragna2_desktop_app#99).
 - Tier 3 — clickable inline `[n]` footnote backlinks that scroll to the matching
-  References entry (deferred; presentational, also deferred BE-side).
+  References entry (now implemented — see
+  [citations-inline-backlinks.md](citations-inline-backlinks.md)).
 - Changing the blocked-link policy for non-web hrefs — `sandbox:`/`mailto:` etc.
   continue to degrade to plain text (see `chat-markdown` spec / harden policy).
 
@@ -81,8 +82,9 @@ Cross-repo follow-up to BE #233.
 
 ## 7. Deferred
 
-- Tier 2 (FlowBuilder Citations node) and Tier 3 (inline `[n]` backlinks) — see
-  pragna2_desktop_app#99 (moved from nexus-kit-tracker #238).
+- Tier 2 (FlowBuilder Citations node) and Tier 3 (inline `[n]` backlinks) are now
+  implemented — see their specs (`flowbuilder-citations-node.md`,
+  `citations-inline-backlinks.md`). Tracked under pragna2_desktop_app#99.
 
 ---
 
