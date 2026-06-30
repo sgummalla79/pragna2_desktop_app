@@ -8,6 +8,8 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { copyText } from '@/infrastructure/platform';
+import { logger } from '@/infrastructure/logging/logger';
 
 /** A model the user can regenerate against. */
 export interface ModelOption {
@@ -52,11 +54,14 @@ export function MessageActions(props: Props) {
   const copy = async () => {
     if (props.role !== 'assistant') return;
     try {
-      await navigator.clipboard.writeText(props.content);
+      await copyText(props.content);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard unavailable — silently ignore (non-critical).
+    } catch (e) {
+      // Clipboard unavailable (insecure context / denied permission) — log it
+      // rather than swallow; copying message text is non-critical so we don't
+      // surface an error to the user.
+      logger.fromError('Failed to copy message text to clipboard', e);
     }
   };
 
