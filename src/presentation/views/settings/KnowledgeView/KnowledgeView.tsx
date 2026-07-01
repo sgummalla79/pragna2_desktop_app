@@ -9,7 +9,6 @@
 
 import { useState } from 'react';
 import { AlertTriangle, Library, Plus } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 import { EntityIcon } from '@/presentation/components/icons/EntityIcon';
 import { Button } from '@/components/ui/button';
@@ -17,12 +16,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ERRORS } from '@/constants/errors';
-import { ROUTES } from '@/constants/routes';
 import { useEmbeddingKeyStatus } from '@/presentation/hooks/embeddings/useEmbeddingKey';
 import {
   useCreateLibrary,
   useKnowledgeLibraries,
 } from '@/presentation/hooks/knowledge/useKnowledgeLibraries';
+import { EmbeddingKeySection } from './EmbeddingKeySection';
 import { KnowledgeLibraryCard } from './KnowledgeLibraryCard';
 
 /** Knowledge settings page — lists, creates, and manages knowledge libraries. */
@@ -31,6 +30,11 @@ export default function KnowledgeView() {
   const { data: keyStatus } = useEmbeddingKeyStatus();
   const hasVoyageKey = keyStatus?.hasVoyageKey ?? false;
   const [creating, setCreating] = useState(false);
+
+  // System-managed corpora (e.g. the seeded "Nexus Kit Documentation") are not
+  // user-owned: they never appear in this management list and cannot be
+  // edited/deleted here. They remain attachable to agents and flows elsewhere.
+  const userLibraries = libraries.filter((l) => !l.isSystem);
 
   return (
     <div className="mx-auto max-w-4xl p-4 md:p-8">
@@ -57,6 +61,10 @@ export default function KnowledgeView() {
         </Button>
       </div>
 
+      <div className="mb-6">
+        <EmbeddingKeySection />
+      </div>
+
       {!hasVoyageKey && (
         <div
           role="alert"
@@ -65,14 +73,8 @@ export default function KnowledgeView() {
           <AlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
           <p>
             A Voyage API key is required to use Knowledge / RAG features. Configure
-            it in{' '}
-            <Link
-              to={ROUTES.SETTINGS_CONFIGURATION}
-              className="font-medium underline underline-offset-2 hover:no-underline"
-            >
-              Configuration → Embeddings
-            </Link>
-            , then return here to add libraries and documents.
+            it in the <span className="font-medium">Embeddings — Voyage</span> section
+            above, then add libraries and documents below.
           </p>
         </div>
       )}
@@ -87,7 +89,7 @@ export default function KnowledgeView() {
         <p role="alert" className="text-sm text-destructive">
           {ERRORS.KNW_001.message}
         </p>
-      ) : libraries.length === 0 ? (
+      ) : userLibraries.length === 0 ? (
         <div className="py-16 text-center text-muted-foreground">
           <Library
             size={40}
@@ -101,7 +103,7 @@ export default function KnowledgeView() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {libraries.map((l) => (
+          {userLibraries.map((l) => (
             <KnowledgeLibraryCard key={l.id} library={l} hasVoyageKey={hasVoyageKey} />
           ))}
         </div>

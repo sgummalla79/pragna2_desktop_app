@@ -51,6 +51,7 @@ function library(over: Partial<KnowledgeLibrary> = {}): KnowledgeLibrary {
     embeddingModel: 'text-embed',
     embeddingDimensions: 1536,
     status: 'active',
+    isSystem: false,
     createdAt: '',
     modifiedAt: '',
     ...over,

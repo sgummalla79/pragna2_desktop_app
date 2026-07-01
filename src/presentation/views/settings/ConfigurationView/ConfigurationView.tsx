@@ -5,14 +5,14 @@
  * concern is a self-contained section card, so adding a new key (S3 bucket,
  * other provider keys, …) is a new `<Section />` here — no page rewrite.
  *
- * Section 1: the Embeddings — Voyage card (the embedding key + the Knowledge /
- *   retrieval tuning fields, both Voyage-powered, in one accordion).
- * Section 2: per-browser chat-action toggles.
+ * Section 1: per-browser chat-action toggles.
+ *
+ * (The Embeddings — Voyage card now lives on the Knowledge page, alongside the
+ * libraries it powers.)
  */
 
 import { EntityIcon } from '@/presentation/components/icons/EntityIcon';
 import { ChatActionsSection } from './ChatActionsSection';
-import { EmbeddingKeySection } from './EmbeddingKeySection';
 
 /** Configuration settings page — keys and per-browser settings. */
 export default function ConfigurationView() {
@@ -30,7 +30,6 @@ export default function ConfigurationView() {
       </div>
 
       <div className="flex flex-col gap-4">
-        <EmbeddingKeySection />
         <ChatActionsSection />
         {/* Future sections (e.g. object storage / S3) slot in here. */}
       </div>

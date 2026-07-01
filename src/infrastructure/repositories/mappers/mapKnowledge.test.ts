@@ -31,9 +31,41 @@ describe('mapKnowledgeLibrary', () => {
       embeddingModel: 'text-embed',
       embeddingDimensions: 1536,
       status: 'ready',
+      isSystem: false,
       createdAt: 'c',
       modifiedAt: 'm',
     });
+  });
+
+  it('defaults isSystem to false when the flag is absent', () => {
+    const raw: ApiKnowledgeLibraryResponse = {
+      id: 'l1',
+      slug: 'kb',
+      name: 'KB',
+      description: null,
+      embedding_model: 'text-embed',
+      embedding_dimensions: 1536,
+      status: 'ready',
+      created_at: 'c',
+      modified_at: 'm',
+    };
+    expect(mapKnowledgeLibrary(raw).isSystem).toBe(false);
+  });
+
+  it('maps is_system → isSystem when the backend marks a seeded library', () => {
+    const raw: ApiKnowledgeLibraryResponse = {
+      id: 'l1',
+      slug: 'kb',
+      name: 'KB',
+      description: null,
+      embedding_model: 'text-embed',
+      embedding_dimensions: 1536,
+      status: 'ready',
+      is_system: true,
+      created_at: 'c',
+      modified_at: 'm',
+    };
+    expect(mapKnowledgeLibrary(raw).isSystem).toBe(true);
   });
 });
 
