@@ -37,7 +37,7 @@ export function AppRoutes() {
 
         {/* ── Settings (2-panel layout) — the current post-login landing ── */}
         <Route path={ROUTES.SETTINGS} element={<ProtectedRoute><SettingsLayout /></ProtectedRoute>}>
-          <Route index element={<Navigate to={ROUTES.SETTINGS_PROVIDERS} replace />} />
+          <Route index element={<Navigate to={ROUTES.SETTINGS_CONFIGURATION} replace />} />
           <Route path={ROUTES.SETTINGS_PROVIDERS} element={<ProvidersView />} />
           <Route path={ROUTES.SETTINGS_CONFIGURATION} element={<ConfigurationView />} />
           <Route path={ROUTES.SETTINGS_CONNECTORS} element={<ConnectorsView />} />

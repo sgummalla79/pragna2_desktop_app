@@ -30,6 +30,13 @@ export interface KnowledgeLibrary {
   embeddingDimensions: number;
   /** Lifecycle status. */
   status: KnowledgeLibraryStatus;
+  /** True for backend-seeded / system-managed corpora (e.g. the "Nexus Kit
+   *  Documentation" library seeded on agent-template activation). Such
+   *  libraries are hidden from the user-facing Knowledge management list — the
+   *  user neither created them nor may edit/delete them — while remaining
+   *  attachable to agents and flows. Defaults to `false` for user libraries and
+   *  when the backend does not (yet) send the flag. */
+  isSystem: boolean;
   /** ISO-8601 timestamps from the BE. */
   createdAt: string;
   modifiedAt: string;

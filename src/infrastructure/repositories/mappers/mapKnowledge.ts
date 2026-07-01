@@ -21,6 +21,9 @@ export interface ApiKnowledgeLibraryResponse {
   embedding_model: string;
   embedding_dimensions: number;
   status: KnowledgeLibraryStatus;
+  /** Optional: `true` for backend-seeded / system-managed libraries. Absent on
+   *  older backends that predate the flag; treated as `false` when omitted. */
+  is_system?: boolean;
   created_at: string;
   modified_at: string;
 }
@@ -52,6 +55,7 @@ export function mapKnowledgeLibrary(
     embeddingModel: r.embedding_model,
     embeddingDimensions: r.embedding_dimensions,
     status: r.status,
+    isSystem: r.is_system ?? false,
     createdAt: r.created_at,
     modifiedAt: r.modified_at,
   };

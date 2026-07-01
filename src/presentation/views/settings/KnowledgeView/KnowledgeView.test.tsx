@@ -26,6 +26,7 @@ function library(overrides: Partial<KnowledgeLibrary> = {}): KnowledgeLibrary {
     embeddingModel: 'voyage-3',
     embeddingDimensions: 1024,
     status: 'active',
+    isSystem: false,
     createdAt: '2024-01-01T00:00:00Z',
     modifiedAt: '2024-01-01T00:00:00Z',
     ...overrides,
@@ -88,6 +89,33 @@ describe('KnowledgeView', () => {
     expect(await screen.findByText('Docs')).toBeInTheDocument();
     expect(screen.getByText('Wiki')).toBeInTheDocument();
     expect(screen.getByText('wiki')).toBeInTheDocument();
+  });
+
+  it('hides system-managed libraries from the management list', async () => {
+    renderWithProviders(<KnowledgeView />, {
+      services: services(() =>
+        Promise.resolve([
+          library({ id: 'sys', name: 'Nexus Kit Documentation', slug: 'nexus-kit-docs', isSystem: true }),
+          library({ id: 'mine', name: 'My Docs', slug: 'my-docs' }),
+        ]),
+      ),
+    });
+    // The user-owned library renders…
+    expect(await screen.findByText('My Docs')).toBeInTheDocument();
+    // …but the seeded / system library never appears here.
+    expect(screen.queryByText('Nexus Kit Documentation')).not.toBeInTheDocument();
+  });
+
+  it('shows the empty state when the only libraries are system-managed', async () => {
+    renderWithProviders(<KnowledgeView />, {
+      services: services(() =>
+        Promise.resolve([
+          library({ id: 'sys', name: 'Nexus Kit Documentation', isSystem: true }),
+        ]),
+      ),
+    });
+    expect(await screen.findByText(/No knowledge libraries yet/)).toBeInTheDocument();
+    expect(screen.queryByText('Nexus Kit Documentation')).not.toBeInTheDocument();
   });
 
   it('toggles the inline create form on New library', async () => {
