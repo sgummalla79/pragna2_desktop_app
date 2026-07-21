@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ServiceContext, type Services } from '@/presentation/providers/ServiceContext';
 import {
   useConnectorOAuthLoopback,
+  useDisconnectConnectorOAuth,
   useMcpConnectors,
   useRegisterMcpConnector,
 } from './useMcpConnectors';
@@ -41,6 +42,22 @@ describe('useRegisterMcpConnector', () => {
       await result.current.mutateAsync({ displayName: 'X', transport: 'http', config: {}, authType: 'none' } as never);
     });
     expect(register).toHaveBeenCalled();
+    const keys = invalidate.mock.calls.map((c) => (c[0] as { queryKey: unknown[] }).queryKey);
+    expect(keys).toContainEqual(['mcp-connectors']);
+    expect(keys).toContainEqual(['tools']);
+  });
+});
+
+describe('useDisconnectConnectorOAuth', () => {
+  it('calls disconnectOAuth and invalidates connectors + tools on success', async () => {
+    const disconnectOAuth = vi.fn().mockResolvedValue(undefined);
+    const { wrapper, qc } = setup({ disconnectOAuth });
+    const invalidate = vi.spyOn(qc, 'invalidateQueries');
+    const { result } = renderHook(() => useDisconnectConnectorOAuth(), { wrapper });
+    await act(async () => {
+      await result.current.mutateAsync('mc1');
+    });
+    expect(disconnectOAuth).toHaveBeenCalledWith('mc1');
     const keys = invalidate.mock.calls.map((c) => (c[0] as { queryKey: unknown[] }).queryKey);
     expect(keys).toContainEqual(['mcp-connectors']);
     expect(keys).toContainEqual(['tools']);

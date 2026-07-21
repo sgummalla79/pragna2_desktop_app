@@ -143,19 +143,25 @@ export function AddConnectorWizard({ open, onOpenChange, onRegistered }: Props) 
         authType: preset.authType,
         apiKeyName: preset.apiKeyName,
         apiKeyLocation: preset.apiKeyLocation,
+        // Surface preset-level OAuth flags (e.g. omitResourceAtTokenExchange)
+        // as pre-filled form state so the user sees and controls them, rather
+        // than injecting them silently at submit time (tracker #137).
+        ...(preset.oauthExtraFlags
+          ? {
+              oauthConfig: {
+                clientId: '',
+                loginUrl: '',
+                callbackPort: 0,
+                ...preset.oauthExtraFlags,
+              },
+            }
+          : {}),
       }
     : undefined;
 
   async function handleDetailsSubmit(p: DetailsSubmit) {
     setError(null);
     try {
-      // Merge any preset-level extra OAuth flags (e.g. omitResourceAtTokenExchange)
-      // into the user-supplied oauth block. Extra flags are invisible to the form —
-      // they are preset-injected and forwarded opaquely to the backend (tracker #137).
-      const oauthConfig =
-        p.oauthConfig && preset?.oauthExtraFlags
-          ? { ...p.oauthConfig, ...preset.oauthExtraFlags }
-          : p.oauthConfig;
       const result = await register.mutateAsync({
         displayName: p.displayName,
         description: p.description,
@@ -163,7 +169,9 @@ export function AddConnectorWizard({ open, onOpenChange, onRegistered }: Props) 
         config: {
           url: p.url,
           // Forward the optional generic pre-registered OAuth block, when set.
-          ...(oauthConfig ? { [MCP_OAUTH_CONFIG_KEY]: oauthConfig } : {}),
+          // omitResourceAtTokenExchange is now user-controlled (form checkbox)
+          // so the form's oauthConfig is the authoritative value (tracker #137).
+          ...(p.oauthConfig ? { [MCP_OAUTH_CONFIG_KEY]: p.oauthConfig } : {}),
         },
         authType: p.authType,
         credentials: p.credentials,

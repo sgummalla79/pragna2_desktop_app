@@ -1,42 +1,84 @@
-# Technical Spec: MCP OAuth `omitResourceAtTokenExchange` Preset Flag (tracker #137)
+# Technical Spec: MCP OAuth `omitResourceAtTokenExchange` User Checkbox (tracker #137, #248)
 
-## Changes
+## Summary of Change
 
-### `src/constants/mcpOAuth.ts`
-- Added `MCP_OAUTH_OMIT_RESOURCE_KEY = 'omitResourceAtTokenExchange'` — the camelCase key name
-  for the backend contract field.
+The `omitResourceAtTokenExchange` flag transitions from a **silent preset-injected value** (never
+visible to the user) to a **user-controlled checkbox** inside the Pre-registered OAuth app section
+of `ConnectorDetailsForm`. The Salesforce preset pre-checks it; all other connectors default to
+unchecked.
 
-### `src/domain/types/mcp.types.ts` — `McpOAuthConfig`
-- Added optional field `omitResourceAtTokenExchange?: boolean`.
-- `readMcpOAuthConfig()` passes the flag through when `true`; omits it otherwise (no `false`
-  written to the wire — absent = default-off on the backend).
+## Changed Files
 
-### `src/presentation/views/settings/ConnectorsView/connectorPresets.ts` — `ConnectorPreset`
-- Added `oauthExtraFlags?: Pick<McpOAuthConfig, 'omitResourceAtTokenExchange'>` — a narrow extra-flags
-  bag that is merged into `config.oauth` at connector-creation time without touching the form.
-- Salesforce preset sets `oauthExtraFlags: { omitResourceAtTokenExchange: true }`.
+### `src/presentation/views/settings/ConnectorsView/ConnectorDetailsForm.tsx`
+
+**New state:**
+```ts
+const [oauthOmitResource, setOauthOmitResource] = useState(
+  initial?.oauthConfig?.omitResourceAtTokenExchange === true,
+);
+```
+
+**`isDirty` addition:**
+```ts
+oauthOmitResource !== (initial?.oauthConfig?.omitResourceAtTokenExchange === true)
+```
+
+**`buildOAuthConfig` addition:**
+```ts
+...(oauthOmitResource ? { omitResourceAtTokenExchange: true } : {})
+```
+Key is omitted entirely when false — the backend interprets absence as `false`.
+
+**UI:** A `<label>` wrapping a native `<input type="checkbox">` + explanatory text is appended
+inside the `oauthAdvancedOpen` block, after the callback-port field.
+`data-testid="mcp-oauth-omit-resource"` for test targeting.
+
+**Auto-expand:** `oauthAdvancedOpen` initialises to `initial?.oauthConfig != null`, so the
+Salesforce preset (which now populates `initial.oauthConfig` via the wizard) causes the section
+to open automatically — the pre-checked box is immediately visible.
 
 ### `src/presentation/views/settings/ConnectorsView/AddConnectorWizard.tsx`
-- `handleDetailsSubmit`: when `preset?.oauthExtraFlags` is set and `p.oauthConfig` is present,
-  spreads `oauthExtraFlags` into the oauth config before the `register.mutateAsync` call.
-  Flags are NOT merged when `p.oauthConfig` is absent (plain DCR oauth or non-oauth connectors
-  don't carry an oauth block at all).
 
-## Data Flow
+**`detailsInitial` change:** When a preset has `oauthExtraFlags`, a partial `oauthConfig`
+skeleton is included in the initial values with the flags merged in:
+```ts
+...(preset.oauthExtraFlags
+  ? { oauthConfig: { clientId: '', loginUrl: '', callbackPort: 0, ...preset.oauthExtraFlags } }
+  : {})
+```
+`clientId`/`loginUrl`/`callbackPort` are empty/zero — `buildOAuthConfig` only assembles a valid
+block when all three required fields are non-empty, so the preset skeleton triggers auto-expand +
+pre-check without producing a premature submission block.
+
+**`handleDetailsSubmit` change:** Silent `oauthExtraFlags` merge removed. `p.oauthConfig` from
+the form is now the authoritative value, forwarded as-is to `register.mutateAsync`.
+
+### `src/presentation/views/settings/ConnectorsView/EditConnectorModal.tsx`
+
+`readMcpOAuthConfig(connector.config)` is called and the result is passed as
+`initial.oauthConfig`. This surfaces the persisted value (including `omitResourceAtTokenExchange`)
+in the form. Editing does not change the stored flag (BE PATCH does not accept `config`), but the
+user can see what is set.
+
+## Data Flow (create — Salesforce preset)
 
 ```
 Salesforce preset selected
-  → ConnectorDetailsForm (user fills clientId / loginUrl / callbackPort)
-  → DetailsSubmit.oauthConfig = { clientId, loginUrl, callbackPort }
-  → AddConnectorWizard.handleDetailsSubmit merges preset.oauthExtraFlags
-  → config.oauth = { clientId, loginUrl, callbackPort, omitResourceAtTokenExchange: true }
-  → POST /api/mcp-connectors — stored in connector row
-  → On complete(): backend reads flag, skips resource param in token POST
+  → detailsInitial.oauthConfig = { clientId:'', loginUrl:'', callbackPort:0,
+                                    omitResourceAtTokenExchange:true }
+  → ConnectorDetailsForm: oauthOmitResource=true, oauthAdvancedOpen=true (auto-expand)
+  → User fills clientId / loginUrl / callbackPort, sees pre-checked box
+  → buildOAuthConfig() → { clientId, loginUrl, callbackPort, omitResourceAtTokenExchange:true }
+  → DetailsSubmit.oauthConfig carries the flag
+  → AddConnectorWizard forwards it directly (no merge step)
+  → POST /api/mcp-connectors: config.oauth.omitResourceAtTokenExchange=true
+  → Backend reads flag, skips resource param in /token POST → no invalid_grant
 ```
 
-## Why `oauthExtraFlags` instead of embedding in `oauthConfig`
+## Unchanged
 
-`McpOAuthConfig` requires `clientId`, `loginUrl`, `callbackPort` — but the Salesforce preset has
-empty values for those until the user fills in the form. Embedding a partial `oauthConfig` with
-dummy required fields would be invalid. `oauthExtraFlags` is a separate, independently optional
-bag that is merged at submit time, keeping the required/optional boundary clean.
+- `McpOAuthConfig.omitResourceAtTokenExchange?: boolean` — no type change.
+- `readMcpOAuthConfig` pass-through logic — no change.
+- `MCP_OAUTH_OMIT_RESOURCE_KEY` constant — no change.
+- `ConnectorPreset.oauthExtraFlags` — still present; now used to seed `detailsInitial`
+  instead of merging at submit time.

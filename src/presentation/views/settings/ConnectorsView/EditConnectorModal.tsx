@@ -17,7 +17,7 @@ import { ERRORS } from '@/constants/errors';
 import { useDirtyDialog } from '@/presentation/hooks/useDirtyDialog';
 import { useUpdateMcpConnector } from '@/presentation/hooks/mcp-connectors/useMcpConnectors';
 import { ConnectorDetailsForm, type DetailsSubmit } from './ConnectorDetailsForm';
-import type { McpConnector } from '@/domain/types/mcp.types';
+import { readMcpOAuthConfig, type McpConnector } from '@/domain/types/mcp.types';
 
 interface Props {
   connector: McpConnector;
@@ -34,6 +34,9 @@ export function EditConnectorModal({ connector, open, onOpenChange }: Props) {
 
   const url =
     typeof connector.config?.url === 'string' ? connector.config.url : '';
+  // Restore any stored pre-registered OAuth config so the form shows the
+  // current persisted values (including omitResourceAtTokenExchange).
+  const oauthConfig = readMcpOAuthConfig(connector.config);
 
   async function handleSubmit(p: DetailsSubmit) {
     setError(null);
@@ -96,6 +99,7 @@ export function EditConnectorModal({ connector, open, onOpenChange }: Props) {
               url,
               transport: connector.transport,
               authType: connector.authType,
+              oauthConfig: oauthConfig ?? undefined,
             }}
             submitting={update.isPending}
             error={error}

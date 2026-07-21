@@ -70,4 +70,9 @@ export interface IMcpConnectorRepository {
     id: string,
     payload: CompleteOAuthRequest,
   ): Promise<CompleteOAuthResult>;
+
+  /** Clear all stored OAuth tokens and any in-flight handshake state, leaving
+   *  the connector config intact and ready for a fresh consent flow. Maps to
+   *  `DELETE /api/mcp-connectors/{id}/oauth-tokens` (204). */
+  disconnectOAuth(id: string): Promise<void>;
 }

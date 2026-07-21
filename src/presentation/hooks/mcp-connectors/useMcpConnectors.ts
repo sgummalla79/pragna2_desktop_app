@@ -111,6 +111,23 @@ export function useStartConnectorOAuth() {
   });
 }
 
+/** Disconnect an OAuth connector by clearing its stored tokens. After success
+ *  the connector's `hasOauthTokens` becomes `false`, transitioning it back to
+ *  the "Connect" state so the user can go through the consent flow again.
+ *  Invalidates the connectors list and the tools list (disconnected tokens mean
+ *  the connector's tools no longer resolve at runtime). */
+export function useDisconnectConnectorOAuth() {
+  const { mcpConnectorService } = useServices();
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: (id) => mcpConnectorService.disconnectOAuth(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: MCP_CONNECTORS_KEY });
+      qc.invalidateQueries({ queryKey: TOOLS_KEY });
+    },
+  });
+}
+
 /** Complete a pre-registered-client (loopback) OAuth connect on the desktop:
  *  authorize → capture on the connector's `callbackPort` → exchange. On a
  *  `connected` result the connector now has stored tokens, so invalidate the

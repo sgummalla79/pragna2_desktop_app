@@ -55,6 +55,21 @@ const OAUTH_SUBMIT: DetailsSubmit = {
   clearCredentials: true,
 };
 
+// Simulates what the form emits when the Salesforce preset pre-checks the box.
+const SALESFORCE_SUBMIT: DetailsSubmit = {
+  displayName: 'Salesforce CRM',
+  url: 'https://mcp.salesforce.com',
+  transport: 'streamable_http',
+  authType: 'oauth',
+  clearCredentials: true,
+  oauthConfig: {
+    clientId: 'sf_cid',
+    loginUrl: 'https://login.salesforce.com',
+    callbackPort: 8082,
+    omitResourceAtTokenExchange: true,
+  },
+};
+
 function registeredFrom(submit: DetailsSubmit, toolNames: string[] = []) {
   return {
     id: 'new-1',
@@ -239,6 +254,31 @@ describe('AddConnectorWizard', () => {
       await screen.findByText(/This server needs OAuth client credentials/),
     ).toBeInTheDocument();
     expect(openUrl).not.toHaveBeenCalled();
+  });
+
+  it('forwards omitResourceAtTokenExchange from the form oauthConfig to the register call', async () => {
+    const register = vi
+      .fn()
+      .mockResolvedValue(registeredFrom(SALESFORCE_SUBMIT));
+    renderWithProviders(
+      <AddConnectorWizard open onOpenChange={vi.fn()} />,
+      { services: services({ register }) },
+    );
+    await screen.findByText('Add a connector');
+    await userEvent.click(screen.getByTestId('connector-preset-salesforce'));
+    await screen.findByTestId('details-form');
+
+    lastFormProps!.onSubmit(SALESFORCE_SUBMIT);
+
+    await waitFor(() =>
+      expect(register).toHaveBeenCalledWith(
+        expect.objectContaining({
+          config: expect.objectContaining({
+            oauth: expect.objectContaining({ omitResourceAtTokenExchange: true }),
+          }),
+        }),
+      ),
+    );
   });
 
   it('surfaces a registration error from the details form (stays on details)', async () => {
