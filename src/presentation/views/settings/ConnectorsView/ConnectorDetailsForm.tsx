@@ -63,7 +63,11 @@ export interface ConnectorDetailsInitial {
   /** Default key name + location for an `api_key` preset. */
   apiKeyName?: string;
   apiKeyLocation?: InjectionLocation;
-  /** Pre-registered OAuth app block (generic; `oauth` connectors only). */
+  /**
+   * Pre-registered OAuth app block (generic; `oauth` connectors only).
+   * `omitResourceAtTokenExchange` is surfaced as a checkbox in the form's
+   * OAuth Advanced section rather than injected silently by the preset.
+   */
   oauthConfig?: McpOAuthConfig;
 }
 
@@ -178,6 +182,11 @@ export function ConnectorDetailsForm({
   const [oauthCallbackPort, setOauthCallbackPort] = useState(
     initial?.oauthConfig ? String(initial.oauthConfig.callbackPort) : '',
   );
+  const [oauthOmitResource, setOauthOmitResource] = useState(
+    initial?.oauthConfig?.omitResourceAtTokenExchange === true,
+  );
+  // Auto-expand the OAuth advanced section when the preset pre-fills any field
+  // (including omitResourceAtTokenExchange) so preset-users see what was set.
   const [oauthAdvancedOpen, setOauthAdvancedOpen] = useState(
     initial?.oauthConfig != null,
   );
@@ -196,7 +205,8 @@ export function ConnectorDetailsForm({
     oauthClientId.trim() !== (initial?.oauthConfig?.clientId ?? '').trim() ||
     oauthLoginUrl.trim() !== (initial?.oauthConfig?.loginUrl ?? '').trim() ||
     oauthCallbackPort.trim() !==
-      (initial?.oauthConfig ? String(initial.oauthConfig.callbackPort) : '');
+      (initial?.oauthConfig ? String(initial.oauthConfig.callbackPort) : '') ||
+    oauthOmitResource !== (initial?.oauthConfig?.omitResourceAtTokenExchange === true);
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -269,9 +279,15 @@ export function ConnectorDetailsForm({
     if (!anyFilled) return { config: undefined };
 
     // Reuse the domain reader so the form and the runtime decision validate the
-    // block identically (DRY).
+    // block identically (DRY). Include omitResourceAtTokenExchange only when
+    // the user has checked the box (omit the key entirely when false).
     const candidate = readMcpOAuthConfig({
-      [MCP_OAUTH_CONFIG_KEY]: { clientId, loginUrl, callbackPort: Number(portStr) },
+      [MCP_OAUTH_CONFIG_KEY]: {
+        clientId,
+        loginUrl,
+        callbackPort: Number(portStr),
+        ...(oauthOmitResource ? { omitResourceAtTokenExchange: true } : {}),
+      },
     });
     if (!candidate) {
       return {
@@ -474,6 +490,29 @@ export function ConnectorDetailsForm({
                     (http://localhost:&#123;port&#125;/callback).
                   </p>
                 </div>
+
+                {/* Token-exchange quirk: some AS (e.g. Salesforce) reject the
+                    RFC 8707 resource param at /token and return invalid_grant.
+                    Tracker #136 / #137. */}
+                <label className="flex cursor-pointer items-start gap-2.5 pt-1">
+                  <input
+                    type="checkbox"
+                    checked={oauthOmitResource}
+                    onChange={(e) => setOauthOmitResource(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                    data-testid="mcp-oauth-omit-resource"
+                  />
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-sm font-medium leading-none">
+                      Omit resource parameter at token exchange
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      Enable for authorization servers (e.g. Salesforce) that
+                      reject the RFC&nbsp;8707 <code>resource</code> parameter
+                      at the token endpoint.
+                    </span>
+                  </span>
+                </label>
               </div>
             )}
           </div>

@@ -134,4 +134,8 @@ export class McpConnectorRepository implements IMcpConnectorRepository {
     );
     return { connectorId: data.connector_id };
   }
+
+  async disconnectOAuth(id: string): Promise<void> {
+    await this.http.delete(`/mcp-connectors/${id}/oauth-tokens`);
+  }
 }

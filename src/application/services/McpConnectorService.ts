@@ -86,6 +86,19 @@ export class McpConnectorService {
   }
 
   /**
+   * Clear all stored OAuth tokens and any in-flight handshake state for the
+   * connector, leaving its config intact so the user can reconnect via a fresh
+   * consent flow. After this call `hasOauthTokens` will be `false` on the
+   * connector.
+   *
+   * @param id The connector whose tokens to clear.
+   * @throws Propagates repository errors for the caller to surface inline.
+   */
+  disconnectOAuth(id: string): Promise<void> {
+    return this.repo.disconnectOAuth(id);
+  }
+
+  /**
    * Complete a pre-registered-client (loopback) OAuth connect on the desktop
    * (tracker #131): authorize → capture the redirect on the connector's fixed
    * `callbackPort` → exchange. Used only when the connector carries

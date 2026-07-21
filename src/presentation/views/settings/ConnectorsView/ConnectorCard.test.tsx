@@ -51,6 +51,7 @@ interface ServiceFns {
   refreshTools?: ReturnType<typeof vi.fn>;
   startOAuth?: ReturnType<typeof vi.fn>;
   connectViaLoopback?: ReturnType<typeof vi.fn>;
+  disconnectOAuth?: ReturnType<typeof vi.fn>;
   toolList?: ReturnType<typeof vi.fn>;
 }
 
@@ -71,6 +72,8 @@ function services(fns: ServiceFns = {}): Partial<Services> {
       connectViaLoopback:
         fns.connectViaLoopback ??
         vi.fn().mockResolvedValue({ status: 'connected', connectorId: 'c1' }),
+      disconnectOAuth:
+        fns.disconnectOAuth ?? vi.fn().mockResolvedValue(undefined),
     },
     toolService: { list: fns.toolList ?? vi.fn().mockResolvedValue([]) },
   } as unknown as Partial<Services>;
@@ -295,6 +298,60 @@ describe('ConnectorCard', () => {
     await userEvent.click(screen.getByRole('button', { name: 'My Server' }));
     expect(
       await screen.findByText('Failed to update the connector.'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows Disconnect button only when hasOauthTokens is true and calls disconnectOAuth', async () => {
+    const disconnectOAuth = vi.fn().mockResolvedValue(undefined);
+    renderWithProviders(
+      <ConnectorCard
+        connector={makeConnector({ authType: 'oauth', hasOauthTokens: true })}
+      />,
+      { services: services({ disconnectOAuth }) },
+    );
+
+    // Expand body to reveal the OAuth section.
+    await userEvent.click(screen.getByRole('button', { name: 'My Server' }));
+
+    const disconnectBtn = screen.getByRole('button', { name: 'Disconnect' });
+    expect(disconnectBtn).toBeInTheDocument();
+
+    await userEvent.click(disconnectBtn);
+    // ConfirmButton opens an alertdialog; click the confirm button.
+    const dialog = await screen.findByRole('alertdialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Disconnect' }));
+
+    await waitFor(() => expect(disconnectOAuth).toHaveBeenCalledWith('c1'));
+  });
+
+  it('hides the Disconnect button when hasOauthTokens is false', async () => {
+    renderWithProviders(
+      <ConnectorCard
+        connector={makeConnector({ authType: 'oauth', hasOauthTokens: false })}
+      />,
+      { services: services() },
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'My Server' }));
+    expect(screen.queryByRole('button', { name: 'Disconnect' })).not.toBeInTheDocument();
+  });
+
+  it('shows an error when disconnectOAuth fails', async () => {
+    const disconnectOAuth = vi.fn().mockRejectedValue(new Error('server error'));
+    renderWithProviders(
+      <ConnectorCard
+        connector={makeConnector({ authType: 'oauth', hasOauthTokens: true })}
+      />,
+      { services: services({ disconnectOAuth }) },
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'My Server' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
+    const dialog = await screen.findByRole('alertdialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Disconnect' }));
+
+    expect(
+      await screen.findByText('Failed to disconnect. Please try again.'),
     ).toBeInTheDocument();
   });
 });

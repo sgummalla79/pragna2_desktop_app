@@ -323,6 +323,96 @@ describe('ConnectorDetailsForm', () => {
     );
   });
 
+  // fireEvent (not userEvent) throughout — avoids per-keystroke re-render overhead
+  // that pushes slow-machine runs over the 5000ms timeout (see pre-existing tests
+  // api_key / custom-headers for the same pattern).
+  it('includes omitResourceAtTokenExchange when the checkbox is checked', () => {
+    const onSubmit = vi.fn();
+    const { container } = render(
+      <ConnectorDetailsForm {...baseProps()} onSubmit={onSubmit} />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Authentication method'), {
+      target: { value: 'oauth' },
+    });
+    fireEvent.change(screen.getByLabelText('Name'), {
+      target: { value: 'Salesforce' },
+    });
+    fireEvent.change(screen.getByLabelText('Server URL'), {
+      target: { value: 'https://mcp.salesforce.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Pre-registered OAuth app/ }));
+    fireEvent.change(screen.getByTestId('mcp-oauth-client-id'), {
+      target: { value: 'sf_cid' },
+    });
+    fireEvent.change(screen.getByTestId('mcp-oauth-login-url'), {
+      target: { value: 'https://login.salesforce.com' },
+    });
+    fireEvent.change(screen.getByTestId('mcp-oauth-callback-port'), {
+      target: { value: '8082' },
+    });
+    fireEvent.click(screen.getByTestId('mcp-oauth-omit-resource'));
+    fireEvent.submit(container.querySelector('form')!);
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        oauthConfig: expect.objectContaining({ omitResourceAtTokenExchange: true }),
+      }),
+    );
+  });
+
+  it('omits omitResourceAtTokenExchange from oauthConfig when the checkbox is unchecked', () => {
+    const onSubmit = vi.fn();
+    const { container } = render(
+      <ConnectorDetailsForm {...baseProps()} onSubmit={onSubmit} />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Authentication method'), {
+      target: { value: 'oauth' },
+    });
+    fireEvent.change(screen.getByLabelText('Name'), {
+      target: { value: 'Generic' },
+    });
+    fireEvent.change(screen.getByLabelText('Server URL'), {
+      target: { value: 'https://mcp.example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Pre-registered OAuth app/ }));
+    fireEvent.change(screen.getByTestId('mcp-oauth-client-id'), {
+      target: { value: 'cid' },
+    });
+    fireEvent.change(screen.getByTestId('mcp-oauth-login-url'), {
+      target: { value: 'https://login.example.com' },
+    });
+    fireEvent.change(screen.getByTestId('mcp-oauth-callback-port'), {
+      target: { value: '8082' },
+    });
+    // Leave the checkbox unchecked (default).
+    fireEvent.submit(container.querySelector('form')!);
+
+    const call = (onSubmit as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(call.oauthConfig).not.toHaveProperty('omitResourceAtTokenExchange');
+  });
+
+  it('pre-checks the omitResourceAtTokenExchange checkbox when initial.oauthConfig has it true', async () => {
+    render(
+      <ConnectorDetailsForm
+        {...baseProps()}
+        initial={{
+          authType: 'oauth',
+          oauthConfig: {
+            clientId: 'cid',
+            loginUrl: 'https://login.salesforce.com',
+            callbackPort: 8082,
+            omitResourceAtTokenExchange: true,
+          },
+        }}
+      />,
+    );
+
+    // The Pre-registered section auto-expands when oauthConfig is supplied.
+    expect(screen.getByTestId('mcp-oauth-omit-resource')).toBeChecked();
+  });
+
   it('omits config.oauth when none of the pre-registered fields are filled', async () => {
     const onSubmit = vi.fn();
     render(<ConnectorDetailsForm {...baseProps()} onSubmit={onSubmit} />);

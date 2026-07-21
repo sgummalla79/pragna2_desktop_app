@@ -77,4 +77,16 @@ describe('McpConnectorRepository', () => {
     expect(body).toEqual({ code: 'C', state: 'S' });
     expect(out).toEqual({ connectorId: 'mc1' });
   });
+
+  it('disconnectOAuth calls DELETE /mcp-connectors/{id}/oauth-tokens and resolves void', async () => {
+    let called = false;
+    server.use(
+      http.delete(`${BASE}/mcp-connectors/mc1/oauth-tokens`, () => {
+        called = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    await expect(repo().disconnectOAuth('mc1')).resolves.toBeUndefined();
+    expect(called).toBe(true);
+  });
 });
