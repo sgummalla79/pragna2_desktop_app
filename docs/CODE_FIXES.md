@@ -11,6 +11,16 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-054 — `omitResourceAtTokenExchange` silently injected by preset, invisible/unavailable for custom connectors and edit mode (nexus-kit-tracker #248)
+
+- **Date:** 2026-07-15
+- **Tracker:** nexus-kit-tracker #248 (`target:desktop-fe`, `type:bug`)
+- **Area / files:** `src/presentation/views/settings/ConnectorsView/ConnectorDetailsForm.tsx` (checkbox state + UI + `buildOAuthConfig` + `isDirty`), `AddConnectorWizard.tsx` (`detailsInitial` seeding + removed silent merge), `EditConnectorModal.tsx` (`readMcpOAuthConfig` pass-through to `initial`), `docs/specs/features/mcp-oauth-omit-resource-preset.md`, `docs/specs/technical/mcp-oauth-omit-resource-preset.md`.
+- **Found by:** BE team identified that the original #137 implementation had three silent failure modes: (1) users couldn't see or audit the flag being sent; (2) custom/non-preset Salesforce connectors never got the flag → `invalid_grant` on every OAuth attempt; (3) editing a connector showed no checkbox, making the stored value invisible.
+- **Bug + root cause:** The original design set `omitResourceAtTokenExchange` via a preset-level `oauthExtraFlags` bag that was merged silently into `config.oauth` at wizard submit time, entirely bypassing the form. Three consequences: the user never saw the value (no auditability or override), the path only worked when using the Salesforce gallery tile (custom connector path had no equivalent injection), and `EditConnectorModal` never populated `initial.oauthConfig`, so editing a Salesforce connector gave no visibility into what was stored.
+- **Fix:** Promote to a user-controlled checkbox inside the "Pre-registered OAuth app · optional" collapsible section of `ConnectorDetailsForm`. Salesforce preset seeds `initial.oauthConfig` with the flag (causing auto-expand + pre-check) instead of injecting at submit time. `EditConnectorModal` now calls `readMcpOAuthConfig(connector.config)` and passes the result as `initial.oauthConfig`. Removed the silent `oauthExtraFlags` merge in `AddConnectorWizard.handleDetailsSubmit`; the form's assembled `oauthConfig` is now authoritative.
+- **Web-app applicability:** **CHECK — likely present.** `pragna2_sgummalla_works` shares the connectors UI. If it has the same preset-injection pattern, it needs the same checkbox + `detailsInitial` seeding + edit-modal fix. Track under `target:web-fe`.
+
 ## CF-053 — sketchon "Copy as PNG" silently does nothing in the macOS Tauri webview (lost clipboard user-gesture)
 
 - **Date:** 2026-06-30

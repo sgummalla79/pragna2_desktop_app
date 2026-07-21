@@ -35,6 +35,7 @@ import { detailOr } from '@/lib/httpError';
 import {
   useArchiveMcpConnector,
   useConnectorOAuthLoopback,
+  useDisconnectConnectorOAuth,
   useRefreshMcpConnectorTools,
   useStartConnectorOAuth,
   useUpdateMcpConnector,
@@ -61,6 +62,7 @@ export function ConnectorCard({ connector }: Props) {
   const refreshTools = useRefreshMcpConnectorTools();
   const startOAuth = useStartConnectorOAuth();
   const loopbackConnect = useConnectorOAuthLoopback();
+  const disconnectOAuth = useDisconnectConnectorOAuth();
   const { data: allTools = [] } = useTools();
   const [editOpen, setEditOpen] = useState(false);
 
@@ -114,7 +116,18 @@ export function ConnectorCard({ connector }: Props) {
     }
   }
 
+  async function handleDisconnect() {
+    setError(null);
+    setOauthNote(null);
+    try {
+      await disconnectOAuth.mutateAsync(connector.id);
+    } catch (err) {
+      setError(detailOr(err, ERRORS.CON_010.message));
+    }
+  }
+
   const connectPending = startOAuth.isPending || loopbackConnect.isPending;
+  const disconnectPending = disconnectOAuth.isPending;
 
   const isActive = connector.status === 'active';
 
@@ -326,18 +339,40 @@ export function ConnectorCard({ connector }: Props) {
                     </span>
                   )}
                 </div>
-                <Button
-                  size="sm"
-                  variant={connector.hasOauthTokens ? 'outline' : 'default'}
-                  onClick={() => handleConnect()}
-                  disabled={connectPending}
-                >
-                  {connectPending
-                    ? 'Starting…'
-                    : connector.hasOauthTokens
-                      ? 'Reconnect'
-                      : 'Connect with OAuth'}
-                </Button>
+                <div className="flex items-center gap-2">
+                  {connector.hasOauthTokens && (
+                    <ConfirmButton
+                      size="sm"
+                      variant="outline"
+                      confirmTitle="Disconnect OAuth?"
+                      confirmDescription={
+                        <>
+                          This clears the stored tokens for{' '}
+                          <strong>{connector.displayName}</strong>. The connector
+                          and its configuration are kept — you can reconnect at any
+                          time.
+                        </>
+                      }
+                      confirmLabel="Disconnect"
+                      onConfirm={handleDisconnect}
+                      disabled={disconnectPending || connectPending}
+                    >
+                      {disconnectPending ? 'Disconnecting…' : 'Disconnect'}
+                    </ConfirmButton>
+                  )}
+                  <Button
+                    size="sm"
+                    variant={connector.hasOauthTokens ? 'outline' : 'default'}
+                    onClick={() => handleConnect()}
+                    disabled={connectPending || disconnectPending}
+                  >
+                    {connectPending
+                      ? 'Starting…'
+                      : connector.hasOauthTokens
+                        ? 'Reconnect'
+                        : 'Connect with OAuth'}
+                  </Button>
+                </div>
               </div>
 
               {oauthNote && (

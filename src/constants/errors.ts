@@ -53,6 +53,7 @@ export const ERRORS = {
   CON_007: { code: 'CON_007', message: 'Could not complete the connection. Please try again.', severity: 'error' },
   CON_008: { code: 'CON_008', message: 'The callback port is already in use. Close the app using it and try again.', severity: 'error' },
   CON_009: { code: 'CON_009', message: 'The connection timed out. Please try again.', severity: 'warn' },
+  CON_010: { code: 'CON_010', message: 'Failed to disconnect. Please try again.', severity: 'error' },
 
   // ── Tools ─────────────────────────────────────────────────────────────────
   TOOL_001: { code: 'TOOL_001', message: 'Failed to load tools.', severity: 'error' },
