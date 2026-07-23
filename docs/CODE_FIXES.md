@@ -11,6 +11,15 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 
 ---
 
+## CF-055 — PDF pages stuck at animation width after Sheet open (nexus-kit-tracker #250)
+
+- **Date:** 2026-07-23
+- **Tracker:** nexus-kit-tracker #250 (`target:desktop-fe`, `type:bug`)
+- **Area / file:** `src/presentation/views/chat/components/PdfCanvasViewer.tsx` (`PdfPage` component)
+- **Bug + root cause:** When a PDF is displayed inside a Sheet, the open animation delivers intermediate (narrower) widths before settling at the final size. `PdfPage` used a boolean `rendered` flag — once the page rendered at the animation width, the `useEffect` guard (`if (!el || rendered || targetWidth === 0) return`) permanently prevented a re-paint, so the page was stuck at the wrong narrow width.
+- **Fix:** Replaced `rendered: boolean` with `renderedAtWidth: number` that stores the width of the last completed render. The guard now skips only when `targetWidth === renderedAtWidth`. Pages already rendered once re-paint immediately on `targetWidth` change without waiting for the IntersectionObserver to fire again.
+- **Web-app applicability:** **CHECK — likely present.** `pragna2_sgummalla_works` may have the same `PdfCanvasViewer` component with the boolean flag pattern. Apply the same `renderedAtWidth` fix there.
+
 ## CF-054 — `omitResourceAtTokenExchange` silently injected by preset, invisible/unavailable for custom connectors and edit mode (nexus-kit-tracker #248)
 
 - **Date:** 2026-07-15

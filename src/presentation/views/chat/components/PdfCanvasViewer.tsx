@@ -112,7 +112,11 @@ function PdfPage({ doc, pageNumber, targetWidth }: PdfPageProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [aspect, setAspect] = useState<number>(DEFAULT_PAGE_ASPECT_RATIO);
-  const [rendered, setRendered] = useState(false);
+  // Track the width at which the page was last rendered so a targetWidth change
+  // (e.g. the Sheet open animation delivering intermediate widths before settling)
+  // re-renders the page at the final size. A boolean `rendered` flag would
+  // permanently skip the re-render once page 1 fired at the interim animation width.
+  const [renderedAtWidth, setRenderedAtWidth] = useState(0);
 
   // Learn the true page aspect ratio so the placeholder reserves correct height.
   useEffect(() => {
@@ -132,10 +136,11 @@ function PdfPage({ doc, pageNumber, targetWidth }: PdfPageProps) {
     };
   }, [doc, pageNumber]);
 
-  // Paint the page to canvas once it scrolls near the viewport.
+  // Paint the page to canvas once it scrolls near the viewport, and re-paint
+  // whenever targetWidth changes (e.g. Sheet resize or animation settling).
   useEffect(() => {
     const el = wrapRef.current;
-    if (!el || rendered || targetWidth === 0) return;
+    if (!el || targetWidth === 0 || targetWidth === renderedAtWidth) return;
 
     const renderPage = async () => {
       const canvas = canvasRef.current;
@@ -150,8 +155,17 @@ function PdfPage({ doc, pageNumber, targetWidth }: PdfPageProps) {
       canvas.style.width = `${targetWidth}px`;
       canvas.style.height = `${targetWidth * (base.height / base.width)}px`;
       await page.render({ canvas, viewport }).promise;
-      setRendered(true);
+      setRenderedAtWidth(targetWidth);
     };
+
+    // If the page has already been rendered once, re-render immediately on resize
+    // without waiting for the IntersectionObserver to fire again.
+    if (renderedAtWidth > 0) {
+      void renderPage().catch((e: unknown) => {
+        logger.fromError('PDF_002:page', e instanceof Error ? e : new Error(String(e)));
+      });
+      return;
+    }
 
     const io = new IntersectionObserver(
       (entries) => {
@@ -169,13 +183,13 @@ function PdfPage({ doc, pageNumber, targetWidth }: PdfPageProps) {
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [doc, pageNumber, targetWidth, rendered]);
+  }, [doc, pageNumber, targetWidth, renderedAtWidth]);
 
   return (
     <div
       ref={wrapRef}
       className="mb-3 bg-white shadow-sm"
-      style={{ width: targetWidth, height: rendered ? undefined : targetWidth * aspect }}
+      style={{ width: targetWidth, height: renderedAtWidth > 0 ? undefined : targetWidth * aspect }}
     >
       <canvas ref={canvasRef} className="block" />
     </div>
