@@ -20,6 +20,24 @@ Each entry: **date · area/file · the bug + root cause · the fix · web-app ap
 - **Fix:** Replaced `rendered: boolean` with `renderedAtWidth: number` that stores the width of the last completed render. The guard now skips only when `targetWidth === renderedAtWidth`. Pages already rendered once re-paint immediately on `targetWidth` change without waiting for the IntersectionObserver to fire again.
 - **Web-app applicability:** **CHECK — likely present.** `pragna2_sgummalla_works` may have the same `PdfCanvasViewer` component with the boolean flag pattern. Apply the same `renderedAtWidth` fix there.
 
+## CF-056 — Attachment upload failure is silent: no toast, send not blocked, document silently dropped (nexus-kit-tracker #251)
+
+- **Date:** 2026-07-23
+- **Tracker:** nexus-kit-tracker #251 (`target:desktop-fe`, `type:bug`)
+- **Area / files:** `src/presentation/views/chat/components/ChatInput.tsx`, `src/presentation/views/chat/components/ChatInput.test.tsx`
+- **Found by:** User reported attaching a document, sending a message, and the LLM replied as if no document had been sent.
+- **Bug + root cause:** Three silent failure modes in `ChatInput`:
+  1. **No toast on oversized file:** when `file.size > ATTACHMENT_MAX_BYTES` the entry was marked `errored: true` and staged as a red-tinted chip, but no `toast.error()` was called — the user had no clear notification.
+  2. **No toast on backend upload failure:** the `catch` in `stageFiles` only called `logger.fromError` and marked the entry `errored: true`, but again no toast.
+  3. **Send not blocked by errored attachments:** `canSend` checked `uploadsInFlight` (the `uploading: true` state) but not `errored`. So a user could type text and hit Send while every attachment chip was in an error state. `readyAttachmentIds` filters errored entries out, so no `attachment_ids` reach the backend and the LLM replies as if none were attached. `clearPending()` then removes all chips on submit, so there is no post-send evidence of the failure.
+- **Fix:**
+  1. Added `toast.error()` in the oversized-file branch: `"<filename>" is too large (max 10 MB)`.
+  2. Added `toast.error()` in the upload-failure `catch`: `"<filename>" failed to upload — please try again`.
+  3. Added `hasErroredAttachments = pending.some(p => p.errored)` and included `!hasErroredAttachments` in the `canSend` guard, so Send is disabled while any errored chip exists.
+  4. Updated the Send button `title` attribute to show `"Remove failed attachments to send"` when `hasErroredAttachments` is true (distinct from the existing `"Waiting for uploads…"` for in-flight uploads).
+  5. Two new tests: oversized-file toast + send-blocked; upload-failure toast + send-blocked + re-enable after chip removal.
+- **Web-app applicability:** **CHECK — likely present.** `pragna2_sgummalla_works` shares the attachment composer pattern. Apply the same `toast.error()` calls + `hasErroredAttachments` guard to its `ChatInput` equivalent. Track under `target:web-fe`.
+
 ## CF-054 — `omitResourceAtTokenExchange` silently injected by preset, invisible/unavailable for custom connectors and edit mode (nexus-kit-tracker #248)
 
 - **Date:** 2026-07-15
