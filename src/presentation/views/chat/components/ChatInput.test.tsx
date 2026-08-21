@@ -7,6 +7,9 @@ import type { Attachment } from '@/domain/types/attachment.types';
 import type { PragnaSlashFlow } from '@/domain/types/pragnaSlashFlow.types';
 import { ChatInput } from './ChatInput';
 
+vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+import { toast } from 'sonner';
+
 /**
  * ChatInput: send/stop gating, Enter-vs-Shift+Enter, the attach button + chip,
  * and the `/slash` popover. Attachments go through `useUploadAttachment` →
@@ -158,6 +161,53 @@ describe('ChatInput — attachments', () => {
     const remove = await screen.findByRole('button', { name: 'Remove shot.png' });
     await userEvent.click(remove);
     expect(screen.queryByText('shot.png')).not.toBeInTheDocument();
+  });
+
+  it('shows a toast and blocks Send when a file exceeds the size limit', async () => {
+    const { services } = servicesWithUpload();
+    renderWithProviders(<Host onSubmit={vi.fn()} conversationId="c1" />, { services });
+
+    // Create a file that exceeds the 10 MB cap (10 * 1024 * 1024 + 1 bytes).
+    const bigFile = new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'huge.pdf', {
+      type: 'application/pdf',
+    });
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await userEvent.upload(input, bigFile);
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('"huge.pdf" is too large (max 10 MB)'),
+    );
+
+    // Chip is staged but Send is still disabled even after typing text.
+    await userEvent.type(screen.getByRole('textbox'), 'here');
+    expect(screen.getByRole('button', { name: 'Send message' })).toBeDisabled();
+  });
+
+  it('shows a toast and blocks Send when the upload fails, then re-enables after chip removal', async () => {
+    const uploadFn = vi.fn().mockRejectedValue(new Error('500 Internal Server Error'));
+    const { services } = servicesWithUpload(uploadFn);
+    renderWithProviders(<Host onSubmit={vi.fn()} conversationId="c1" />, { services });
+
+    const file = new File(['x'], 'report.pdf', { type: 'application/pdf' });
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await userEvent.upload(input, file);
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        '"report.pdf" failed to upload — please try again',
+      ),
+    );
+
+    // Send is disabled while the errored chip is present.
+    await userEvent.type(screen.getByRole('textbox'), 'here');
+    expect(screen.getByRole('button', { name: 'Send message' })).toBeDisabled();
+
+    // Removing the errored chip re-enables Send.
+    const remove = await screen.findByRole('button', { name: 'Remove report.pdf' });
+    await userEvent.click(remove);
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Send message' })).toBeEnabled(),
+    );
   });
 });
 

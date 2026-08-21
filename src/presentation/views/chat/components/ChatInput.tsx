@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { ArrowUp, Paperclip, Square } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { SLASH_MAX_ITEMS } from '@/constants/slashCommands';
 import { ATTACHMENT_ACCEPT, ATTACHMENT_MAX_BYTES, isImageType } from '@/constants/attachments';
@@ -103,14 +104,16 @@ export function ChatInput({
     [pending],
   );
 
+  const hasErroredAttachments = pending.some((p) => p.errored);
   const canSend =
-    !disabled && !running && !uploadsInFlight && value.trim().length > 0;
+    !disabled && !running && !uploadsInFlight && !hasErroredAttachments && value.trim().length > 0;
 
   const stageFiles = useCallback(
     (files: FileList) => {
       if (!conversationId) return;
       for (const file of Array.from(files)) {
         if (file.size > ATTACHMENT_MAX_BYTES) {
+          toast.error(`"${file.name}" is too large (max 10 MB)`);
           setPending((prev) => [
             ...prev,
             {
@@ -153,6 +156,9 @@ export function ChatInput({
               'ATT_001:upload',
               err instanceof Error ? err : new Error(String(err)),
             );
+            // Capture filename before the async state update for the toast.
+            const failedName = file.name;
+            toast.error(`"${failedName}" failed to upload — please try again`);
             setPending((prev) =>
               prev.map((p) =>
                 p.clientKey === clientKey
@@ -380,7 +386,13 @@ export function ChatInput({
             onClick={doSubmit}
             disabled={!canSend}
             aria-label="Send message"
-            title={uploadsInFlight ? 'Waiting for uploads…' : 'Send message'}
+            title={
+              uploadsInFlight
+                ? 'Waiting for uploads…'
+                : hasErroredAttachments
+                  ? 'Remove failed attachments to send'
+                  : 'Send message'
+            }
             className={cn(
               'flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors',
               canSend
